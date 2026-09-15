@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:ci": "vitest run --coverage",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "e2e": "playwright test"
+  }
+}

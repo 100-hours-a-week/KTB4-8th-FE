@@ -1,0 +1,238 @@
+name: Frontend CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: keepgo-web
+
+jobs:
+  quality:
+    name: Code quality and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit and integration tests
+        run: npm run test:ci
+
+  app_build:
+    name: Next.js static export
+    needs: quality
+
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    env:
+      NEXT_PUBLIC_API_BASE_URL: /api
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static site
+        run: npm run build
+
+      - name: Verify export output
+        run: |
+          test -d out
+          test -f out/index.html
+          test -d out/_next/static
+
+  docker_verify:
+    name: Docker image verification
+    needs: app_build
+
+    if: github.event_name == 'pull_request'
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: keepgo-web:ci
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=/api
+            NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create temporary TLS certificate
+        run: |
+          mkdir -p .ci/tls
+          openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout .ci/tls/privkey.pem \
+            -out .ci/tls/fullchain.pem \
+            -days 1 \
+            -subj "/CN=keepgo.example.com"
+
+      - name: Start container
+        run: |
+          docker run --detach \
+            --name keepgo-web-ci \
+            --publish 8080:80 \
+            --volume "${PWD}/.ci/tls:/etc/nginx/tls:ro" \
+            keepgo-web:ci
+
+      - name: Check container health
+        run: |
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/healthz; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs keepgo-web-ci
+          exit 1
+
+      - name: Stop test container
+        if: always()
+        run: docker rm --force keepgo-web-ci || true
+
+  image_publish:
+    name: Publish image to ECR
+    needs: app_build
+
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_CI_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: keepgo-frontend-ci
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push immutable image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: >-
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=/api
+            NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  ci_gate:
+    name: ci-gate
+    needs:
+      - quality
+      - app_build
+      - docker_verify
+      - image_publish
+
+    if: always()
+
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+
+    steps:
+      - name: Evaluate CI result
+        shell: bash
+        run: |
+          test "${{ needs.quality.result }}" = "success"
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            test "${{ needs.app_build.result }}" = "success"
+            test "${{ needs.docker_verify.result }}" = "success"
+          fi
+
+          if [[ "${{ github.event_name }}" == "push" &&
+                "${{ github.ref }}" == "refs/heads/main" ]]; then
+            test "${{ needs.app_build.result }}" = "success"
+            test "${{ needs.image_publish.result }}" = "success"
+          fi
