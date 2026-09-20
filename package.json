@@ -8,6 +8,14 @@
     "test:ci": "vitest run --coverage",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "start": "next start",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "eslint-config-next": "^16.3.5",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.8"
   }
 }
