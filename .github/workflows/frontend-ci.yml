@@ -96,3 +96,59 @@ jobs:
         run: |
           test -f .next/standalone/server.js
           test -d .next/static
+
+  publish:
+    name: Build and push frontend images
+    needs: quality
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ECR_PUSH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build frontend and Nginx iamges
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          WEB_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY }}
+          MAPS_API_KEY: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            --file Dockerfile \
+            --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="$MAPS_API_KEY" \
+            --tag "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA" \
+            .
+
+          docker build \
+            --platform linux/amd64 \
+            --file Dockerfile.nginx \
+            --tag "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA" \
+            .
+      - name: Push frontend and Nginx iamges
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          WEB_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY }}
+        run: |
+          docker push "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA"
+          docker push "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA"
+      
