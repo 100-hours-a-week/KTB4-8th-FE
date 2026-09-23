@@ -1,22 +1,47 @@
 {
+  "name": "keepgo-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KeepGo v1 프론트엔드 — Next.js App Router",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
-    "test:ci": "vitest run --coverage",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "e2e": "playwright test",
-    "start": "next start",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "msw:init": "msw init public/ --save"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.59.0",
+    "clsx": "^2.1.1",
+    "next": "14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.53.0",
+    "slick-address-kr": "^2.0.0",
+    "zod": "^3.23.8",
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@types/navermaps": "^3.9.2",
+    "@types/node": "^20.16.11",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
     "eslint": "9.39.5",
     "eslint-config-next": "^16.3.5",
     "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.9.8"
+    "msw": "^2.4.9",
+    "postcss": "^8.4.47",
+    "prettier": "^3.9.8",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.6.3"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

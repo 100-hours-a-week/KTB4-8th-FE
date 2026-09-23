@@ -1,0 +1,298 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: auto;
+  scrollbar-gutter: stable; /* 시트가 열릴 때 폭이 흔들리지 않게 */
+}
+html,
+body {
+  margin: 0;
+}
+
+body {
+  min-height: 100%;
+  font: var(--t-body);
+  color: var(--ink);
+  background:
+    radial-gradient(900px 520px at 10% 0%, #e4f3ea 0%, transparent 58%),
+    radial-gradient(760px 520px at 100% 100%, #e7eef4 0%, transparent 60%),
+    var(--page-bg);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+/* 시트·모달이 떠 있는 동안은 뒤 문서가 스크롤되지 않게 한다 */
+body.kg-lock {
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+a {
+  color: inherit;
+}
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+img {
+  max-width: 100%;
+  display: block;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── 레이아웃 ───────────────────────────────────────────────────
+   기기 프레임 없이, 모바일 폭의 본문을 화면 가운데에 두고
+   스크롤은 브라우저 자체 스크롤바(창 오른쪽)를 쓴다. */
+.desk {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+.phone {
+  position: relative;
+  width: 100%;
+  max-width: var(--phone-w);
+  min-height: 100vh;
+  background: var(--surface);
+  border-left: 1px solid var(--line-2);
+  border-right: 1px solid var(--line-2);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 560px) {
+  .phone {
+    max-width: 100%;
+    border-left: 0;
+    border-right: 0;
+  }
+  .phone__overlays {
+    max-width: 100%;
+  }
+}
+
+.phone__stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 오버레이(토스트 · 모달 · 바텀시트)는 본문 열 안에 고정으로 띄운다 */
+.phone__overlays {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--phone-w);
+  pointer-events: none;
+  z-index: 60;
+}
+.phone__overlays > * {
+  pointer-events: auto;
+}
+
+/* 본문 — 문서 스크롤을 쓰므로 자체 스크롤을 두지 않는다 */
+.scroll {
+  flex: 1 0 auto;
+  min-height: 0;
+}
+.scroll--pad {
+  padding: var(--s-5) var(--s-5) var(--s-10);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hidden-file {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+/* ── 모션 — 과하지 않게, 짧고 부드럽게 ──────────────────────────── */
+@keyframes kg-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes kg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kg-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kg-sheet-up {
+  from {
+    opacity: 0.4;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kg-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes kg-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@keyframes kg-shimmer {
+  0% {
+    background-position: -160% 0;
+  }
+  100% {
+    background-position: 260% 0;
+  }
+}
+@keyframes kg-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes kg-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 164, 107, 0.32);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(22, 164, 107, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 164, 107, 0);
+  }
+}
+
+.stage-enter {
+  animation: kg-rise var(--d-base) var(--e-out) both;
+}
+.login,
+.onb,
+.goauth,
+.done {
+  animation: kg-fade-in var(--d-base) var(--e-io) both;
+}
+
+/* 리스트가 순서대로 올라오게 하는 공용 지연 */
+.stagger > * {
+  animation: kg-rise 0.3s var(--e-out) both;
+}
+.stagger > *:nth-child(1) {
+  animation-delay: 0.02s;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 0.11s;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 0.14s;
+}
+.stagger > *:nth-child(n + 6) {
+  animation-delay: 0.17s;
+}
+
+.press {
+  transition: transform var(--d-fast) var(--e-out);
+}
+.press:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

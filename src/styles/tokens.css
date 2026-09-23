@@ -1,0 +1,110 @@
+/* KeepGo 디자인 토큰 — v1.1
+   화면설계서의 흑백 와이어프레임을 실제 서비스 컬러로 옮긴 버전.
+   브랜드는 '해질 무렵 외출'을 떠올리게 하는 코랄–선셋 계열로 잡았다. */
+:root {
+  /* ── 브랜드 ─────────────────────────────────────────────── */
+  --brand: #16a46b; /* 그린(에메랄드) 계열 */
+  --brand-600: #0e8a58;
+  --brand-700: #0a6b44;
+  --brand-300: #74d3a9;
+  --brand-100: #c9eedc;
+  --brand-50: #effaf4;
+  --brand-ink: #0a5236; /* 브랜드 톤 위 텍스트 */
+
+  --accent: #f2a33c; /* 보조 강조 — 뱃지 · 마감 임박 */
+  --accent-50: #fff4e5;
+  --violet: #5b8def; /* AI · 분석 표현용 */
+  --violet-50: #edf3fe;
+
+  /* 그라데이션 — 로고에는 쓰지 않는다(로고는 단색) */
+  --grad-brand: linear-gradient(135deg, #2fbe85 0%, #0e8a58 100%);
+  --grad-sunset: linear-gradient(140deg, #63d6a5 0%, #16a46b 52%, #0a7a4e 100%);
+  --grad-ai: linear-gradient(135deg, #5b8def 0%, #16a46b 100%);
+  --grad-dark: linear-gradient(150deg, #13241d 0%, #15181b 100%);
+  --grad-sheen: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+
+  /* ── 중성색 ─────────────────────────────────────────────── */
+  --ink: #17161b;
+  --ink-2: #4b4a54;
+  --ink-3: #8a8894;
+  --ink-4: #b6b4c0;
+  --line: #e8e7ec;
+  --line-2: #f1f0f4;
+  --surface: #ffffff;
+  --surface-2: #f7f7fa;
+  --surface-3: #efeef3;
+  --overlay: rgba(20, 18, 26, 0.42);
+  --page-bg: #edefee;
+
+  /* 상태색 */
+  --danger: #e03b3b;
+  --danger-bg: #fdf0f0;
+  --warn: #c07a02;
+  --warn-bg: #fff6e4;
+  --ok: #10a16a;
+  --ok-bg: #ebfaf3;
+  --info-bg: #eef3ff;
+
+  /* ── 반경 ───────────────────────────────────────────────── */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-2xl: 30px;
+  --r-full: 999px;
+
+  /* ── 간격 ───────────────────────────────────────────────── */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* ── 타이포 ─────────────────────────────────────────────── */
+  --font:
+    "Pretendard Variable", Pretendard, "Noto Sans KR", -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
+  --font-brand: "Outfit", "Pretendard Variable", Pretendard, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, "Roboto Mono", monospace;
+  --font-google: Roboto, "Pretendard Variable", Pretendard, arial, sans-serif;
+
+  --t-display: 800 34px/1.18 var(--font);
+  --t-h1: 700 23px/1.34 var(--font);
+  --t-h2: 700 18px/1.4 var(--font);
+  --t-h3: 600 16px/1.45 var(--font);
+  --t-body: 400 15px/1.58 var(--font);
+  --t-sm: 400 13px/1.5 var(--font);
+  --t-xs: 400 11.5px/1.45 var(--font);
+
+  /* ── 그림자 ─────────────────────────────────────────────── */
+  --sh-1: 0 1px 2px rgba(23, 22, 27, 0.05);
+  --sh-2: 0 6px 18px rgba(23, 22, 27, 0.08);
+  --sh-3: 0 12px 34px rgba(23, 22, 27, 0.12);
+  --sh-up: 0 -8px 30px rgba(23, 22, 27, 0.1);
+  --sh-brand: 0 8px 20px rgba(22, 164, 107, 0.28);
+  --sh-phone: 0 30px 80px rgba(20, 18, 26, 0.3);
+
+  /* ── 모션 ───────────────────────────────────────────────── */
+  --e-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --e-spring: cubic-bezier(0.2, 0.9, 0.3, 1.35);
+  --e-io: cubic-bezier(0.4, 0, 0.2, 1);
+  --d-fast: 0.14s;
+  --d-base: 0.22s;
+  --d-slow: 0.38s;
+
+  /* ── 레이아웃 ───────────────────────────────────────────── */
+  --phone-w: 420px;
+  --phone-h: 900px;
+  --appbar-h: 56px;
+  --tabbar-h: 68px;
+}
