@@ -211,15 +211,14 @@ export function Sheet({
       if (!event.deltaY) return;
 
       const target = event.target as HTMLElement | null;
-      const nested = target?.closest<HTMLElement>(
-        ".chat__log, .sheet__body",
-      );
+      const nested = target?.closest<HTMLElement>(".chat__log, .sheet__body");
       const candidates = [
         nested,
         panel.querySelector<HTMLElement>(".chat__log"),
         panel.querySelector<HTMLElement>(".sheet__body"),
-      ].filter((item, index, list): item is HTMLElement =>
-        Boolean(item) && list.indexOf(item) === index,
+      ].filter(
+        (item, index, list): item is HTMLElement =>
+          Boolean(item) && list.indexOf(item) === index,
       );
 
       const scroller = candidates.find((item) => {

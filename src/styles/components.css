@@ -90,7 +90,8 @@
   position: fixed;
   left: 50%;
   bottom: 0;
-  transform: translateX(-50%);
+  /* --kg-pin: iOS 입력 보조 막대가 뜰 때 고정 요소가 밀린 만큼 되돌리는 값(useFixedPin) */
+  transform: translate(-50%, var(--kg-pin, 0px));
   z-index: 80;
   flex: none;
   /* height 로 고정하면 안 된다 — box-sizing:border-box 라서 아래 safe-area 여백이
@@ -127,13 +128,6 @@
   .tabbar {
     padding-bottom: max(env(safe-area-inset-bottom), 18px);
     max-width: none;
-  }
-
-  /* iOS의 입력 보조 막대(이전·다음·완료)가 떠 있을 때는 그 막대 자체가
-     홈 인디케이터 영역을 확보한다. 탭바의 추가 안전 여백까지 유지하면 탭바와
-     시트가 함께 과도하게 위로 밀리므로, 입력 중에만 중복 여백을 제거한다. */
-  .phone:has(input:focus, textarea:focus, select:focus) .tabbar {
-    padding-bottom: 0;
   }
 }
 .tabbar__item span {

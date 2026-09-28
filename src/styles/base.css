@@ -147,7 +147,7 @@ img {
   position: fixed;
   top: 0;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, var(--kg-pin, 0px));
   width: 100%;
   min-width: 0;
   height: 100vh;

@@ -3,8 +3,7 @@
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  padding: var(--s-8) var(--s-6)
-    max(var(--s-6), env(safe-area-inset-bottom));
+  padding: var(--s-8) var(--s-6) max(var(--s-6), env(safe-area-inset-bottom));
   position: relative;
   overflow: hidden;
   background: radial-gradient(120% 70% at 50% -10%, #e7f6ee 0%, #ffffff 58%);

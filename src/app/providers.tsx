@@ -11,6 +11,7 @@ import {
   writeSession,
 } from "@/lib/api/client";
 import { USE_MOCK } from "@/lib/constants";
+import { useFixedPin } from "@/lib/useFixedPin";
 
 /* ── Mock(MSW) ───────────────────────────────────────────
    NEXT_PUBLIC_USE_MOCK=true 이면 브라우저에서 서비스워커를 띄운다.
@@ -37,6 +38,7 @@ function useMockWorker() {
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
   const mockReady = useMockWorker();
+  useFixedPin();
 
   const [client] = useState(
     () =>
