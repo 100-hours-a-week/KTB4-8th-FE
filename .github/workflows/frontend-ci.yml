@@ -48,8 +48,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      NEXT_PUBLIC_API_BASE_URL: /api
-      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+      NEXT_PUBLIC_API_BASE_URL: /api/v1
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+      NEXT_PUBLIC_NAVER_MAP_CLIENT_ID: ${{ vars.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID }}
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -128,12 +130,14 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           WEB_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY }}
-          MAPS_API_KEY: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+          NAVER_MAP_CLIENT_ID: ${{ vars.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID }}
         run: |
           docker build \
             --platform linux/amd64 \
             --file Dockerfile \
-            --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="$MAPS_API_KEY" \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+            --build-arg NEXT_PUBLIC_NAVER_MAP_CLIENT_ID="$NAVER_MAP_CLIENT_ID" \
             --tag "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA" \
             .
 
