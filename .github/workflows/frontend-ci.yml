@@ -150,4 +150,3 @@ jobs:
         run: |
           docker push "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA"
           docker push "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA"
-      
