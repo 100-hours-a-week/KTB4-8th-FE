@@ -2,8 +2,7 @@ name: Frontend CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, feat/v1]
   workflow_dispatch:
 
 permissions:
@@ -100,7 +99,7 @@ jobs:
   publish:
     name: Build and push frontend images
     needs: quality
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/v1'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
