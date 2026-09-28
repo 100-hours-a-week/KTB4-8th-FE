@@ -14,6 +14,7 @@ import {
   addressConfig,
   currentPosition,
   permissionState,
+  OutsideServiceAreaError,
   reverseGeocode,
   searchAddress,
   type AddressHit,
@@ -227,6 +228,12 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
           kind: "error",
           message:
             "위치 권한이 허용되지 않아 현재 위치를 쓸 수 없어요. 브라우저 설정에서 허용한 뒤 다시 시도해 주세요.",
+        });
+      } else if (err instanceof OutsideServiceAreaError) {
+        setResultsView({
+          kind: "error",
+          message:
+            "현재 위치가 서비스 지역(대한민국) 밖이에요. 지역을 직접 검색해 주세요.",
         });
       } else {
         setResultsView({

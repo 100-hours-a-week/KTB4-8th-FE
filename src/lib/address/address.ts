@@ -229,6 +229,17 @@ export function currentPosition(): Promise<{
   });
 }
 
+/** 서비스 지역(대한민국) 밖의 좌표 — 가장 가까운 한국 지역으로 억지로 맞추지 않는다 */
+export class OutsideServiceAreaError extends Error {
+  outsideServiceArea = true;
+  constructor() {
+    super("서비스 지역 밖의 위치");
+  }
+}
+
+/** Nominatim 조회가 실패했을 때 대체 경로가 허용하는 최대 거리 — 이보다 멀면 한국 밖으로 본다 */
+const MAX_NEAREST_KM = 60;
+
 export class ReverseGeocodeError extends Error {
   reverseFailed = true;
   constructor() {
@@ -254,17 +265,21 @@ export async function reverseGeocode(
     if (!res.ok) throw new Error(`reverse ${res.status}`);
     const json = (await res.json()) as { address?: Record<string, string> };
     const a = json.address || {};
+    if (a.country_code && a.country_code.toLowerCase() !== "kr")
+      throw new OutsideServiceAreaError();
     const sigungu = a.city_district || a.borough || a.county || a.city || "";
     const dong = a.quarter || a.neighbourhood || a.suburb || a.village || "";
     matched = matchRegion(sigungu, dong);
     if (matched) via = "reverse";
-  } catch {
+  } catch (err) {
+    if (err instanceof OutsideServiceAreaError) throw err;
     matched = null;
   }
 
   if (!matched) {
     const near = nearestRegion(lat, lng);
     if (!near) throw new ReverseGeocodeError();
+    if (near.distanceKm > MAX_NEAREST_KM) throw new OutsideServiceAreaError();
     matched = near.region;
   }
 
