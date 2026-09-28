@@ -43,12 +43,6 @@ import type { Candidate, RecommendationRun, TimeOfDay } from "@/types/api";
          → 결과 폴링(retryAfterSeconds 준수) → 코스 후보 → 상세 → 보관함 추가
    프로토타입 js/pages/course.js 를 컴포넌트로 옮겼다. */
 
-const QUICK = [
-  "성수에서 토요일 오후에 카페 투어",
-  "이번 주말 팝업 탐방",
-  "친구와 반나절 코스",
-];
-
 /** AI 명세에 없는 시간대 → 시작 시각 매핑(명세 미정, 프로토타입 값을 그대로 쓴다) */
 const TIME_START: Record<TimeOfDay, number> = {
   MORNING: 10,
@@ -514,23 +508,6 @@ export function CoursePopup() {
                         onClick={() => handleOptionClick(opt)}
                       >
                         {opt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {lines.length === 0 && (
-                <div className="quick">
-                  <p className="quick__label">빠른 시작</p>
-                  <div className="quick__list">
-                    {QUICK.map((q) => (
-                      <button
-                        key={q}
-                        className="chip"
-                        type="button"
-                        onClick={() => void handleSend(q)}
-                      >
-                        {q}
                       </button>
                     ))}
                   </div>

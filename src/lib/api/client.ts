@@ -104,6 +104,7 @@ export function readSession(): SessionTokens | null {
 
 export function writeSession(next: SessionTokens | null) {
   memory = next;
+  if (next) expiredNotified = false;
   if (typeof window === "undefined") return;
   try {
     if (next) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -132,6 +133,8 @@ export function headers(
 
 let onSessionExpired: (() => void) | null = null;
 let intentionalLogout = false;
+/* 화면 하나가 요청을 여러 개 동시에 보내면 401 도 여러 번 온다. 새 세션이 생기기 전에는 만료 안내를 한 번만 낸다. */
+let expiredNotified = false;
 
 export function setSessionExpiredHandler(fn: (() => void) | null) {
   onSessionExpired = fn;
@@ -143,7 +146,9 @@ export function setIntentionalLogout(value: boolean) {
 }
 
 function notifySessionExpired() {
-  if (!intentionalLogout) onSessionExpired?.();
+  if (intentionalLogout || expiredNotified) return;
+  expiredNotified = true;
+  onSessionExpired?.();
 }
 
 /* ── 요청 ──────────────────────────────────────────────── */
