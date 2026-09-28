@@ -12,8 +12,3 @@
 
 설정하지 않으면 일반 '영상 재생' 배지(빨간 라운드 사각 + 흰 삼각형)로 대체됩니다.
 Google 로그인 버튼의 'G' 마크도 같은 이유로 공식 에셋으로 교체하는 것을 권합니다.
-
-## mockServiceWorker.js
-
-MSW(`npm run msw:init` 로 생성)가 쓰는 서비스워커입니다. 지우지 마세요.
-`NEXT_PUBLIC_USE_MOCK=false` 이면 등록되지 않습니다.

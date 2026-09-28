@@ -10,34 +10,10 @@ import {
   setSessionExpiredHandler,
   writeSession,
 } from "@/lib/api/client";
-import { USE_MOCK } from "@/lib/constants";
 import { useFixedPin } from "@/lib/useFixedPin";
-
-/* ── Mock(MSW) ───────────────────────────────────────────
-   NEXT_PUBLIC_USE_MOCK=true 이면 브라우저에서 서비스워커를 띄운다.
-   백엔드 연동 후에는 환경변수만 false 로 내리면 된다. */
-function useMockWorker() {
-  const [ready, setReady] = useState(!USE_MOCK);
-
-  useEffect(() => {
-    if (!USE_MOCK) return;
-    let cancelled = false;
-    (async () => {
-      const { startMockWorker } = await import("@/mocks/browser");
-      await startMockWorker();
-      if (!cancelled) setReady(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return ready;
-}
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const mockReady = useMockWorker();
   useFixedPin();
 
   const [client] = useState(
@@ -72,8 +48,6 @@ export function Providers({ children }: { children: ReactNode }) {
       setReloginHandler(null);
     };
   }, [client, router]);
-
-  if (!mockReady) return null;
 
   return (
     <QueryClientProvider client={client}>

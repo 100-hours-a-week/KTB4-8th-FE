@@ -40,24 +40,24 @@ export function useAccounts(enabled = true) {
   });
 }
 
-/** oauth 화면(계정 선택 모의)에서 고른 계정 — 목 핸들러의 LoginBody.account 와 같은 모양이다 */
-export interface LoginAccount {
-  sub?: string;
-  name: string;
-  email: string;
-  isNew?: boolean;
+/** 로컬 개발용 — BE 로그인(Google 인증 코드 교환)이 동작하기 전까지 env 의 JWT 로 세션을 만든다 */
+export function loginWithDevToken(token: string) {
+  setIntentionalLogout(false);
+  writeSession({
+    accessToken: token,
+    tokenType: "Bearer",
+    expiresIn: 3600,
+    issuedAt: Date.now(),
+  });
 }
 
-/** POST /user/auth-session — Google 인증 코드를 토큰으로 바꾼다.
-    account 는 실제 OAuth 에는 없는 필드지만, 목 로그인 화면이 고른 계정을 서버(mock)에 알려줘야
-    이름 · 이메일 · 신규 가입 여부를 그 계정 기준으로 채울 수 있다(handlers.ts loginHandler 참고). */
+/** POST /user/auth-session — Google 인증 코드를 토큰으로 바꾼다 */
 export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: {
       authorizationCode: string;
-      redirectUri?: string;
-      account?: LoginAccount;
+      redirectUri: string;
     }) => (await api.post<AuthSession>("/user/auth-session", body)).data,
     onSuccess: (s) => {
       setIntentionalLogout(false);

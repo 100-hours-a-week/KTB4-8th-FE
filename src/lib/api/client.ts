@@ -30,7 +30,7 @@ export function isApiError(e: unknown): e is ApiError {
   return e instanceof ApiError;
 }
 
-/** 명세의 원형으로 Problem 본문을 만든다 (Mock · 테스트용) */
+/** 명세의 원형으로 Problem 본문을 만든다 (테스트용) */
 export function makeProblem(
   code: string,
   instance = "",

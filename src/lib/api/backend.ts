@@ -1,8 +1,7 @@
 /* 백엔드(KTB4-8th-BE) 어댑터.
-   BE 는 아직 명세(2026-09-21)의 { data } envelope · Problem Details 를 따르지 않고 DTO 를 그대로 돌려준다.
+   BE 는 아직 명세(2026-09-21)의 { data } envelope · Problem Details 를 따르지 않고 DTO 를 snake_case 로 그대로 돌려준다.
    실서버로 보내는 API 는 여기 표에 등록하고, 요청 · 응답을 FE 도메인 타입으로 옮겨 화면은 그대로 둔다.
-   MSW 핸들러는 이 표에 있는 API 를 하이브리드 모드에서 빼므로(browser.ts) 한 곳만 고치면 된다. */
-import { MOCK_MODE } from "@/lib/constants";
+   */
 import type { Advertisement, Category, Place } from "@/types/api";
 
 interface BackendRoute {
@@ -14,13 +13,13 @@ interface BackendRoute {
 }
 
 interface BeAdvertisement {
-  attachedImageUrl?: string;
+  attached_image_url?: string;
   title?: string;
   description?: string;
 }
 
 interface BeHotPlace {
-  attachedImageUrl?: string;
+  attached_image_url?: string;
   name?: string;
   location?: string;
   category?: string;
@@ -55,7 +54,7 @@ function toAdvertisements(raw: unknown): Advertisement[] {
 }
 
 function toPlaces(raw: unknown): Place[] {
-  const list = (raw as { hotPlaces?: BeHotPlace[] } | null)?.hotPlaces;
+  const list = (raw as { hot_places?: BeHotPlace[] } | null)?.hot_places;
   return (list ?? []).map((p, i) => ({
     id: `be-place-${i}`,
     name: p.name ?? "",
@@ -75,9 +74,8 @@ export const BACKEND_ROUTES: BackendRoute[] = [
   { key: "GET /places", search: "cursor=", response: toPlaces },
 ];
 
-/** 하이브리드 · 실서버 모드에서 이 요청을 어댑터가 맡는지 */
+/** 이 요청을 어댑터가 맡는지 */
 export function backendRoute(method: string, path: string) {
-  if (MOCK_MODE === "all") return null;
   const key = `${method} ${path}`;
   return BACKEND_ROUTES.find((r) => r.key === key) ?? null;
 }

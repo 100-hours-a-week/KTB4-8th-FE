@@ -3,18 +3,37 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { toast } from "@/components/ui/Toast";
+import { loginWithDevToken } from "@/features/auth/session";
+import { GOOGLE_STATE_KEY, googleAuthUrl } from "@/lib/auth/google";
 
 /* 01 · 로그인 — 서비스 진입점. 인증되지 않은 모든 접근이 이 화면으로 유도된다.
-   프로토타입 js/pages/login.js 를 그대로 옮겼다. 가입·로그인은 구글 OAuth 단일 수단이라
-   여기서는 실제 SDK를 붙이지 않고 모의 인증 화면(/oauth)으로 이동만 한다. */
+   가입·로그인은 구글 OAuth 단일 수단이다. Google 인증 화면으로 이동하고, 돌아오는 /oauth 에서
+   인가 코드를 POST /user/auth-session 으로 넘긴다. */
 export default function LoginPage() {
   const router = useRouter();
   const [movingToOauth, setMovingToOauth] = useState(false);
 
   function handleGoogle() {
-    // 첫 클릭 직후 비활성화하고, 인증 화면 이동 애니메이션을 잠깐 보여준다(기능정의서 2-1)
+    const devToken = process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN;
+    if (devToken) {
+      loginWithDevToken(devToken);
+      router.push("/home");
+      return;
+    }
+
+    const state = crypto.randomUUID();
+    const url = googleAuthUrl(state);
+    if (!url) {
+      toast.warn(
+        "Google 클라이언트 ID(NEXT_PUBLIC_GOOGLE_CLIENT_ID)가 설정되지 않았어요.",
+      );
+      return;
+    }
+    // 첫 클릭 직후 비활성화하고, 인증 화면 이동 표시를 잠깐 보여준다(기능정의서 2-1)
     setMovingToOauth(true);
-    window.setTimeout(() => router.push("/oauth"), 380);
+    sessionStorage.setItem(GOOGLE_STATE_KEY, state);
+    window.setTimeout(() => window.location.assign(url), 380);
   }
 
   return (
