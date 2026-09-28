@@ -63,3 +63,7 @@ export const REGION_DISALLOWED = /[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9 ]/g;
 
 /** 닉네임 허용 문자 — 띄어쓰기와 특수기호 금지 */
 export const NICKNAME_DISALLOWED = /[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]/g;
+
+/** BE 에 아직 없는 기능(보관함 · 좋아요 동기화)을 브라우저 저장소 더미로 채운다.
+    BE 가 준비돼 그 API 를 직접 쓰려면 NEXT_PUBLIC_LOCAL_DUMMY=off 로 끈다. */
+export const LOCAL_DUMMY = process.env.NEXT_PUBLIC_LOCAL_DUMMY !== "off";

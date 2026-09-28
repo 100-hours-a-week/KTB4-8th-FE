@@ -5,7 +5,9 @@
    - 오류는 RFC 9457 Problem Details 이며 ApiError 로 던진다.
    - 401 AUTHENTICATION_REQUIRED 는 refresh 를 1회 시도한 뒤 실패하면 로그인으로 보낸다. */
 import { backendRoute, codeFromStatus } from "./backend";
+import { LOCAL_DUMMY } from "@/lib/constants";
 import { handleLocalCollection } from "./local-collection";
+import { handleLocalSync } from "./local-sync";
 import { PROBLEMS, UI, type Effect, type Problem, type Tone } from "./problems";
 import type { Envelope, Page } from "@/types/api";
 
@@ -177,12 +179,10 @@ async function send<T>(
   path: string,
   opts: RequestOptions = {},
 ): Promise<Envelope<T>> {
-  const local = await handleLocalCollection(
-    method,
-    path,
-    opts.query,
-    opts.body,
-  );
+  const local = LOCAL_DUMMY
+    ? ((await handleLocalCollection(method, path, opts.query, opts.body)) ??
+      (await handleLocalSync(method, path)))
+    : null;
   if (local) {
     if ("error" in local) throw new ApiError(makeProblem(local.error, path));
     return { data: local.data as T };
