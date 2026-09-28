@@ -33,6 +33,16 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
+        {/* 워드마크("KeepGo") 전용 세리프. text= 로 6글자만 받아 1.4KB 로 끝낸다 —
+            이 파라미터를 빼면 라틴 전체(14KB)를 받으므로 지우지 말 것.
+            next/font/google 은 text 서브셋을 지원하지 않아 14KB 를 받게 되므로 쓰지 않았다.
+            no-page-custom-font 규칙은 Pages Router 의 _document 기준이라,
+            앱 전역에 적용되는 App Router 루트 레이아웃에서는 해당하지 않는다. */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Literata:wght@800&text=KeepGo&display=swap"
+        />
       </head>
       <body>
         <Providers>

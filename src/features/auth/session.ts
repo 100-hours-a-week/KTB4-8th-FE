@@ -2,7 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { api, readSession, writeSession } from "@/lib/api/client";
+import {
+  api,
+  readSession,
+  setIntentionalLogout,
+  writeSession,
+} from "@/lib/api/client";
 import { useCourseStore } from "@/features/recommendations/courseStore";
 import type { AuthSession, OauthAccount, User } from "@/types/api";
 
@@ -55,9 +60,9 @@ export function useLogin() {
       account?: LoginAccount;
     }) => (await api.post<AuthSession>("/user/auth-session", body)).data,
     onSuccess: (s) => {
+      setIntentionalLogout(false);
       writeSession({
         accessToken: s.accessToken,
-        refreshToken: s.refreshToken,
         tokenType: s.tokenType,
         expiresIn: s.expiresIn,
         issuedAt: Date.now(),
@@ -73,6 +78,9 @@ export function useLogout() {
   const router = useRouter();
   return useMutation({
     mutationFn: async () => {
+      // 화면에 남아 있는 사용자/계정/통계 요청부터 멈추고, 이후 401은 의도적인 로그아웃으로 처리한다.
+      setIntentionalLogout(true);
+      await qc.cancelQueries();
       try {
         await api.del("/user/auth-session");
       } catch {
@@ -82,8 +90,7 @@ export function useLogout() {
     onSettled: () => {
       writeSession(null);
       qc.clear();
-      useCourseStore.getState().reset();
-      useCourseStore.getState().setOpen(false);
+      useCourseStore.getState().discard();
       router.replace("/login");
     },
   });

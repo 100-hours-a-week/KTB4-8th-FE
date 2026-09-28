@@ -10,6 +10,7 @@ import { isApiError } from "@/lib/api/client";
 import { CATEGORY_LABEL, TIME_OF_DAY_LABEL } from "@/lib/constants";
 import { fmtDate, toIso, uid } from "@/lib/format";
 import {
+  defaultOrigin,
   isReady,
   useCourseStore,
   type ChatLine,
@@ -64,13 +65,6 @@ const PROGRESS_LINES = [
 const INTRO_GREETING =
   "가고 싶은 곳을 편하게 말씀해 주세요.\n예) 이번 주 토요일 오후에 카페 가고 싶어";
 const INTRO_HINT = "지역과 시간도 함께 알려주시면 더 정확해요.";
-
-const DEFAULT_ORIGIN: Origin = {
-  label: "강남구 테헤란로",
-  latitude: 37.5,
-  longitude: 127.0364,
-  current: true,
-};
 
 /** 후보가 0개일 때 "이렇게 바꿔볼까요?" 제안 — 프로토타입의 KG.db.relaxedSuggestions 를 대신한다.
     UI 전용 데이터라 명세에는 없고, 화면(이 파일)에 직접 둔다. */
@@ -144,7 +138,6 @@ export function CoursePopup() {
   const logRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const wasOpenRef = useRef(false);
-  const resumeDraftRef = useRef(false);
 
   const sendChat = useSendChatMessage();
   const clearChat = useClearChat();
@@ -153,18 +146,17 @@ export function CoursePopup() {
   const generating = phase === "creating" || phase === "polling";
   const poll = useRecommendationPoll(runId, open && phase === "polling");
 
-  /* 기본 진입은 항상 인트로 화면으로 시작한다.
-     사용자가 진행 중 대화를 X로 직접 닫은 경우에만 메모리의 대화를 이어서 연다. */
+  /* 대화 식별값이 있으면 화면을 떠났다가 돌아와도 기존 상태를 복원한다.
+     식별값이 없을 때만 새 대화를 발급하고 서버의 이전 문맥을 비운다. */
   useEffect(() => {
     const justOpened = open && !wasOpenRef.current;
     if (justOpened) {
-      const shouldResume = resumeDraftRef.current;
-      resumeDraftRef.current = false;
-      if (!shouldResume) {
+      const state = useCourseStore.getState();
+      if (!state.conversationId) {
         reset();
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- 새 식별값을 발급할 때 이전 화면의 미전송 입력도 함께 비운다
         setDraft("");
         setView(null);
-        // 새 대화의 화면과 서버 대화 문맥이 서로 달라지지 않도록 함께 초기화한다.
         void clearChat.mutateAsync().catch(() => {
           /* 서버 초기화 실패가 인트로 진입 자체를 막지는 않는다. */
         });
@@ -175,17 +167,18 @@ export function CoursePopup() {
 
   /* 기본 출발지 — 프로토타입처럼 팝업을 처음 열 때 한 번 채워둔다 */
   useEffect(() => {
-    if (open && !origin) useCourseStore.setState({ origin: DEFAULT_ORIGIN });
+    if (open && !origin) useCourseStore.setState({ origin: defaultOrigin() });
   }, [open, origin]);
 
-  /* 탭을 옮기면 팝업을 닫는다 — 프로토타입에서 라우터가 시트를 모두 닫던 것과 같다.
-     (팝업 안의 버튼으로 이동할 때는 이미 setOpen(false) 를 거친다) */
+  /* 하단 내비게이션과 브라우저 뒤로가기는 팝업만 닫고 대화 상태는 유지한다. */
   const lastPathRef = useRef(pathname);
   useEffect(() => {
     if (lastPathRef.current === pathname) return;
     lastPathRef.current = pathname;
-    resumeDraftRef.current = false;
     setView(null);
+    if (useCourseStore.getState().phase !== "idle") {
+      useCourseStore.setState({ phase: "idle" });
+    }
     setOpen(false);
   }, [pathname, setOpen]);
 
@@ -212,6 +205,10 @@ export function CoursePopup() {
   /* 입력창 자동 포커스 */
   useEffect(() => {
     if (!open || phase !== "idle") return;
+    // iOS Safari에서 자동 포커스를 주면 키보드가 접혀 있어도 이전/다음·완료가 있는
+    // 폼 보조 막대가 화면 하단에 남는다. 터치 기기는 사용자가 입력창을 직접 눌렀을
+    // 때만 포커스하고, 키보드가 없는 데스크톱에서만 자동 포커스한다.
+    if ("ontouchstart" in window || navigator.maxTouchPoints > 0) return;
     const t = window.setTimeout(() => textareaRef.current?.focus(), 60);
     return () => window.clearTimeout(t);
   }, [open, phase]);
@@ -280,12 +277,15 @@ export function CoursePopup() {
       options: [],
     }));
     setDraft("");
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      // iOS Safari/Simulator의 폼 보조 막대(이전·다음·완료)가 전송 뒤 남지 않게 한다.
+      textareaRef.current.blur();
+    }
 
     try {
       const reply = await sendChat.mutateAsync({
         content: text,
-        slots: current.slots,
       });
       const patch: Partial<Slots> = { ...(reply.extractedSlots ?? {}) };
       if (
@@ -297,9 +297,9 @@ export function CoursePopup() {
       }
       patchSlots(patch);
       const botLine: ChatLine = {
-        id: reply.message.id,
+        id: reply.assistantMessage.id,
         role: "ASSISTANT",
-        content: reply.message.content,
+        content: reply.assistantMessage.content,
       };
       useCourseStore.setState((s) => ({
         lines: [...s.lines, botLine],
@@ -352,15 +352,16 @@ export function CoursePopup() {
 
   function handleClose() {
     const state = useCourseStore.getState();
-    const hasSlot =
-      !!state.slots.region ||
-      !!state.slots.date ||
-      !!state.slots.timeOfDay ||
-      !!state.slots.availableMinutes ||
-      state.slots.categories.length > 0;
-    resumeDraftRef.current =
-      !state.done &&
-      (state.lines.length > 0 || hasSlot || state.phase !== "idle");
+    // 추천 완료 뒤 X는 대화를 종료한다. 진행 중 X는 상태를 유지한 채 닫는다.
+    if (state.done) {
+      setView(null);
+      setOpen(false);
+      reset();
+      void clearChat.mutateAsync().catch(() => {
+        /* 화면은 이미 새 대화로 전환되므로 서버 초기화 실패는 닫기를 막지 않는다. */
+      });
+      return;
+    }
     if (state.phase !== "idle") useCourseStore.setState({ phase: "idle" });
     setOpen(false);
   }
@@ -409,7 +410,6 @@ export function CoursePopup() {
   }
 
   function handleGoHome(opts?: { startSync?: boolean }) {
-    resumeDraftRef.current = false;
     setView(null);
     setOpen(false);
     router.push(opts?.startSync ? "/home?startSync=1" : "/home");
@@ -431,7 +431,6 @@ export function CoursePopup() {
   }
 
   function handleGoCollection() {
-    resumeDraftRef.current = false;
     setOpen(false);
     router.push("/collection?tab=COURSE");
   }
@@ -453,8 +452,10 @@ export function CoursePopup() {
         title="코스 추천"
         full
         dismissible={false}
-        back={!!done}
-        onBack={() => useCourseStore.setState({ done: null })}
+        center
+        back
+        showClose={false}
+        onBack={() => handleGoHome()}
         actions={
           <button
             className="iconbtn"
@@ -555,6 +556,7 @@ export function CoursePopup() {
               slots={slots}
               origin={origin}
               ready={isReady(slots) && phase === "idle"}
+              generating={generating}
               onEditOrigin={() => setView({ name: "region", kind: "origin" })}
               onEditSlot={handleEditSlot}
               onRecommend={() => void requestRecommendation()}
@@ -613,7 +615,7 @@ export function CoursePopup() {
       {view?.name === "category" && (
         <CategorySheet onClose={() => setView(null)} />
       )}
-      {view?.name === "candidates" && (
+      {(view?.name === "candidates" || view?.name === "detail") && (
         <CandidatesSheet
           result={view.result}
           slots={slots}
@@ -630,7 +632,7 @@ export function CoursePopup() {
         <CandidateDetailSheet
           candidate={view.candidate}
           slots={slots}
-          onClose={() => setView(null)}
+          onClose={() => setView({ name: "candidates", result: view.result })}
           onBack={() => setView({ name: "candidates", result: view.result })}
           onAdded={handleAdded}
         />
@@ -643,6 +645,7 @@ function CondCard({
   slots,
   origin,
   ready,
+  generating,
   onEditOrigin,
   onEditSlot,
   onRecommend,
@@ -650,6 +653,7 @@ function CondCard({
   slots: Slots;
   origin: Origin | null;
   ready: boolean;
+  generating: boolean;
   onEditOrigin: () => void;
   onEditSlot: (kind: "region" | "datetime" | "available" | "category") => void;
   onRecommend: () => void;
@@ -660,7 +664,8 @@ function CondCard({
     !!slots.date ||
     !!slots.availableMinutes ||
     slots.categories.length > 0;
-  if (!hasAny || !origin) return null;
+  // 생성이 시작되면 더 이상 손댈 수 없는 조건 카드는 접어, 진행 상태에 화면을 내준다.
+  if (!hasAny || !origin || generating) return null;
 
   const availableLabel = slots.availableMinutes
     ? `${slots.availableMinutes / 60}시간`

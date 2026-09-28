@@ -34,7 +34,7 @@ export function NotificationSheet({ onClose }: NotificationSheetProps) {
     try {
       await markRead.mutateAsync(n.id);
       const full = await detail.mutateAsync(n.id);
-      toast.info(full.body, full.title);
+      toast.info(full.content, full.title);
     } catch (err) {
       toast.fromError(err);
     }
@@ -87,7 +87,7 @@ export function NotificationSheet({ onClose }: NotificationSheetProps) {
               </span>
               <span className="notirow__body">
                 <span className="notirow__title">{n.title}</span>
-                <span className="notirow__text">{n.body}</span>
+                <span className="notirow__text">{n.content}</span>
                 <span className="notirow__time">
                   {fmtDot(new Date(n.createdAt))} {fmtHm(n.createdAt)}
                 </span>

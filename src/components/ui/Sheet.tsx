@@ -38,6 +38,8 @@ export interface SheetProps {
   onBack?: () => void;
   /** 헤더 오른쪽에 붙는 추가 버튼 */
   actions?: ReactNode;
+  /** 헤더 닫기 버튼 표시 여부. 드래그 닫기 동작과는 별개다. */
+  showClose?: boolean;
   foot?: ReactNode;
   /** 배경을 눌러 닫을 수 있는지 */
   dismissible?: boolean;
@@ -77,6 +79,7 @@ export function Sheet({
   back,
   onBack,
   actions,
+  showClose = true,
   foot,
   dismissible = true,
   onClose,
@@ -95,10 +98,22 @@ export function Sheet({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 포털 대상/탭바 간격은 서버 렌더에 없는 DOM 값이라 마운트 후에만 계산 가능
     setHost(document.getElementById("overlays"));
 
-    setGap(tabGap());
+    const updateGap = () => setGap(tabGap());
+    updateGap();
+    const tab = document.querySelector(".tabbar");
+    const observer =
+      tab && typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(updateGap)
+        : null;
+    if (tab && observer) observer.observe(tab);
+    window.addEventListener("resize", updateGap);
+    window.visualViewport?.addEventListener("resize", updateGap);
     pushSheet();
     document.body.classList.add("kg-lock");
     return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", updateGap);
+      window.visualViewport?.removeEventListener("resize", updateGap);
       popSheet();
       if (useOverlayStore.getState().sheets === 0)
         document.body.classList.remove("kg-lock");
@@ -180,7 +195,53 @@ export function Sheet({
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [close]);
+    // 첫 렌더에서는 포털 host와 panel ref가 아직 없을 수 있다.
+    // host가 준비된 뒤 효과를 다시 실행해야 최초 진입·라우트 이동 후 재진입에서도
+    // 드래그 이벤트가 빠짐없이 등록된다.
+  }, [close, host]);
+
+  /* iOS Simulator의 Safari는 Mac 마우스 휠/트랙패드 입력을 바텀시트의 중첩된
+     overflow 영역에 항상 전달하지 않는다. 휠 이벤트가 들어오면 현재 시트에서
+     실제로 더 움직일 수 있는 스크롤 영역으로 넘겨 데스크톱 테스트도 가능하게 한다. */
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    const onWheel = (event: WheelEvent) => {
+      if (!event.deltaY) return;
+
+      const target = event.target as HTMLElement | null;
+      const nested = target?.closest<HTMLElement>(
+        ".chat__log, .sheet__body",
+      );
+      const candidates = [
+        nested,
+        panel.querySelector<HTMLElement>(".chat__log"),
+        panel.querySelector<HTMLElement>(".sheet__body"),
+      ].filter((item, index, list): item is HTMLElement =>
+        Boolean(item) && list.indexOf(item) === index,
+      );
+
+      const scroller = candidates.find((item) => {
+        const max = item.scrollHeight - item.clientHeight;
+        if (max <= 1) return false;
+        return event.deltaY < 0 ? item.scrollTop > 0 : item.scrollTop < max - 1;
+      });
+      if (!scroller) return;
+
+      const multiplier =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? scroller.clientHeight
+            : 1;
+      event.preventDefault();
+      scroller.scrollTop += event.deltaY * multiplier;
+    };
+
+    panel.addEventListener("wheel", onWheel, { passive: false });
+    return () => panel.removeEventListener("wheel", onWheel);
+  }, [host]);
 
   if (!host) return null;
 
@@ -241,14 +302,16 @@ export function Sheet({
                   <Icon name={expanded ? "collapse" : "expand"} size={18} />
                 </button>
               )}
-              <button
-                className="iconbtn"
-                type="button"
-                aria-label="닫기"
-                onClick={close}
-              >
-                <Icon name="close" size={20} />
-              </button>
+              {showClose && (
+                <button
+                  className="iconbtn"
+                  type="button"
+                  aria-label="닫기"
+                  onClick={close}
+                >
+                  <Icon name="close" size={20} />
+                </button>
+              )}
             </div>
           </div>
           <div className="sheet__body">{children}</div>

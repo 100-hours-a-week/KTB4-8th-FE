@@ -158,34 +158,38 @@ export function CandidatesSheet({
       onClose={onClose}
     >
       <div className="stagger">
-        {candidates.map((c) => (
-          <button
-            key={c.candidateId}
-            className="cand"
-            type="button"
-            onClick={() => onSelect(c)}
-          >
-            <span className="cand__rank">
-              <b>{c.rank}</b>
-              <i>순위</i>
-            </span>
-            <span className="cand__body">
-              <span className="cand__name">{c.name}</span>
-              <span className="cand__meta">
-                장소 {c.components.length}곳 · 총 {c.totalTravelMinutes ?? 0}분
-                이동
+        {candidates.map((c, index) => {
+          const displayRank = index + 1;
+          const displayedCandidate = { ...c, rank: displayRank };
+          return (
+            <button
+              key={c.candidateId}
+              className="cand"
+              type="button"
+              onClick={() => onSelect(displayedCandidate)}
+            >
+              <span className="cand__rank">
+                <b>{displayRank}</b>
+                <i>순위</i>
               </span>
-              <span className="cand__tags">
-                {c.components.map((comp) => (
-                  <span key={comp.sequence} className="chip chip--tag">
-                    {CATEGORY_EMOJI[comp.category]} {comp.name}
-                  </span>
-                ))}
+              <span className="cand__body">
+                <span className="cand__name">{c.name}</span>
+                <span className="cand__meta">
+                  장소 {c.components.length}곳 · 총 {c.totalTravelMinutes ?? 0}
+                  분 이동
+                </span>
+                <span className="cand__tags">
+                  {c.components.map((comp) => (
+                    <span key={comp.sequence} className="chip chip--tag">
+                      {CATEGORY_EMOJI[comp.category]} {comp.name}
+                    </span>
+                  ))}
+                </span>
               </span>
-            </span>
-            <Icon name="chevron" size={16} />
-          </button>
-        ))}
+              <Icon name="chevron" size={16} />
+            </button>
+          );
+        })}
       </div>
     </Sheet>
   );

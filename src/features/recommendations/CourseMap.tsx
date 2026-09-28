@@ -134,7 +134,15 @@ export function CourseMap({
 
     return () => {
       cancelled = true;
-      map?.destroy();
+      try {
+        // 시트가 열리자마자 빠르게 닫히면, 네이버 지도가 내부 초기화(타일·프로젝션 설정)를
+        // 끝내기 전에 destroy() 가 불려서 SDK 내부에서 그대로 터지는 경우가 있다(null.isArray).
+        // 우리 쪽 버그가 아니라 SDK 타이밍 문제라, 정리 단계에서는 실패해도 무시한다 —
+        // 이 시점엔 컨테이너 DOM 자체가 곧 사라지므로 실패해도 화면에 영향이 없다.
+        map?.destroy();
+      } catch {
+        /* SDK 내부 정리 실패는 무시 */
+      }
     };
     // pointsKey(좌표 조합)가 바뀔 때만 지도를 새로 만든다
     // eslint-disable-next-line react-hooks/exhaustive-deps

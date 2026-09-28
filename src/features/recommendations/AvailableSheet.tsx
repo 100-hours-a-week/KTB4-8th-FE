@@ -51,11 +51,6 @@ export function AvailableSheet({ onClose }: AvailableSheetProps) {
           </span>
         </button>
       ))}
-      <p className="field__help">
-        단일 선택 · 선택 해제 시 “미입력”으로 복귀
-        <br />
-        AI 명세의 available_time 은 180 · 360 · 540분 중 하나예요.
-      </p>
     </Sheet>
   );
 }

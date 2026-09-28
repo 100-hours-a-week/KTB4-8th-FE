@@ -5,6 +5,7 @@
   "description": "KeepGo v1 프론트엔드 — Next.js App Router",
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "rm -rf .next && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",

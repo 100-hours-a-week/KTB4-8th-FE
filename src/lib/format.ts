@@ -57,15 +57,52 @@ export function fmtPeriod(startAt?: string | null, endAt?: string | null) {
   return `${fmtDot(new Date(startAt))} ~ ${fmtDot(new Date(endAt))}`;
 }
 
-/** 마감 D-6 / 오늘 마감 — 지난 이벤트는 빈 문자열 */
+export type EventStatusTone = "today" | "closing" | "normal" | "upcoming";
+
+export interface EventStatusBadge {
+  label: string;
+  tone: EventStatusTone;
+}
+
+function calendarDay(date: Date) {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  ).getTime();
+}
+
+/** 이벤트 상태 배지 — 시작 예정 / 오늘 마감 / D-X */
+export function getEventStatusBadge(
+  startAt?: string | null,
+  endAt?: string | null,
+  now = new Date(),
+): EventStatusBadge | null {
+  const today = calendarDay(now);
+
+  if (startAt) {
+    const start = new Date(startAt);
+    if (calendarDay(start) > today) {
+      return {
+        label: `${start.getMonth() + 1}월 ${start.getDate()}일 시작`,
+        tone: "upcoming",
+      };
+    }
+  }
+
+  if (!endAt) return null;
+  const days = Math.round((calendarDay(new Date(endAt)) - today) / 86400000);
+  if (days < 0) return null;
+  if (days === 0) return { label: "오늘 마감", tone: "today" };
+  return {
+    label: `D-${days}`,
+    tone: days <= 10 ? "closing" : "normal",
+  };
+}
+
+/** 기존 텍스트 사용처를 위한 호환 함수 */
 export function fmtDday(endAt?: string | null) {
-  if (!endAt) return "";
-  const end = new Date(endAt);
-  const today = new Date();
-  const days = Math.ceil((end.getTime() - today.getTime()) / 86400000);
-  if (days < 0) return "";
-  if (days === 0) return "오늘 마감";
-  return `마감 D-${days}`;
+  return getEventStatusBadge(null, endAt)?.label ?? "";
 }
 
 /** 도로명 주소에서 짧은 지역 라벨을 만든다.

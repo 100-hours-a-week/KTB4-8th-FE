@@ -29,16 +29,18 @@ export interface Page {
 
 export interface AuthSession {
   accessToken: string;
-  refreshToken?: string;
   tokenType: string;
   expiresIn: number;
   isNewUser?: boolean;
+  user?: Pick<User, "id" | "nickname" | "profileImageUrl">;
 }
 
 export interface User {
   id: string;
   nickname: string;
   profileImageUrl: string | null;
+  eventNotificationAgreed: boolean;
+  analysisNotificationAgreed: boolean;
   createdAt: string;
   /** 명세의 GET /user 응답에는 email 이 없다 — GET /user/accounts 로 조회한다 */
 }
@@ -62,7 +64,8 @@ export interface AnalyticsStatistics {
 
 export interface LikedVideoSync {
   syncId: string;
-  state: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
+  state: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  requestedAt: string;
   retryAfterSeconds?: number;
 }
 
@@ -75,15 +78,16 @@ export interface AppNotification {
   id: string;
   type: NotificationType;
   title: string;
-  body: string;
+  content: string;
+  eventId?: string | null;
   read: boolean;
   createdAt: string;
 }
 
 export interface NotificationSettings {
-  eventReminder: boolean;
-  analysisCompleted: boolean;
-  marketing: boolean;
+  eventNotificationAgreed: boolean;
+  analysisNotificationAgreed: boolean;
+  updatedAt?: string;
 }
 
 /* ── 장소 · 이벤트 · 광고 ──────────────────────────────── */
@@ -94,6 +98,7 @@ export interface Place {
   category: Category;
   description: string | null;
   googlePlaceId: string | null;
+  imageUrl: string | null;
   latitude: number | null;
   longitude: number | null;
   saved?: boolean;
@@ -131,7 +136,7 @@ export interface CollectionItem {
   id: string;
   itemType: ItemType;
   itemId: string;
-  createdAt: string;
+  savedAt: string;
   item?: Place | EventItem | CourseSummary | null;
 }
 
@@ -168,7 +173,8 @@ export interface RecommendationRequest {
   categories?: Category[];
 }
 
-export type RunState = "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
+export type RunState =
+  "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | "CANCELLING";
 
 export interface RecommendationRun {
   runId: string;
@@ -228,7 +234,8 @@ export interface ChatMessage {
 }
 
 export interface ChatReply {
-  message: ChatMessage;
+  userMessage: ChatMessage;
+  assistantMessage: ChatMessage;
   /** 명세에 없음 — 조건 카드를 채울 구조화 필드 */
   extractedSlots?: RecommendationSlots;
   /** 명세에 없음 — 선택지 버튼 */

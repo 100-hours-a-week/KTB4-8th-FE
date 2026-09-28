@@ -3,7 +3,7 @@
 import { Icon } from "@/components/ui/Icon";
 import { Thumb } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
-import { fmtDday, fmtPeriod } from "@/lib/format";
+import { fmtPeriod, getEventStatusBadge } from "@/lib/format";
 import { useEvent } from "./queries";
 import type { Advertisement } from "@/types/api";
 
@@ -23,7 +23,9 @@ export function AdCard({ ad, onOpenEvent }: AdCardProps) {
   const period = e
     ? fmtPeriod(e.startAt, e.endAt)
     : fmtPeriod(ad.startAt, ad.endAt);
-  const dday = e ? fmtDday(e.endAt) : fmtDday(ad.endAt);
+  const status = e
+    ? getEventStatusBadge(e.startAt, e.endAt)
+    : getEventStatusBadge(ad.startAt, ad.endAt);
 
   function handleClick() {
     if (e) onOpenEvent(e.id);
@@ -43,13 +45,17 @@ export function AdCard({ ad, onOpenEvent }: AdCardProps) {
           <span className="chip chip--tag">광고</span>
         </div>
         <p className="adcard__desc">{ad.summary}</p>
-        <p className="adcard__period">
-          <Icon name="clock" size={13} />
-          <span>
-            {period}
-            {dday ? ` · ${dday}` : ""}
-          </span>
-        </p>
+        {period && (
+          <p className="adcard__period">
+            <Icon name="clock" size={13} />
+            <span>{period}</span>
+            {status && (
+              <span className={`event-status event-status--${status.tone}`}>
+                {status.label}
+              </span>
+            )}
+          </p>
+        )}
       </div>
     </button>
   );

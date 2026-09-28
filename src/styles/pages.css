@@ -3,7 +3,8 @@
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  padding: var(--s-8) var(--s-6) var(--s-6);
+  padding: var(--s-8) var(--s-6)
+    max(var(--s-6), env(safe-area-inset-bottom));
   position: relative;
   overflow: hidden;
   background: radial-gradient(120% 70% at 50% -10%, #e7f6ee 0%, #ffffff 58%);
@@ -33,21 +34,25 @@
 }
 
 .login__brand {
-  font: 800 52px/1 var(--font);
-  letter-spacing: -0.04em;
+  /* 세리프 워드마크 — 고딕보다 폭이 약 9% 넓어 자간은 덜 좁힌다 */
+  font: 800 52px/1 var(--font-brand);
+  letter-spacing: -0.03em;
   margin-top: 14%;
-  color: var(--brand-600);
+  color: var(--brand-700);
   position: relative;
+  margin-left: var(--s-6);
 }
 .login__tag {
-  font: var(--t-h1);
+  font: 800 25px/1.3 var(--font);
   margin-top: var(--s-4);
   color: var(--ink);
   position: relative;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tr-h1);
+  margin-left: var(--s-6);
 }
+/* 워드마크(brand-700)보다 밝은 초록 — 로고는 눌러 앉히고 문구를 띄운다 */
 .login__tag b {
-  color: var(--brand-600);
+  color: var(--brand);
 }
 
 .login__flow {
@@ -72,6 +77,9 @@
   box-shadow: var(--sh-2);
   color: var(--brand);
 }
+.login__step:first-child .login__step-icon {
+  box-shadow: 0 8px 22px rgba(23, 22, 27, 0.14);
+}
 .login__step:nth-child(3) .login__step-icon {
   background: var(--grad-ai) border-box;
   color: #fff;
@@ -95,6 +103,7 @@
 }
 .login__foot {
   position: relative;
+  transform: translateY(-12px);
 }
 .login__legal {
   font: var(--t-xs);
@@ -147,43 +156,6 @@
   font-family: var(--font-google);
   color: #202124;
 }
-/* 주소창과 겹치지 않게 한 단 아래에 둔다 */
-.goauth__chrome {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #f1f3f4;
-  border-bottom: 1px solid #dadce0;
-}
-.goauth__dots {
-  display: flex;
-  gap: 5px;
-}
-.goauth__dots i {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #dadce0;
-}
-.goauth__url {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #fff;
-  border-radius: 99px;
-  padding: 5px 12px;
-  font: 400 11.5px/1.4 var(--font-google);
-  color: #5f6368;
-  border: 1px solid #e0e2e5;
-}
-.goauth__lock {
-  color: #5f6368;
-  flex: none;
-}
-
 .goauth__scroll {
   flex: 1 0 auto;
 }
@@ -457,7 +429,7 @@
 .onb__title {
   font: var(--t-h1);
   font-size: 25px;
-  letter-spacing: -0.028em;
+  letter-spacing: var(--tr-h1);
 }
 .onb__title em {
   font-style: normal;
@@ -771,7 +743,7 @@
 }
 .home__hello-name {
   font: var(--t-h1);
-  letter-spacing: -0.025em;
+  letter-spacing: var(--tr-h1);
 }
 .home__hello-sub {
   font: var(--t-sm);
@@ -824,7 +796,7 @@
 .home__sync-title {
   font: var(--t-h2);
   position: relative;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tr-h2);
 }
 .home__sync-msg {
   font: var(--t-sm);
@@ -892,6 +864,7 @@
 }
 .qcard__title {
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-size: 15px;
 }
 .qcard__desc {
@@ -913,7 +886,7 @@
 .placecard__name {
   font: var(--t-h3);
   margin-top: var(--s-3);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--tr-h3);
 }
 .placecard__meta {
   font: var(--t-sm);
@@ -972,6 +945,11 @@
 .adsection {
   padding: 0 var(--s-5);
 }
+/* 카드끼리만 띄운다 — section__head 는 자체 padding-bottom 으로 이미 간격이 있어
+   여기서 형제 결합자로 카드-카드 사이에만 여백을 준다(제목-첫 카드 사이는 그대로 둔다) */
+.adcard + .adcard {
+  margin-top: var(--s-3);
+}
 /* 썸네일을 카드 안쪽에 정사각형으로 넣는다 — 위·아래·왼쪽 여백을 같게 맞추고
    텍스트 쪽만 살짝 더 띄운다. 높이는 본문 높이에 맞춰 늘어난다. */
 .adcard {
@@ -996,6 +974,7 @@
 }
 .adcard__title {
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   flex: 1;
   font-size: 15px;
 }
@@ -1011,6 +990,16 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+}
+/* 날짜 문구 옆에 붙는 자리라 글자 크기는 날짜와 같게 두고, 상자 높이만 줄여 한 줄로 붙인다.
+   배지 텍스트 길이(오늘 마감 / D-7 / D-17)가 카드마다 달라 날짜 바로 뒤에 붙이면 좌우로 들쭉날쭉해
+   보인다 — margin-left: auto 로 카드 오른쪽 끝에 고정해, 카드마다 같은 자리에 세로로 줄맞춘다. */
+.adcard__period .event-status {
+  min-height: 0;
+  padding: 1px 7px;
+  line-height: 1.3;
+  margin-left: auto;
 }
 .adcard .thumb {
   flex: none;
@@ -1034,6 +1023,9 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: var(--s-5) var(--s-4) var(--s-4);
   display: flex;
   flex-direction: column;
@@ -1056,7 +1048,7 @@
 }
 .chat__intro-title {
   font: var(--t-h2);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tr-h2);
 }
 .chat__intro-desc {
   font: var(--t-sm);
@@ -1117,8 +1109,8 @@
   max-width: 100%;
 }
 .quick__label {
-  font: var(--t-xs);
-  font-weight: 700;
+  font: var(--t-kicker);
+  letter-spacing: var(--tr-kicker);
   color: var(--ink-3);
   margin-bottom: var(--s-2);
 }
@@ -1156,6 +1148,7 @@
 }
 .progress__title {
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   margin-top: var(--s-2);
 }
 .progress__steps {
@@ -1286,8 +1279,8 @@
   color: var(--brand-600);
 }
 .cond__legend {
-  font: var(--t-xs);
-  font-weight: 700;
+  font: var(--t-kicker);
+  letter-spacing: var(--tr-kicker);
   color: var(--ink-3);
   margin: var(--s-2) 0 7px;
 }
@@ -1325,6 +1318,7 @@
 }
 .cond__slot-val {
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-size: 14.5px;
   flex: 1;
   min-width: 0;
@@ -1352,10 +1346,20 @@
   background: transparent;
   width: 100%;
   text-align: left;
-  padding: var(--s-3) var(--s-3);
+  /* 환승 노선이 많은 역도 주소가 한 줄에 들어오도록 텍스트는 조금 더 왼쪽,
+     노선 배지는 조금 더 오른쪽까지 쓸 수 있게 좌우 안쪽 여백을 줄인다. */
+  padding: var(--s-3) 2px;
   border-radius: var(--r-sm);
   margin-bottom: 2px;
   transition: background var(--d-fast) var(--e-io);
+  /* 역 이름·주소는 왼쪽에서 늘어나고, 노선 배지는 오른쪽에 붙는다 */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.addr__main {
+  flex: 1;
+  min-width: 0;
 }
 .addr:hover {
   background: var(--surface-2);
@@ -1366,6 +1370,7 @@
 .addr__name {
   display: block;
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-size: 15px;
 }
 .addr__sub {
@@ -1373,6 +1378,9 @@
   font: var(--t-xs);
   color: var(--ink-3);
   margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .addr__name mark {
   background: var(--brand-100);
@@ -1382,6 +1390,37 @@
 }
 .addr[aria-pressed="true"] .addr__name mark {
   background: transparent;
+}
+
+/* 지하철 노선 배지 — 환승역은 노선 수만큼 한 줄에 나열한다 */
+.addr__lines {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.subway-line {
+  /* grid + place-items 로 글자를 상하좌우 정중앙에 둔다.
+     line-height:1 이어야 글꼴의 위아래 여백 때문에 중심이 밀리지 않는다. */
+  display: grid;
+  place-items: center;
+  height: 22px;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.subway-line--num {
+  width: 22px;
+  border-radius: 50%;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.subway-line--name {
+  padding: 0 6px;
+  border-radius: var(--r-full);
+  font-size: 11px;
 }
 
 .optrow {
@@ -1396,6 +1435,7 @@
   background: var(--surface);
   margin-bottom: var(--s-2);
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-size: 15px;
   transition: all var(--d-fast) var(--e-io);
 }
@@ -1466,6 +1506,7 @@
 }
 .calendar__month {
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
 }
 .seg {
   display: flex;
@@ -1525,6 +1566,7 @@
 .cand__name {
   display: block;
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
 }
 .cand__meta {
   display: block;
@@ -1642,6 +1684,7 @@
 }
 .stat__val {
   font: var(--t-h1);
+  letter-spacing: var(--tr-h1);
   font-size: 20px;
   margin-top: 3px;
 }
@@ -1693,6 +1736,7 @@
 .step__name {
   display: block;
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-size: 15px;
 }
 .step__meta {
@@ -1757,6 +1801,7 @@
 }
 .listitem__name {
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-size: 15px;
 }
 .listitem__meta {
@@ -1785,7 +1830,7 @@
 
 /* ══ 09 · 마이페이지 ═════════════════════════════════════════════ */
 .me__cover {
-  padding: var(--s-6) var(--s-5) var(--s-12);
+  padding: var(--s-6) var(--s-5);
   background: var(--grad-dark) border-box;
   color: #fff;
   position: relative;
@@ -1815,6 +1860,7 @@
 .me__name {
   display: block;
   font: var(--t-h2);
+  letter-spacing: var(--tr-h2);
 }
 .me__mail {
   display: block;
@@ -1837,38 +1883,6 @@
 .me__body {
   flex: 1 0 auto;
 }
-.me__stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: -34px var(--s-5) 0;
-  position: relative;
-  z-index: 1;
-}
-.me__stats .stat {
-  text-align: center;
-  box-shadow: var(--sh-2);
-  border-color: transparent;
-}
-button.stat {
-  width: 100%;
-  transition:
-    transform var(--d-fast) var(--e-out),
-    box-shadow var(--d-base) var(--e-io);
-}
-button.stat:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--sh-3);
-}
-button.stat:active {
-  transform: scale(0.98);
-}
-.stat__go {
-  display: block;
-  font: var(--t-xs);
-  color: var(--ink-4);
-  margin-top: 3px;
-}
 .me__rows {
   padding: 0 var(--s-5);
 }
@@ -1876,8 +1890,8 @@ button.stat:active {
   margin-top: var(--s-6);
 }
 .me__group-title {
-  font: var(--t-xs);
-  font-weight: 700;
+  font: var(--t-kicker);
+  letter-spacing: var(--tr-kicker);
   color: var(--ink-3);
   padding: 0 var(--s-5) 8px;
 }
@@ -2062,7 +2076,7 @@ button.me__row:hover {
 }
 .pdetail__name {
   font: var(--t-h2);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tr-h2);
   margin-top: var(--s-2);
 }
 .pdetail__region {
@@ -2141,6 +2155,7 @@ button.me__row:hover {
 .plist__name {
   display: block;
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-size: 15px;
 }
 .plist__meta {
@@ -2188,6 +2203,7 @@ button.me__row:hover {
 .notirow__title {
   display: block;
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-size: 14.5px;
   color: var(--ink-3);
 }
@@ -2223,4 +2239,22 @@ button.me__row:hover {
 }
 .me__row .switch__track {
   margin-left: auto;
+}
+
+/* ══ 고정폭 숫자 ════════════════════════════════════════════════
+   날짜 · D-day · 시각 · 통계처럼 값이 바뀌어도 자리가 흔들리면 안 되는 숫자.
+   Pretendard 기본 숫자는 글자마다 폭이 달라(1 은 좁고 8 은 넓다), 같은 글자 수의
+   날짜도 카드마다 폭이 최대 3px 씩 어긋난다.
+
+   ⚠ 이 블록은 반드시 파일 맨 끝에 둔다 — font: 단축 속성은 font-variant-numeric 을
+   normal 로 되돌리므로, 위의 font: 선언들보다 나중에 와야 적용된다. */
+.adcard__period,
+.event-status,
+.pdetail__row-val,
+.listitem__sub,
+.notirow__time,
+.me__row-val,
+.cand__meta,
+.stat__val {
+  font-variant-numeric: tabular-nums;
 }

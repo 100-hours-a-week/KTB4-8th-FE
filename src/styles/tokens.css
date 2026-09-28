@@ -74,17 +74,39 @@
   --font:
     "Pretendard Variable", Pretendard, "Noto Sans KR", -apple-system,
     BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Roboto, sans-serif;
-  --font-brand: "Outfit", "Pretendard Variable", Pretendard, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, "Roboto Mono", monospace;
-  --font-google: Roboto, "Pretendard Variable", Pretendard, arial, sans-serif;
+  /* Google 로그인·OAuth 모의 화면용. "Roboto Web" 은 파일 아래에서 자체 호스팅한다.
+     한글은 Roboto 에 글리프가 없어 어느 경우든 Pretendard 로 그려진다. */
+  --font-google:
+    "Roboto Web", Roboto, "Pretendard Variable", Pretendard, arial, sans-serif;
+  /* 워드마크 전용 세리프 — layout.tsx 에서 "KeepGo" 6글자만 서브셋해 받는다.
+     글리프가 그 6자뿐이라 본문·제목에는 쓰면 안 된다. */
+  --font-brand: "Literata", Georgia, serif;
 
-  --t-display: 800 34px/1.18 var(--font);
-  --t-h1: 700 23px/1.34 var(--font);
-  --t-h2: 700 18px/1.4 var(--font);
+  /* 제목은 행간을 좁혀 덩어리로 읽히게 하고, 읽는 글(body 이하)은 한글 가독성을
+     위해 넉넉히 둔다. 제목이라도 두 줄 이상 나올 수 있어 1.15 밑으로는 내리지 않는다. */
+  --t-display: 800 34px/1.15 var(--font);
+  --t-h1: 700 23px/1.28 var(--font);
+  --t-h2: 700 18px/1.35 var(--font);
   --t-h3: 600 16px/1.45 var(--font);
   --t-body: 400 15px/1.58 var(--font);
   --t-sm: 400 13px/1.5 var(--font);
   --t-xs: 400 11.5px/1.45 var(--font);
+
+  /* 자간 — 크기에 연동한다. 클수록 좁히고, 작아질수록 0 에 수렴시킨다.
+     한글은 라틴보다 자간 축소에 취약해 작은 크기에서 좁히면 가독성이 떨어진다.
+     font: 단축 속성은 letter-spacing 을 담지 못해 --t-* 와 짝으로 따로 쓴다. */
+  --tr-display: -0.035em;
+  --tr-h1: -0.03em;
+  --tr-h2: -0.022em;
+  --tr-h3: -0.015em;
+  --tr-body: -0.01em;
+  --tr-sm: -0.005em;
+  --tr-xs: 0;
+
+  /* 섹션 라벨(kicker) — 작고 굵게, 자간은 반대로 넓혀 제목과 대비를 만든다 */
+  --t-kicker: 700 11px/1.3 var(--font);
+  --tr-kicker: 0.08em;
 
   /* ── 그림자 ─────────────────────────────────────────────── */
   --sh-1: 0 1px 2px rgba(23, 22, 27, 0.05);
@@ -107,4 +129,24 @@
   --phone-h: 900px;
   --appbar-h: 56px;
   --tabbar-h: 68px;
+}
+
+/* Roboto — Google 로그인 버튼과 OAuth 모의 화면에서만 쓴다(--font-google).
+   @font-face 로 선언된 폰트는 그 폰트를 쓰는 요소가 실제로 그려질 때만 내려받으므로,
+   이 선언이 전역에 있어도 /login · /oauth 밖에서는 네트워크 요청이 생기지 않는다.
+
+   자체 호스팅하는 이유:
+   - Google 이 Roboto 를 가변 폰트로 바꾸면서 next/font(14.2.x)의 URL 파서가 깨진다.
+   - 외부 요청이 사라져 개인정보·지연 측면에서도 낫다.
+   파일은 하나이고 100~900 을 모두 담은 가변 폰트다(Apache-2.0).
+
+   이름을 "Roboto Web" 으로 따로 둔 이유: --font 의 폴백 체인 끝에도 Roboto 가 있어서,
+   그냥 "Roboto" 로 선언하면 Pretendard 에 없는 글자(이모지 등)가 체인을 타고 내려올 때
+   본문 화면에서도 이 웹폰트를 받아 버린다. */
+@font-face {
+  font-family: "Roboto Web";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/roboto-variable.woff2") format("woff2");
 }

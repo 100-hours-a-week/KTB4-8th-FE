@@ -5,6 +5,7 @@
                         juso.go.kr 검색 API 키 + 도메인 등록이 필요하다.
                         (NEXT_PUBLIC_JUSO_API_KEY 가 비어 있으면 'localDb' 로 자동 대체)
    - 'localDb' (기본) : 자체 지역 DB(법정동코드) 검색 — 기능정의서 10장 방식. 키가 필요 없다.
+   - 'kakaoSubway'    : 카카오 키워드 장소 검색의 지하철역(SW8) 결과. Next BFF를 통해 호출한다.
 
    slick-address-kr 는 도로명주소만 돌려주고 좌표는 아직 제공하지 않아(2026-09 기준 로드맵 항목),
    결과의 시군구·읍면동명을 자체 지역 DB(matchRegion)에 대조해 좌표를 보완한다. */
@@ -20,7 +21,7 @@ import {
   type Region,
 } from "./regionDb";
 
-export type AddressProvider = "localDb" | "jusoKr";
+export type AddressProvider = "localDb" | "jusoKr" | "kakaoSubway";
 
 export const addressConfig = {
   provider: "localDb" as AddressProvider,
@@ -42,6 +43,8 @@ export interface AddressHit {
   current?: boolean;
   /** 역지오코딩 경로 — 'reverse' | 'nearest' */
   via?: string;
+  /** 지하철역일 때 지나는 노선들 — 카카오 category_name 기준 원문(예: "수도권2호선") */
+  lines?: string[];
 }
 
 function fromRegion(r: Region): AddressHit {
@@ -106,14 +109,69 @@ async function searchJuso(q: string): Promise<AddressHit[]> {
   }
 }
 
+interface SubwayStationResult {
+  id: string;
+  name: string;
+  address: string;
+  line: string;
+  latitude: number;
+  longitude: number;
+}
+
+async function searchSubwayStations(q: string): Promise<AddressHit[]> {
+  /* 카카오 키워드 검색은 역 이름의 접미사까지 포함했을 때 정확도가 크게 올라간다.
+     사용자가 "성수", "왕십리"처럼 자연스럽게 입력해도 각각 "성수역",
+     "왕십리역"으로 검색하되, 이미 역을 붙인 입력은 그대로 보낸다. */
+  const stationQuery = q.endsWith("역") ? q : `${q}역`;
+  const params = new URLSearchParams({ query: stationQuery });
+  const response = await fetch(`/bff/regions/subway-stations?${params}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) return [];
+
+  const payload = (await response.json()) as { data?: SubwayStationResult[] };
+
+  /* 환승역은 카카오가 노선마다 한 건씩 주므로(왕십리역 → 2·5·수인분당·경의중앙 4건)
+     역 이름으로 묶어 한 줄로 만들고, 노선만 배열로 모은다.
+     좌표·주소는 먼저 온 건(정확도순 1위)을 대표로 쓴다 — 노선별 승강장 좌표가
+     미세하게 다를 뿐 같은 역이라 지역 지정 용도로는 차이가 없다. */
+  const merged = new Map<string, AddressHit>();
+  for (const station of payload.data ?? []) {
+    const hit = merged.get(station.name);
+    if (hit) {
+      if (station.line && !hit.lines?.includes(station.line)) {
+        hit.lines?.push(station.line);
+      }
+      continue;
+    }
+    merged.set(station.name, {
+      id: `kakao-subway-${station.id}`,
+      label: station.name,
+      sub: station.address,
+      latitude: station.latitude,
+      longitude: station.longitude,
+      source: "kakaoSubway" as const,
+      lines: station.line ? [station.line] : [],
+    });
+  }
+  return [...merged.values()];
+}
+
 /** 지역 검색 — 2자 미만이면 빈 배열. API 키가 없으면 자체 지역 DB로 대체한다. */
 export async function searchAddress(q: string): Promise<AddressHit[]> {
   const v = String(q || "").trim();
   if (v.length < 2) return [];
-  if (addressConfig.provider === "jusoKr" && addressConfig.jusoApiKey) {
-    return searchJuso(v);
-  }
-  return searchRegions(v, 50).map(fromRegion);
+  const regionPromise =
+    addressConfig.provider === "jusoKr" && addressConfig.jusoApiKey
+      ? searchJuso(v)
+      : Promise.resolve(searchRegions(v, 30).map(fromRegion));
+  const [regions, stations] = await Promise.all([
+    regionPromise,
+    searchSubwayStations(v).catch(() => []),
+  ]);
+
+  // 상권명 검색에서 역 결과가 묻히지 않도록 지하철역을 먼저 노출한다.
+  return [...stations, ...regions];
 }
 
 /* ── 단말 위치 ─────────────────────────────────────────── */

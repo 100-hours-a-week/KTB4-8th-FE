@@ -5,7 +5,9 @@
 }
 
 html {
-  height: auto;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: clip;
   scrollbar-gutter: stable; /* 시트가 열릴 때 폭이 흔들리지 않게 */
 }
 html,
@@ -14,8 +16,13 @@ body {
 }
 
 body {
+  width: 100%;
+  min-width: 0;
   min-height: 100%;
+  overflow-x: clip;
   font: var(--t-body);
+  /* 자간은 상속된다 — 여기를 기준선으로 두고 제목 단계에서만 더 좁힌다 */
+  letter-spacing: var(--tr-body);
   color: var(--ink);
   background:
     radial-gradient(900px 520px at 10% 0%, #e4f3ea 0%, transparent 58%),
@@ -72,8 +79,15 @@ img {
 /* ── 레이아웃 ───────────────────────────────────────────────────
    기기 프레임 없이, 모바일 폭의 본문을 화면 가운데에 두고
    스크롤은 브라우저 자체 스크롤바(창 오른쪽)를 쓴다. */
+/* 높이 단위 주의 — iOS Safari 의 100vh 는 '주소창이 숨겨진 상태'의 높이다.
+   주소창이 보이는 동안에는 그 높이만큼 화면 아래로 넘쳐서 하단 요소가 잘린다.
+   dvh 는 지금 실제로 보이는 높이를 따라가므로 두 상태 모두에서 맞는다.
+   (dvh 를 모르는 구형 브라우저용으로 vh 를 먼저 적어 대비한다) */
 .desk {
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
 }
@@ -81,8 +95,10 @@ img {
 .phone {
   position: relative;
   width: 100%;
+  min-width: 0;
   max-width: var(--phone-w);
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--surface);
   border-left: 1px solid var(--line-2);
   border-right: 1px solid var(--line-2);
@@ -90,33 +106,52 @@ img {
   flex-direction: column;
 }
 
-@media (max-width: 560px) {
+/* 좁은 화면이거나 터치 기기면 기기 프레임 없이 화면을 꽉 채운다.
+   pointer:coarse 를 함께 보는 이유 — 아이패드는 폭이 560px 을 넘어서 폭 조건만으로는
+   데스크톱처럼 취급돼 좌우에 여백이 생긴다. */
+@media (max-width: 1024px), (hover: none), (pointer: coarse) {
+  .desk {
+    justify-content: stretch;
+  }
   .phone {
-    max-width: 100%;
+    max-width: none;
     border-left: 0;
     border-right: 0;
   }
   .phone__overlays {
-    max-width: 100%;
+    max-width: none;
   }
 }
 
 .phone__stage {
   position: relative;
+  width: 100%;
+  min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
-/* 오버레이(토스트 · 모달 · 바텀시트)는 본문 열 안에 고정으로 띄운다 */
+/* 인증 후 앱 화면에는 고정 탭바가 문서 흐름에서 빠진 만큼의 자리를 항상 남긴다.
+   로그인·온보딩처럼 탭바가 없는 화면에는 적용하지 않는다. */
+.phone__stage:has(> .tabbar) {
+  padding-bottom: var(--tabbar-space, 86px);
+}
+
+/* 오버레이(토스트 · 모달 · 바텀시트)는 본문 열 안에 고정으로 띄운다.
+   높이를 dvh 로 직접 잡는다 — top/bottom:0 만으로는 iOS 에서 주소창이 보일 때
+   레이아웃 뷰포트(주소창 숨김 기준)에 맞춰져 시트가 화면 밖으로 밀린다. */
 .phone__overlays {
   position: fixed;
   top: 0;
-  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
   max-width: var(--phone-w);
   pointer-events: none;
   z-index: 60;
@@ -128,7 +163,20 @@ img {
 /* 본문 — 문서 스크롤을 쓰므로 자체 스크롤을 두지 않는다 */
 .scroll {
   flex: 1 0 auto;
+  width: 100%;
   min-height: 0;
+  min-width: 0;
+}
+
+/* iOS Safari는 입력 글자 크기가 16px 미만이면 포커스 시 페이지 전체를 자동 확대한다.
+   팝업을 닫은 뒤에도 확대가 남아 콘텐츠와 하단 탭이 오른쪽으로 잘리므로 터치 기기의
+   폼 컨트롤은 최소 16px을 보장한다. */
+@media (hover: none), (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 .scroll--pad {
   padding: var(--s-5) var(--s-5) var(--s-10);

@@ -18,6 +18,7 @@ import {
   searchAddress,
   type AddressHit,
 } from "@/lib/address/address";
+import { isNumberedLine, resolveSubwayLine } from "@/lib/address/subwayLines";
 import { MAX_REGION, REGION_DISALLOWED } from "@/lib/constants";
 import { useCourseStore } from "./courseStore";
 
@@ -27,6 +28,7 @@ import { useCourseStore } from "./courseStore";
 type ResultsView =
   | { kind: "idle" }
   | { kind: "need-more" }
+  | { kind: "searching" }
   | { kind: "locating" }
   | { kind: "empty" }
   | { kind: "error"; message: string; retry?: boolean }
@@ -54,6 +56,23 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
 
   const debounceRef = useRef<number | null>(null);
   const shakeTimerRef = useRef<number | null>(null);
+  const searchSeqRef = useRef(0);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  /* Simulator에서 하드웨어 키보드가 연결되면 소프트 키보드는 숨고 Safari의
+     이전/다음/완료 막대만 남는다. 결과가 도착한 뒤 실제 키보드가 화면을 차지하지
+     않은 경우에만 포커스를 해제해 막대가 계속 남지 않게 한다. */
+  function dismissSimulatorAccessoryBar() {
+    if (!("ontouchstart" in window) && navigator.maxTouchPoints <= 0) return;
+    window.requestAnimationFrame(() => {
+      const viewport = window.visualViewport;
+      const keyboardIsVisible =
+        viewport && viewport.height < window.innerHeight * 0.85;
+      if (!keyboardIsVisible && document.activeElement === inputRef.current) {
+        inputRef.current?.blur();
+      }
+    });
+  }
 
   /* 위치 권한을 이미 거부했다면 버튼을 비활성화한다(v1은 항상 http 로 서비스되므로 file:// 예외는 사실상 안 탄다) */
   useEffect(() => {
@@ -96,12 +115,17 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
   }
 
   async function runSearch(q: string) {
+    const seq = ++searchSeqRef.current;
+    setResultsView({ kind: "searching" });
     try {
       const list = await searchAddress(q);
+      if (seq !== searchSeqRef.current) return;
       setResultsView(
         list.length ? { kind: "list", items: list } : { kind: "empty" },
       );
+      dismissSimulatorAccessoryBar();
     } catch {
+      if (seq !== searchSeqRef.current) return;
       setResultsView({
         kind: "error",
         message: "검색에 실패했어요. 잠시 후 다시 시도해 주세요.",
@@ -130,6 +154,7 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
     const key = v.trim();
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     if (key.length < 2) {
+      searchSeqRef.current += 1;
       setResultsView(
         key.length === 0 ? { kind: "idle" } : { kind: "need-more" },
       );
@@ -269,6 +294,8 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
         return <p className="field__help">검색어를 입력해 주세요.</p>;
       case "need-more":
         return <p className="field__help">2자 이상 입력해 주세요.</p>;
+      case "searching":
+        return <p className="field__help">법정동과 지하철역을 찾고 있어요…</p>;
       case "locating":
         return <p className="field__help">현재 위치를 확인하고 있어요…</p>;
       case "empty":
@@ -308,10 +335,32 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
                 aria-selected={i === cursor}
                 onClick={() => pick(i, resultsView.items)}
               >
-                <span className="addr__name">
-                  {highlightLabel(a.label, key)}
+                <span className="addr__main">
+                  <span className="addr__name">
+                    {highlightLabel(a.label, key)}
+                  </span>
+                  <span className="addr__sub">{a.sub}</span>
                 </span>
-                <span className="addr__sub">{a.sub}</span>
+                {a.lines && a.lines.length > 0 && (
+                  <span className="addr__lines">
+                    {a.lines.map((raw) => {
+                      const line = resolveSubwayLine(raw);
+                      return (
+                        <span
+                          key={raw}
+                          className={`subway-line${
+                            isNumberedLine(line.label)
+                              ? " subway-line--num"
+                              : " subway-line--name"
+                          }`}
+                          style={{ background: line.color }}
+                        >
+                          {line.label}
+                        </span>
+                      );
+                    })}
+                  </span>
+                )}
               </button>
             ))}
             {locatedNote && (
@@ -346,11 +395,12 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
     >
       <div className="field" style={{ marginTop: 4 }}>
         <input
+          ref={inputRef}
           className={`field__input${shaking ? " is-shake" : ""}`}
           placeholder={
             addressConfig.provider === "jusoKr" && addressConfig.jusoApiKey
-              ? "도로명 주소 또는 지역명을 입력하세요"
-              : "지역명을 입력하세요"
+              ? "도로명 주소·법정동·지하철역을 입력하세요"
+              : "법정동 또는 지하철역을 입력하세요"
           }
           value={query}
           onChange={handleChange}
@@ -367,10 +417,7 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
           <span className="field__help">
             지역명 1~{MAX_REGION}자, 한글 · 영문 · 숫자 · 공백만 허용
             <br />
-            2자 이상부터{" "}
-            {addressConfig.provider === "jusoKr" && addressConfig.jusoApiKey
-              ? "행정안전부 도로명주소 API로 자동완성"
-              : "자체 지역 DB에서 자동 검색"}
+            2자 이상부터 법정동 DB와 카카오 지하철역을 함께 검색
           </span>
           <span
             className="field__count"

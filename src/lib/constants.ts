@@ -64,4 +64,18 @@ export const REGION_DISALLOWED = /[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9 ]/g;
 /** 닉네임 허용 문자 — 띄어쓰기와 특수기호 금지 */
 export const NICKNAME_DISALLOWED = /[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]/g;
 
-export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
+/** true = 전부 MSW, hybrid = BE가 구현한 API만 실서버 · 나머지는 MSW, 그 외 = 전부 실서버 */
+export type MockMode = "all" | "hybrid" | "off";
+
+/* hybrid 는 BE 가 서명한 JWT 가 있어야 실서버 API 를 부를 수 있다(NEXT_PUBLIC_DEV_ACCESS_TOKEN).
+   토큰이 비어 있으면 전부 목으로 동작해 화면이 깨지지 않는다. */
+export const MOCK_MODE: MockMode =
+  process.env.NEXT_PUBLIC_USE_MOCK === "true"
+    ? "all"
+    : process.env.NEXT_PUBLIC_USE_MOCK === "hybrid"
+      ? process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN
+        ? "hybrid"
+        : "all"
+      : "off";
+
+export const USE_MOCK = MOCK_MODE !== "off";

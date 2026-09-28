@@ -63,11 +63,6 @@ export function CategorySheet({ onClose }: CategorySheetProps) {
           </button>
         ))}
       </div>
-      <p className="field__help" style={{ marginTop: 14 }}>
-        선택한 항목은 채팅 표시 · 재검색 시 유지됩니다.
-        <br />
-        카드 표기는 3개 초과 시 “카페 외 2개”로 축약됩니다.
-      </p>
     </Sheet>
   );
 }

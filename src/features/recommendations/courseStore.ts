@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type {
   AvailableMinutes,
   Candidate,
@@ -42,6 +43,7 @@ export interface DoneCourse {
 }
 
 interface CourseState {
+  conversationId: string | null;
   open: boolean;
   setOpen: (v: boolean) => void;
 
@@ -55,12 +57,27 @@ interface CourseState {
 
   set: (
     patch: Partial<
-      Omit<CourseState, "set" | "setOpen" | "reset" | "patchSlots">
+      Omit<CourseState, "set" | "setOpen" | "reset" | "discard" | "patchSlots">
     >,
   ) => void;
   patchSlots: (patch: Partial<Slots>) => void;
   reset: () => void;
+  discard: () => void;
 }
+
+function newConversationId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `course-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export const defaultOrigin = (): Origin => ({
+  label: "강남구 테헤란로",
+  latitude: 37.5,
+  longitude: 127.0364,
+  current: true,
+});
 
 export const emptySlots = (): Slots => ({
   region: null,
@@ -71,30 +88,61 @@ export const emptySlots = (): Slots => ({
   categories: [],
 });
 
-export const useCourseStore = create<CourseState>((set) => ({
-  open: false,
-  setOpen: (v) => set({ open: v }),
+export const useCourseStore = create<CourseState>()(
+  persist(
+    (set) => ({
+      conversationId: null,
+      open: false,
+      setOpen: (v) => set({ open: v }),
 
-  lines: [],
-  phase: "idle",
-  options: [],
-  origin: null,
-  slots: emptySlots(),
-  runId: null,
-  done: null,
-
-  set: (patch) => set(patch as Partial<CourseState>),
-  patchSlots: (patch) => set((s) => ({ slots: { ...s.slots, ...patch } })),
-  reset: () =>
-    set({
       lines: [],
       phase: "idle",
       options: [],
+      origin: null,
       slots: emptySlots(),
       runId: null,
       done: null,
+
+      set: (patch) => set(patch as Partial<CourseState>),
+      patchSlots: (patch) => set((s) => ({ slots: { ...s.slots, ...patch } })),
+      reset: () =>
+        set({
+          conversationId: newConversationId(),
+          lines: [],
+          phase: "idle",
+          options: [],
+          origin: defaultOrigin(),
+          slots: emptySlots(),
+          runId: null,
+          done: null,
+        }),
+      discard: () =>
+        set({
+          conversationId: null,
+          open: false,
+          lines: [],
+          phase: "idle",
+          options: [],
+          origin: null,
+          slots: emptySlots(),
+          runId: null,
+          done: null,
+        }),
     }),
-}));
+    {
+      name: "keepgo.course-conversation.v1",
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (state) => ({
+        conversationId: state.conversationId,
+        lines: state.lines,
+        options: state.options,
+        origin: state.origin,
+        slots: state.slots,
+        done: state.done,
+      }),
+    },
+  ),
+);
 
 /** 추천을 요청할 수 있는 조건이 모였는지 — 지역 · 날짜 · 시간대가 필수 */
 export function isReady(slots: Slots) {

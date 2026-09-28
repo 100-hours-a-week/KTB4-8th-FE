@@ -17,7 +17,7 @@ export type MockDataState = "normal" | "noLikes" | "noPlaces" | "analyzing";
 
 export interface SyncState {
   syncId: string;
-  state: "QUEUED" | "RUNNING" | "COMPLETED";
+  state: "PENDING" | "IN_PROGRESS" | "COMPLETED";
   startedAt: number;
 }
 
@@ -46,7 +46,7 @@ export interface RecommendationRequestBody {
 
 export interface RecommendationRunRecord {
   runId: string;
-  state: "QUEUED" | "RUNNING" | "COMPLETED";
+  state: "PENDING" | "IN_PROGRESS" | "COMPLETED";
   startedAt: number;
   request: RecommendationRequestBody;
   expiresAt: string;
@@ -61,9 +61,8 @@ export interface MockUser {
 
 /** PATCH /user/notifications/settings 가 다루는 값 — 공유 타입 NotificationSettings 와 같은 필드명을 쓴다 */
 export interface NotificationSettingsState {
-  eventReminder: boolean;
-  analysisCompleted: boolean;
-  marketing: boolean;
+  eventNotificationAgreed: boolean;
+  analysisNotificationAgreed: boolean;
 }
 
 export interface ServerState {
@@ -75,6 +74,8 @@ export interface ServerState {
   sync: SyncState | null;
   user: MockUser | null;
   account: OauthAccount | null;
+  /** 한 번이라도 가입을 완료한 Google 계정 — Mock OAuth의 최초 로그인 판별용 */
+  registeredGoogleSubs: string[];
   notiRead: Record<string, boolean>;
   notificationSettings: NotificationSettingsState;
   dataState: MockDataState;
@@ -90,11 +91,11 @@ function baseState(): ServerState {
     sync: null,
     user: null,
     account: null,
+    registeredGoogleSubs: [],
     notiRead: {},
     notificationSettings: {
-      eventReminder: true,
-      analysisCompleted: true,
-      marketing: false,
+      eventNotificationAgreed: true,
+      analysisNotificationAgreed: true,
     },
     dataState: "normal",
   };
@@ -112,7 +113,36 @@ function loadSrv(): ServerState {
     if (!raw) return base;
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed)) return base;
-    return { ...base, ...(parsed as Partial<ServerState>) };
+    const loaded = { ...base, ...(parsed as Partial<ServerState>) };
+    const savedSettings = isRecord(parsed.notificationSettings)
+      ? parsed.notificationSettings
+      : {};
+    loaded.notificationSettings = {
+      eventNotificationAgreed:
+        typeof savedSettings.eventNotificationAgreed === "boolean"
+          ? savedSettings.eventNotificationAgreed
+          : typeof savedSettings.eventReminder === "boolean"
+            ? savedSettings.eventReminder
+            : base.notificationSettings.eventNotificationAgreed,
+      analysisNotificationAgreed:
+        typeof savedSettings.analysisNotificationAgreed === "boolean"
+          ? savedSettings.analysisNotificationAgreed
+          : typeof savedSettings.analysisCompleted === "boolean"
+            ? savedSettings.analysisCompleted
+            : base.notificationSettings.analysisNotificationAgreed,
+    };
+    const savedSync = loaded.sync;
+    if (savedSync) {
+      if ((savedSync.state as string) === "QUEUED") savedSync.state = "PENDING";
+      if ((savedSync.state as string) === "RUNNING")
+        savedSync.state = "IN_PROGRESS";
+    }
+    Object.values(loaded.runs).forEach((run) => {
+      if (run.state === ("QUEUED" as typeof run.state)) run.state = "PENDING";
+      if (run.state === ("RUNNING" as typeof run.state))
+        run.state = "IN_PROGRESS";
+    });
+    return loaded;
   } catch {
     return base;
   }
@@ -142,7 +172,9 @@ export function nextId(): string {
 
 /** 로그인 계정이 바뀔 때 등, endpoints.js 의 resetSrv() 와 동일하게 완전히 새로 만든다 */
 export function resetMockServer(): void {
+  const registeredGoogleSubs = [...srv.registeredGoogleSubs];
   srv = baseState();
+  srv.registeredGoogleSubs = registeredGoogleSubs;
   persist();
 }
 

@@ -7,7 +7,7 @@ import { Empty, Skeleton, Spinner, Thumb } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { api } from "@/lib/api/client";
 import { CATEGORY_LABEL } from "@/lib/constants";
-import { fmtDday, fmtPeriod } from "@/lib/format";
+import { fmtPeriod, getEventStatusBadge } from "@/lib/format";
 import { useEvent } from "./queries";
 import type { CollectionItem } from "@/types/api";
 
@@ -53,7 +53,7 @@ export function EventDetailSheet({ eventId, onClose }: EventDetailSheetProps) {
     }
   }
 
-  const dday = event ? fmtDday(event.endAt) : "";
+  const status = event ? getEventStatusBadge(event.startAt, event.endAt) : null;
 
   return (
     <Sheet
@@ -122,8 +122,10 @@ export function EventDetailSheet({ eventId, onClose }: EventDetailSheetProps) {
             <span className="chip chip--tag chip--brand">
               {CATEGORY_LABEL[event.category]}
             </span>
-            {dday && (
-              <span className="chip chip--tag chip--accent">{dday}</span>
+            {status && (
+              <span className={`event-status event-status--${status.tone}`}>
+                {status.label}
+              </span>
             )}
           </div>
           <p className="pdetail__name">{event.name}</p>

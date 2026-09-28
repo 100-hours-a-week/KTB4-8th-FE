@@ -4,6 +4,7 @@
    - 성공 응답은 { data } 또는 { data, page } 한 겹으로 감싸여 온다.
    - 오류는 RFC 9457 Problem Details 이며 ApiError 로 던진다.
    - 401 AUTHENTICATION_REQUIRED 는 refresh 를 1회 시도한 뒤 실패하면 로그인으로 보낸다. */
+import { backendRoute, codeFromStatus } from "./backend";
 import { PROBLEMS, UI, type Effect, type Problem, type Tone } from "./problems";
 import type { Envelope, Page } from "@/types/api";
 
@@ -67,7 +68,7 @@ export function toApiError(
     status: b.status || status,
     detail: b.detail || "알 수 없는 오류가 발생했어요.",
     instance: b.instance || API_BASE + instance,
-    code: b.code || "INTERNAL_SERVER_ERROR",
+    code: b.code || codeFromStatus(status),
     traceId: b.traceId,
     errors: b.errors,
     retryAfterSeconds: b.retryAfterSeconds,
@@ -82,7 +83,6 @@ const STORAGE_KEY = "keepgo.session.v1";
 
 export interface SessionTokens {
   accessToken: string;
-  refreshToken?: string;
   tokenType?: string;
   expiresIn?: number;
   issuedAt?: number;
@@ -131,8 +131,19 @@ export function headers(
    화면이 아니라 여기서 한 번만 처리하도록 콜백을 등록받는다. */
 
 let onSessionExpired: (() => void) | null = null;
+let intentionalLogout = false;
+
 export function setSessionExpiredHandler(fn: (() => void) | null) {
   onSessionExpired = fn;
+}
+
+/** 사용자가 직접 로그아웃하는 동안 발생한 401을 세션 만료로 안내하지 않기 위한 상태 */
+export function setIntentionalLogout(value: boolean) {
+  intentionalLogout = value;
+}
+
+function notifySessionExpired() {
+  if (!intentionalLogout) onSessionExpired?.();
 }
 
 /* ── 요청 ──────────────────────────────────────────────── */
@@ -160,7 +171,13 @@ async function send<T>(
   path: string,
   opts: RequestOptions = {},
 ): Promise<Envelope<T>> {
-  const url = API_BASE + path + qs(opts.query);
+  const route = backendRoute(method, path);
+  const search = qs(opts.query);
+  const extra = route?.search;
+  const url =
+    API_BASE +
+    path +
+    (extra ? `${search}${search ? "&" : "?"}${extra}` : search);
 
   const res = await fetch(url, {
     method,
@@ -168,6 +185,7 @@ async function send<T>(
     body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
     signal: opts.signal,
     cache: "no-store",
+    credentials: "include",
   });
 
   if (res.status === 204) return { data: undefined as unknown as T };
@@ -179,7 +197,10 @@ async function send<T>(
     body = null;
   }
 
-  if (res.ok) return body as Envelope<T>;
+  if (res.ok) {
+    if (route) return { data: route.response(body) as T };
+    return body as Envelope<T>;
+  }
 
   const err = toApiError(body, res.status, path);
 
@@ -194,7 +215,7 @@ async function send<T>(
       const r = await fetch(API_BASE + "/user/auth-session/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken: s.refreshToken }),
+        credentials: "include",
       });
       if (!r.ok)
         throw toApiError(
@@ -207,7 +228,7 @@ async function send<T>(
       return send<T>(method, path, { ...opts, retried: true });
     } catch (e) {
       writeSession(null);
-      onSessionExpired?.();
+      notifySessionExpired();
       throw e;
     }
   }
@@ -217,7 +238,7 @@ async function send<T>(
     describe(err).effect === "RELOGIN"
   ) {
     writeSession(null);
-    onSessionExpired?.();
+    notifySessionExpired();
   }
 
   throw err;

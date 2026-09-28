@@ -25,7 +25,8 @@ export interface CollectionCourseDetail extends CourseSummary {
   components: CandidateComponent[];
   startAt: string;
   endAt: string;
-  createdAt: string;
+  /** 현재 Mock 응답에만 존재하며 BE 명세의 코스 상세 응답에는 없다. */
+  createdAt?: string;
   saved: boolean;
 }
 

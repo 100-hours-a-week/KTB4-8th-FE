@@ -167,7 +167,7 @@ function CollectionRow({
           <p className="listitem__sub">
             {course?.rank ?? "-"}순위 · 총 이동{" "}
             {course?.totalTravelMinutes ?? 0}분 ·{" "}
-            {fmtDot(new Date(row.createdAt))} 저장
+            {fmtDot(new Date(row.savedAt))} 저장
           </p>
         </div>
         <span style={{ color: "var(--ink-4)" }}>

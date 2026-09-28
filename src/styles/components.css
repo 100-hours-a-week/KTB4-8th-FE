@@ -33,7 +33,7 @@
 .appbar__title {
   font: var(--t-h3);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: var(--tr-h3);
 }
 .appbar__sub {
   display: block;
@@ -53,8 +53,9 @@
 .appbar__brand {
   flex: 1;
   padding-right: var(--s-2);
-  font: 800 25px/1 var(--font);
-  letter-spacing: -0.035em;
+  /* 로그인 히어로와 같은 세리프 워드마크. 세리프는 폭이 넓어 자간을 덜 좁힌다 */
+  font: 800 25px/1 var(--font-brand);
+  letter-spacing: -0.025em;
   color: var(--brand-600);
 }
 .appbar__btn {
@@ -86,11 +87,16 @@
    보관함 · 지도 · 홈 · 코스 · 마이페이지 (홈을 가운데에서 강조)
    코스는 화면 이동이 아니라 팝업을 연다. */
 .tabbar {
-  position: sticky;
+  position: fixed;
+  left: 50%;
   bottom: 0;
-  z-index: 30;
+  transform: translateX(-50%);
+  z-index: 80;
   flex: none;
-  height: var(--tabbar-h);
+  /* height 로 고정하면 안 된다 — box-sizing:border-box 라서 아래 safe-area 여백이
+     68px 안쪽을 파고들어 아이콘·라벨이 위로 밀리고 잘린다(아이폰 홈 인디케이터 구간).
+     min-height 로 두어야 안전영역만큼 막대가 늘어나면서 내용이 그 위로 올라온다. */
+  min-height: var(--tabbar-h);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
@@ -99,6 +105,9 @@
   backdrop-filter: saturate(180%) blur(18px);
   -webkit-backdrop-filter: saturate(180%) blur(18px);
   padding-bottom: env(safe-area-inset-bottom);
+  width: 100%;
+  max-width: var(--phone-w);
+  min-width: 0;
 }
 .tabbar__item {
   display: flex;
@@ -108,8 +117,24 @@
   border: 0;
   background: transparent;
   padding: 6px 0;
+  min-width: 0;
   color: var(--ink-4);
   transition: color var(--d-base) var(--e-io);
+}
+
+/* Safari 도구 막대를 숨긴 상태에서도 홈 인디케이터와 탭 항목 사이에 최소 여백을 둔다. */
+@media (hover: none), (pointer: coarse) {
+  .tabbar {
+    padding-bottom: max(env(safe-area-inset-bottom), 18px);
+    max-width: none;
+  }
+
+  /* iOS의 입력 보조 막대(이전·다음·완료)가 떠 있을 때는 그 막대 자체가
+     홈 인디케이터 영역을 확보한다. 탭바의 추가 안전 여백까지 유지하면 탭바와
+     시트가 함께 과도하게 위로 밀리므로, 입력 중에만 중복 여백을 제거한다. */
+  .phone:has(input:focus, textarea:focus, select:focus) .tabbar {
+    padding-bottom: 0;
+  }
 }
 .tabbar__item span {
   font: var(--t-xs);
@@ -164,6 +189,7 @@
   background: var(--grad-brand) border-box;
   color: #fff;
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-weight: 700;
   box-shadow: var(--sh-brand);
   position: relative;
@@ -289,6 +315,7 @@
 .btn--lg {
   min-height: 56px;
   font: var(--t-h2);
+  letter-spacing: var(--tr-h2);
 }
 .btn--pill {
   border-radius: var(--r-full);
@@ -342,6 +369,33 @@
 .chip--violet {
   background: var(--violet-50);
   color: #2f5fbf;
+}
+
+/* 이벤트 기간 상태 배지 — 위치는 항상 같고 색으로만 긴급도를 구분한다.
+   오늘 마감(빨강) → 10일 이내(주황) → 그 밖(회색) 순으로 옅어진다. */
+.event-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: var(--r-full);
+  font: var(--t-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.event-status--today {
+  background: var(--danger-bg);
+  color: #c8322b;
+}
+.event-status--closing {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.event-status--normal,
+.event-status--upcoming {
+  background: var(--surface-3);
+  color: var(--ink-3);
 }
 
 .iconbtn {
@@ -472,7 +526,7 @@
 }
 .section__title {
   font: var(--t-h2);
-  letter-spacing: -0.015em;
+  letter-spacing: var(--tr-h2);
 }
 .section__sub {
   font: var(--t-xs);
@@ -725,6 +779,7 @@
 }
 .modal__title {
   font: var(--t-h2);
+  letter-spacing: var(--tr-h2);
 }
 .modal__msg {
   font: var(--t-sm);
@@ -752,10 +807,13 @@
   justify-content: flex-end;
   animation: kg-fade-in 0.16s var(--e-io) both;
   z-index: 20;
+  min-width: 0;
+  overflow: hidden;
 }
 /* 네 모서리가 둥글고 살짝 떠 있는 카드 형태 */
 .sheet {
   width: auto;
+  max-width: calc(100% - 16px);
   margin: 0 8px 10px;
   max-height: calc(92% - 10px);
   background: var(--surface);
@@ -805,12 +863,25 @@
   flex: 1;
   min-width: 0;
 }
+/* 좌우 버튼 개수가 다르면(예: 뒤로가기 1개 + 초기화·닫기 2개) flex 가운데 정렬은
+   진짜 화면 중앙이 아니라 남은 공간의 중앙에 온다. 헤더 전체 너비에 겹쳐 그려
+   버튼 구성과 무관하게 항상 화면 중앙에 오도록 한다. */
+.sheet__head--center {
+  position: relative;
+  justify-content: space-between;
+}
 .sheet__head--center .sheet__titles {
+  position: absolute;
+  top: 50%;
+  left: var(--s-4);
+  right: var(--s-4);
+  transform: translateY(-50%);
   text-align: center;
+  pointer-events: none;
 }
 .sheet__title {
   font: var(--t-h2);
-  letter-spacing: -0.015em;
+  letter-spacing: var(--tr-h2);
 }
 .sheet__sub {
   font: var(--t-xs);
@@ -827,6 +898,8 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 0 var(--s-5) var(--s-4);
 }
 .sheet__foot {
@@ -857,6 +930,7 @@
 /* 코스 추천 팝업 — 탭바 위에 떠 있는 큰 시트 */
 .sheet--full {
   flex: 1;
+  width: calc(100% - 16px);
   max-height: none;
   margin-top: 10px;
 }
@@ -889,6 +963,7 @@
 }
 .empty__title {
   font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
   font-weight: 700;
 }
 .empty__msg {

@@ -9,7 +9,6 @@ import type {
   ChatReply,
   CollectionItem,
   RecommendationRun,
-  RecommendationSlots,
 } from "@/types/api";
 
 /* 코스 추천 팝업이 쓰는 API 훅 — 채팅 · 추천 생성/폴링/취소 · 보관함 저장.
@@ -34,7 +33,6 @@ export function useChatMessages(enabled: boolean) {
 
 export interface SendChatBody {
   content: string;
-  slots: RecommendationSlots;
 }
 
 /** POST /user/chat-messages — 응답(ChatReply)에는 사용자 메시지가 들어있지 않다.
@@ -92,7 +90,8 @@ export function useRecommendationPoll(runId: string | null, enabled: boolean) {
 
 export interface CancelRecommendationResult {
   runId: string;
-  state: string;
+  state: "CANCELLING";
+  requestedAt: string;
 }
 
 /** POST /user/recommendations/cancellation */

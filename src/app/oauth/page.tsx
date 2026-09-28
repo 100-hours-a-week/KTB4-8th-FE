@@ -19,7 +19,6 @@ const NEW_ACCOUNT: PickedAccount = {
   sub: "google-new",
   name: "새 사용자",
   email: "new.user@gmail.com",
-  isNew: true,
 };
 
 export default function OauthPage() {
@@ -71,12 +70,6 @@ export default function OauthPage() {
 
   return (
     <section className="goauth">
-      {step === "account" ? (
-        <Chrome path="/o/oauth2/v2/auth" />
-      ) : (
-        <Chrome path="/signin/oauth/consent" />
-      )}
-
       <div className="goauth__scroll">
         <div className="goauth__card">
           {step === "account" ? (
@@ -118,25 +111,6 @@ export default function OauthPage() {
 
       <Bottom />
     </section>
-  );
-}
-
-/* 브라우저 주소창 — 실제 OAuth 는 구글 도메인에서 열린다는 것을 보여준다 */
-function Chrome({ path }: { path: string }) {
-  return (
-    <div className="goauth__chrome">
-      <span className="goauth__dots">
-        <i />
-        <i />
-        <i />
-      </span>
-      <span className="goauth__url">
-        <span className="goauth__lock">
-          <Icon name="lock" size={12} />
-        </span>
-        accounts.google.com{path}
-      </span>
-    </div>
   );
 }
 

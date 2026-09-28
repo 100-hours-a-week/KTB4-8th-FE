@@ -3,6 +3,7 @@
    여기서는 msw 가 대신하고, 각 라우트의 로직만 이 파일에 남는다. */
 import { HttpResponse, delay, http } from "msw";
 import { API_BASE, makeProblem } from "@/lib/api/client";
+import { MOCK_MODE } from "@/lib/constants";
 import type { Problem } from "@/lib/api/problems";
 import { toIso, uid } from "@/lib/format";
 import * as db from "./db";
@@ -31,7 +32,6 @@ import type {
   LikedVideoSync,
   OauthAccount,
   RecommendationRun,
-  RecommendationSlots,
   User,
 } from "@/types/api";
 
@@ -39,6 +39,12 @@ const LATENCY_MS = 320; // KG.api.config.latencyMs 와 동일
 const GENERATION_MS = 4000; // KG.api.config.generationMs 와 동일(코스 추천 생성 시간)
 
 const nowIso = () => toIso(new Date());
+
+/* 하이브리드 모드에서 실서버로 가는 API 는 BE 가 서명한 JWT 만 받는다.
+   BE 의 Google 로그인이 아직 동작하지 않아, 로컬에서 발급한 토큰을 env 로 주입해 목 로그인이 대신 내려준다. */
+const mockAccessToken = () =>
+  (MOCK_MODE === "hybrid" && process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN) ||
+  `mock.${uid("at")}`;
 
 /** Problem Details 본문을 status 코드와 함께 응답으로 만든다 */
 function problemResponse(
@@ -184,9 +190,10 @@ const loginHandler = http.post(
       return problemResponse("MALFORMED_REQUEST", "/user/auth-session");
     }
 
-    const picked = body.account ?? db.MOCK_GOOGLE_ACCOUNTS[0];
-    const isNew = !!body.account?.isNew;
     const srv = getServerState();
+    const picked = body.account ?? db.MOCK_GOOGLE_ACCOUNTS[0];
+    const accountKey = picked.sub ?? picked.email;
+    const isNew = !srv.registeredGoogleSubs.includes(accountKey);
     const switched = !srv.account || srv.account.email !== picked.email;
 
     const current: MockUser = srv.user ?? {
@@ -211,16 +218,24 @@ const loginHandler = http.post(
       youtubeConnected: true,
       connectedAt: nowIso(),
     };
+    if (!srv.registeredGoogleSubs.includes(accountKey)) {
+      srv.registeredGoogleSubs.push(accountKey);
+    }
 
     // 로그인할 때마다 동기화 상태를 비워, 홈의 "시작하기 — 좋아요 영상 불러오기" 카드부터 흐름을 볼 수 있게 한다.
     srv.sync = null;
     persist();
 
     const data: AuthSession = {
-      accessToken: `mock.${uid("at")}`,
+      accessToken: mockAccessToken(),
       tokenType: "Bearer",
       expiresIn: 3600,
       isNewUser: isNew,
+      user: {
+        id: current.id,
+        nickname: current.nickname,
+        profileImageUrl: current.profileImageUrl,
+      },
     };
     return HttpResponse.json({ data }, { status: 201 });
   },
@@ -231,7 +246,7 @@ const refreshHandler = http.post(
   async () => {
     await delay(LATENCY_MS);
     const data: AuthSession = {
-      accessToken: `mock.${uid("at")}`,
+      accessToken: mockAccessToken(),
       tokenType: "Bearer",
       expiresIn: 900,
     };
@@ -267,6 +282,9 @@ const getUserHandler = http.get(`${API_BASE}/user`, async ({ request }) => {
     id: u?.id ?? "101",
     nickname: u?.nickname ?? "여행자",
     profileImageUrl: u?.profileImageUrl ?? null,
+    eventNotificationAgreed: srv.notificationSettings.eventNotificationAgreed,
+    analysisNotificationAgreed:
+      srv.notificationSettings.analysisNotificationAgreed,
     createdAt: u?.createdAt ?? "2026-09-07T10:00:00+09:00",
   };
   return HttpResponse.json({ data });
@@ -382,7 +400,7 @@ const analyticsHandler = http.get(
       persist();
       return HttpResponse.json({ data: db.analytics.done });
     }
-    srv.sync.state = "RUNNING";
+    srv.sync.state = "IN_PROGRESS";
     persist();
     const completed = Math.floor(total * ratio);
     const data: AnalyticsStatistics = {
@@ -430,18 +448,18 @@ const startSyncHandler = http.post(
       );
     }
     const syncId = nextId();
-    srv.sync = { syncId, state: "QUEUED", startedAt: Date.now() };
+    const requestedAt = nowIso();
+    srv.sync = { syncId, state: "PENDING", startedAt: Date.now() };
     persist();
 
-    const data: LikedVideoSync = { syncId, state: "QUEUED" };
+    const data: LikedVideoSync = { syncId, state: "PENDING", requestedAt };
     return HttpResponse.json({ data }, { status: 202 });
   },
 );
 
 interface PatchSettingsBody {
-  eventReminder?: unknown;
-  analysisCompleted?: unknown;
-  marketing?: unknown;
+  eventNotificationAgreed?: unknown;
+  analysisNotificationAgreed?: unknown;
 }
 
 const patchSettingsHandler = http.patch(
@@ -459,11 +477,7 @@ const patchSettingsHandler = http.patch(
       );
     const has = (k: keyof PatchSettingsBody) =>
       Object.prototype.hasOwnProperty.call(body, k);
-    if (
-      !has("eventReminder") &&
-      !has("analysisCompleted") &&
-      !has("marketing")
-    ) {
+    if (!has("eventNotificationAgreed") && !has("analysisNotificationAgreed")) {
       return problemResponse(
         "MALFORMED_REQUEST",
         "/user/notifications/settings",
@@ -471,14 +485,17 @@ const patchSettingsHandler = http.patch(
     }
 
     const srv = getServerState();
-    if (has("eventReminder"))
-      srv.notificationSettings.eventReminder = !!body.eventReminder;
-    if (has("analysisCompleted"))
-      srv.notificationSettings.analysisCompleted = !!body.analysisCompleted;
-    if (has("marketing")) srv.notificationSettings.marketing = !!body.marketing;
+    if (has("eventNotificationAgreed"))
+      srv.notificationSettings.eventNotificationAgreed =
+        !!body.eventNotificationAgreed;
+    if (has("analysisNotificationAgreed"))
+      srv.notificationSettings.analysisNotificationAgreed =
+        !!body.analysisNotificationAgreed;
     persist();
 
-    return HttpResponse.json({ data: { ...srv.notificationSettings } });
+    return HttpResponse.json({
+      data: { ...srv.notificationSettings, updatedAt: nowIso() },
+    });
   },
 );
 
@@ -719,7 +736,7 @@ const saveItemHandler = http.post(
         id: course.id,
         itemType: "COURSE",
         itemId: course.id,
-        createdAt: course.createdAt,
+        savedAt: course.createdAt,
       };
       return HttpResponse.json({ data }, { status: 201 });
     }
@@ -771,7 +788,7 @@ const saveItemHandler = http.post(
       id: rec.id,
       itemType: rec.itemType,
       itemId: rec.itemId,
-      createdAt: rec.createdAt,
+      savedAt: rec.createdAt,
     };
     return HttpResponse.json({ data }, { status: 201 });
   },
@@ -805,7 +822,7 @@ const listItemsHandler = http.get(
             id: i.id,
             itemType: i.itemType,
             itemId: i.itemId,
-            createdAt: i.createdAt,
+            savedAt: i.createdAt,
             item: src ?? null,
           };
         });
@@ -816,13 +833,13 @@ const listItemsHandler = http.get(
           id: c.id,
           itemType: "COURSE" as const,
           itemId: c.id,
-          createdAt: c.createdAt,
+          savedAt: c.createdAt,
           item: c,
         })),
       );
     }
 
-    data.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    data.sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1));
     return HttpResponse.json({
       data,
       page: { nextCursor: null, hasNext: false },
@@ -904,7 +921,7 @@ const createRecommendationHandler = http.post(
 
     const srv = getServerState();
     const hasOpenRun = Object.values(srv.runs).some(
-      (r) => r.state === "QUEUED" || r.state === "RUNNING",
+      (r) => r.state === "PENDING" || r.state === "IN_PROGRESS",
     );
     if (hasOpenRun)
       return problemResponse(
@@ -922,7 +939,7 @@ const createRecommendationHandler = http.post(
 
     srv.runs[runId] = {
       runId,
-      state: "QUEUED",
+      state: "PENDING",
       startedAt,
       request: {
         startAt: body.startAt,
@@ -938,7 +955,7 @@ const createRecommendationHandler = http.post(
       {
         data: {
           runId,
-          state: "QUEUED",
+          state: "PENDING",
           requestedAt: nowIso(),
           expiresAt,
           retryAfterSeconds: 1,
@@ -959,7 +976,7 @@ const cancelRecommendationHandler = http.post(
     const srv = getServerState();
     const openIds = Object.keys(srv.runs).filter((k) => {
       const state = srv.runs[k].state;
-      return state === "QUEUED" || state === "RUNNING";
+      return state === "PENDING" || state === "IN_PROGRESS";
     });
     if (!openIds.length)
       return problemResponse(
@@ -973,7 +990,7 @@ const cancelRecommendationHandler = http.post(
     persist();
 
     return HttpResponse.json(
-      { data: { runId: id, state: "CANCELLED", requestedAt: nowIso() } },
+      { data: { runId: id, state: "CANCELLING", requestedAt: nowIso() } },
       { status: 202 },
     );
   },
@@ -997,7 +1014,7 @@ const getRecommendationHandler = http.get(
 
     const elapsed = Date.now() - run.startedAt;
     if (elapsed < GENERATION_MS) {
-      run.state = elapsed > GENERATION_MS * 0.3 ? "RUNNING" : "QUEUED";
+      run.state = elapsed > GENERATION_MS * 0.3 ? "IN_PROGRESS" : "PENDING";
       persist();
       return problemResponse(
         "RECOMMENDATION_NOT_COMPLETED",
@@ -1048,7 +1065,6 @@ const listChatHandler = http.get(
 
 interface PostChatBody {
   content?: unknown;
-  slots?: RecommendationSlots;
 }
 
 const postChatHandler = http.post(
@@ -1078,7 +1094,7 @@ const postChatHandler = http.post(
       content,
       createdAt: nowIso(),
     };
-    const analysis = analyze(content, body?.slots ?? {});
+    const analysis = analyze(content, {});
     const assistantMessage: ChatMessage = {
       id: nextId(),
       role: "ASSISTANT",
@@ -1089,9 +1105,9 @@ const postChatHandler = http.post(
     srv.chat.push(userMessage, assistantMessage);
     persist();
 
-    // ChatReply.message 는 봇의 응답 한 건이다 — 사용자가 보낸 메시지는 클라이언트가 이미 들고 있다.
     const data: ChatReply = {
-      message: assistantMessage,
+      userMessage,
+      assistantMessage,
       extractedSlots: analysis.slots,
       options: analysis.options,
     };

@@ -52,7 +52,9 @@ export function CourseDetailSheet({
       title={course?.name ?? "코스 정보"}
       sub={
         course
-          ? `${course.area} · ${fmtDot(new Date(course.createdAt))} 저장`
+          ? course.createdAt
+            ? `${course.area} · ${fmtDot(new Date(course.createdAt))} 저장`
+            : course.area
           : undefined
       }
       onClose={onClose}
