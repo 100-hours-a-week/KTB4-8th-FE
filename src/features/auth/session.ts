@@ -40,13 +40,15 @@ export function useAccounts(enabled = true) {
   });
 }
 
-/** 로컬 개발용 — BE 로그인(Google 인증 코드 교환)이 동작하기 전까지 env 의 JWT 로 세션을 만든다 */
-export function loginWithDevToken(token: string) {
+/** 로컬 개발용 — BE 가 로그인 성공 화면에 그대로 찍어 주는 accessToken 을 받아 세션을 만든다.
+    env(NEXT_PUBLIC_DEV_ACCESS_TOKEN)의 서명된 토큰과, 로그인 화면에서 손으로 붙여넣은 토큰 둘 다 이 함수를 쓴다.
+    BE 가 로그인 성공 후 FE 로 리다이렉트해 주게 되면 이 경로는 통째로 지운다. */
+export function loginWithAccessToken(token: string, expiresIn = 3600) {
   setIntentionalLogout(false);
   writeSession({
     accessToken: token,
     tokenType: "Bearer",
-    expiresIn: 3600,
+    expiresIn,
     issuedAt: Date.now(),
   });
 }

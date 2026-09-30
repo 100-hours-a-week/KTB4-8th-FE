@@ -3,13 +3,15 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { toast } from "@/components/ui/Toast";
-import { loginWithDevToken } from "@/features/auth/session";
-import { GOOGLE_STATE_KEY, googleAuthUrl } from "@/lib/auth/google";
+import { loginWithAccessToken } from "@/features/auth/session";
 
 /* 01 · 로그인 — 서비스 진입점. 인증되지 않은 모든 접근이 이 화면으로 유도된다.
-   가입·로그인은 구글 OAuth 단일 수단이다. Google 인증 화면으로 이동하고, 돌아오는 /oauth 에서
-   인가 코드를 POST /user/auth-session 으로 넘긴다. */
+   가입·로그인은 구글 OAuth 단일 수단이고, BE(Spring Security oauth2Login)가 전담한다.
+   버튼은 BE 의 로그인 시작 경로로 브라우저를 통째로 이동시킬 뿐이다.
+
+   로그인 성공 후 BE 가 돌려주는 accessToken 은 화면(BE 응답)에 직접 찍히는 대신
+   src/app/login/oauth2/code/[provider]/route.ts 가 대신 받아 세션에 저장하고 홈으로 보낸다.
+   Google Cloud Console 의 승인된 리디렉션 URI 에 이 콜백 주소가 등록돼 있어야 동작한다. */
 export default function LoginPage() {
   const router = useRouter();
   const [movingToOauth, setMovingToOauth] = useState(false);
@@ -17,23 +19,17 @@ export default function LoginPage() {
   function handleGoogle() {
     const devToken = process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN;
     if (devToken) {
-      loginWithDevToken(devToken);
+      loginWithAccessToken(devToken);
       router.push("/home");
       return;
     }
-
-    const state = crypto.randomUUID();
-    const url = googleAuthUrl(state);
-    if (!url) {
-      toast.warn(
-        "Google 클라이언트 ID(NEXT_PUBLIC_GOOGLE_CLIENT_ID)가 설정되지 않았어요.",
-      );
-      return;
-    }
-    // 첫 클릭 직후 비활성화하고, 인증 화면 이동 표시를 잠깐 보여준다(기능정의서 2-1)
+    // 첫 클릭 직후 비활성화하고, 이동 표시를 잠깐 보여준다(기능정의서 2-1)
     setMovingToOauth(true);
-    sessionStorage.setItem(GOOGLE_STATE_KEY, state);
-    window.setTimeout(() => window.location.assign(url), 380);
+    window.setTimeout(() => {
+      // Next.js 라우트가 아니라 프록시로 BE 에 그대로 넘어가는 경로라 router.push 를 쓰면 안 된다
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign("/oauth2/authorization/google");
+    }, 380);
   }
 
   return (
@@ -70,12 +66,12 @@ export default function LoginPage() {
           {movingToOauth ? (
             <>
               <span className="spinner" />
-              <span>Google로 이동 중…</span>
+              <span>Google 계정으로 로그인하는 중…</span>
             </>
           ) : (
             <>
               <Icon name="google" size={20} />
-              <span>Google 계정으로 계속하기</span>
+              <span>Google 계정으로 로그인</span>
             </>
           )}
         </button>
