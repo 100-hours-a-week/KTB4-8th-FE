@@ -10,11 +10,13 @@ import {
   setSessionExpiredHandler,
   writeSession,
 } from "@/lib/api/client";
+import { useClarity } from "@/lib/clarity";
 import { useFixedPin } from "@/lib/useFixedPin";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
   useFixedPin();
+  useClarity();
 
   const [client] = useState(
     () =>
