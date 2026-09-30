@@ -18,9 +18,8 @@ interface BeLoginResponse {
 }
 
 function readSetCookies(headers: Headers): string[] {
-  const getSetCookie = (
-    headers as Headers & { getSetCookie?: () => string[] }
-  ).getSetCookie;
+  const getSetCookie = (headers as Headers & { getSetCookie?: () => string[] })
+    .getSetCookie;
   if (typeof getSetCookie === "function") return getSetCookie.call(headers);
   const single = headers.get("set-cookie");
   return single ? [single] : [];
