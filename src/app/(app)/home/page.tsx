@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppBar } from "@/components/ui/AppBar";
 import { Icon, YouTubeMark } from "@/components/ui/Icon";
-import { Empty, Skeleton } from "@/components/ui/Primitives";
+import { Empty, Skeleton, Spinner } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
-import { describe, isApiError } from "@/lib/api/client";
+import { isApiError } from "@/lib/api/client";
 import { useCourseStore } from "@/features/recommendations/courseStore";
-import { useAnalyticsStats, useStartSync } from "@/features/sync/queries";
+import { useSyncYoutubeNow } from "@/features/sync/queries";
 import {
   useAdvertisements,
   useTrendingPlaces,
@@ -18,66 +18,51 @@ import { AdCard } from "@/features/places/AdCard";
 import { PlaceDetailSheet } from "@/features/places/PlaceDetailSheet";
 import { EventDetailSheet } from "@/features/places/EventDetailSheet";
 import { PlaceListSheet } from "@/features/places/PlaceListSheet";
-import type { AnalyticsStatistics } from "@/types/api";
 
 /* 04 · 메인 — 로그인 후 첫 진입 화면. 프로토타입 js/pages/home.js 를 그대로 옮겼다.
    bootstrap() 이 하나로 묶었던 GET /user + /user/accounts 는 이 화면에서 쓰이지 않아(화면에
-   렌더되는 값이 없다) 뺐고, /user/analytics-statistics 는 동기화 카드 전용 훅으로 옮겼다. */
+   렌더되는 값이 없다) 뺐다.
+
+   동기화 카드: BE 의 POST /user/youtube-analyze 는 끝날 때까지 기다리는 동기 처리이고,
+   진행률 · 결과 건수를 알려주는 조회 API 가 없다. 그래서 몇 개를 불러왔는지는 보여줄 수 없고,
+   "불러오는 중 / 불러옴" 두 상태만 구분한다 — 실제로 없는 숫자를 지어내지 않는다. */
+
+type SyncState = "idle" | "pending" | "done";
 
 interface SyncCardModel {
   badge?: string;
   title: string;
   msg: string;
-  bar?: number;
-  /** false 면 닫기(×) 버튼을 숨긴다 — 분석 진행 중에는 닫을 수 없다 */
+  /** false 면 닫기(×) 버튼을 숨긴다 — 불러오는 중에는 닫을 수 없다 */
   closable?: boolean;
   action?: "sync" | "course" | null;
   actionLabel?: string;
 }
 
-/** 동기화 상태 → 카드 문구. 프로토타입의 KG.api.config.dataState 로 강제하던 분기(devtools 전용)는
-    여기서는 재현할 devtools 화면이 없어 뺐다 — total===0 / extractedGuideCount===0 조건만으로 같은 결과가 나온다. */
-function buildSyncCard(
-  stats: AnalyticsStatistics,
-  syncing: boolean,
-): SyncCardModel {
-  const total = stats.syncedVideoCount;
-  const done = stats.completedVideoCount;
-
-  if (total === 0 && !syncing) {
+function buildSyncCard(state: SyncState): SyncCardModel {
+  if (state === "pending") {
     return {
-      badge: "시작하기",
-      title: "아직 저장된 장소가 없어요.",
-      msg: "유튜브에서 좋아요한 영상을 불러와 시작해 보세요.",
-      action: "sync",
-      actionLabel: "좋아요 영상 불러오기",
-    };
-  }
-  if (total > 0 && stats.extractedGuideCount === 0 && !syncing) {
-    return {
-      badge: "확인 필요",
-      title: "장소가 담긴 영상을 찾지 못했어요.",
-      msg: "맛집 · 카페 · 팝업 · 전시가 나오는 쇼츠에 좋아요를 누른 뒤 다시 불러와 주세요.",
-      action: "sync",
-      actionLabel: "다시 동기화",
-    };
-  }
-  if (syncing || stats.pendingVideoCount + stats.inProgressVideoCount > 0) {
-    const pct = total ? Math.round((done / total) * 100) : 0;
-    return {
-      badge: `AI 분석 중 ${pct}%`,
-      title: "좋아요 영상을 정리하고 있어요.",
-      msg: `${total}개 중 ${done}개 분석 완료 · 장소 ${stats.extractedGuideCount}곳 발견`,
-      bar: pct,
+      badge: "불러오는 중",
+      title: "좋아요 영상을 불러오고 있어요.",
+      msg: "영상 수에 따라 시간이 걸릴 수 있어요.",
       closable: false,
     };
   }
+  if (state === "done") {
+    return {
+      badge: "정리 완료",
+      title: "좋아요 영상을 불러왔어요.",
+      msg: "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
+      action: "course",
+      actionLabel: "코스 추천받기",
+    };
+  }
   return {
-    badge: "정리 완료",
-    title: `장소 ${stats.extractedGuideCount}곳을 정리했어요.`,
-    msg: `좋아요 영상 ${total}개에서 찾은 장소와 이벤트로 코스를 만들어 드릴게요.`,
-    action: "course",
-    actionLabel: "코스 추천받기",
+    badge: "시작하기",
+    title: "아직 저장된 장소가 없어요.",
+    msg: "유튜브에서 좋아요한 영상을 불러와 시작해 보세요.",
+    action: "sync",
+    actionLabel: "좋아요 영상 불러오기",
   };
 }
 
@@ -148,25 +133,27 @@ export default function HomePage() {
   const router = useRouter();
   const openCourse = useCourseStore((s) => s.setOpen);
 
-  const [syncing, setSyncing] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [syncState, setSyncState] = useState<SyncState>("idle");
   const [overlay, setOverlay] = useState<Overlay>(null);
   const initDoneRef = useRef(false);
 
-  const statsQuery = useAnalyticsStats({ polling: syncing });
   const placesQuery = useTrendingPlaces(10);
   const adsQuery = useAdvertisements();
-  const startSync = useStartSync();
+  const syncNow = useSyncYoutubeNow();
 
   const hscrollRef = useDragScroll();
 
   const handleStartSyncRef = useRef<() => void>(() => {});
   const handleStartSync = useCallback(async () => {
+    setSyncState("pending");
+    setDismissed(false);
     try {
-      await startSync.mutateAsync();
-      setSyncing(true);
-      setDismissed(false);
+      await syncNow.mutateAsync();
+      setSyncState("done");
+      toast.ok("좋아요 영상을 불러왔어요.", "완료");
     } catch (err) {
+      setSyncState("idle");
       const retryable =
         isApiError(err) &&
         (err.code === "YOUTUBE_SERVICE_FAILURE" ||
@@ -175,49 +162,25 @@ export default function HomePage() {
         onRetry: retryable ? () => handleStartSyncRef.current() : undefined,
       });
     }
-  }, [startSync]);
+  }, [syncNow]);
   useEffect(() => {
     handleStartSyncRef.current = () => void handleStartSync();
   }, [handleStartSync]);
 
-  // 최초 진입 1회 — startSync=1 쿼리(온보딩 · 코스 추천 팝업에서 옴)를 소비하거나,
-  // 이미 진행 중이던 동기화가 있으면 폴링을 이어서 시작한다.
+  // 최초 진입 1회 — startSync=1 쿼리(온보딩 · 코스 추천 팝업에서 옴)를 소비해 동기화를 시작한다
   useEffect(() => {
-    if (initDoneRef.current || statsQuery.data === undefined) return;
+    if (initDoneRef.current) return;
     initDoneRef.current = true;
     const params = new URLSearchParams(window.location.search);
     if (params.get("startSync") === "1") {
       router.replace("/home");
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL 파라미터로 진입 시 동기화를 트리거하는 1회성 초기화(내부에서 setSyncing 수행)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL 파라미터로 진입 시 동기화를 트리거하는 1회성 초기화
       void handleStartSync();
-      return;
-    }
-    const s = statsQuery.data;
-    if (
-      s.pendingVideoCount + s.inProgressVideoCount > 0 &&
-      s.completedVideoCount < s.syncedVideoCount
-    ) {
-      setSyncing(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statsQuery.data]);
+  }, []);
 
-  // 폴링 중 완료로 바뀌는 순간을 감지해 폴링을 멈추고 완료 토스트를 띄운다
-  useEffect(() => {
-    if (!syncing || !statsQuery.data) return;
-    const s = statsQuery.data;
-    const running =
-      s.pendingVideoCount + s.inProgressVideoCount > 0 &&
-      s.completedVideoCount < s.syncedVideoCount;
-    if (!running) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 외부 폴링 결과(서버 동기화 완료)에 반응하는 상태 갱신
-      setSyncing(false);
-      toast.ok(`장소 ${s.extractedGuideCount}곳을 정리했어요.`, "분석 완료");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statsQuery.data]);
-
-  const sync = statsQuery.data ? buildSyncCard(statsQuery.data, syncing) : null;
+  const sync = buildSyncCard(syncState);
   const places = placesQuery.data ?? [];
   const ads = adsQuery.data ?? [];
 
@@ -229,31 +192,6 @@ export default function HomePage() {
     <>
       <AppBar brand />
       <div className="scroll">
-        {statsQuery.isError && (
-          <div style={{ padding: "16px 20px 0" }}>
-            <div className="banner banner--error">
-              <span>
-                <Icon name="alert" size={18} />
-              </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <b className="banner__title">
-                  {describe(statsQuery.error).title}
-                </b>
-                <span className="banner__msg">
-                  {describe(statsQuery.error).text}
-                </span>
-              </span>
-              <button
-                className="btn btn--ghost btn--sm banner__action"
-                type="button"
-                onClick={() => void statsQuery.refetch()}
-              >
-                다시 시도
-              </button>
-            </div>
-          </div>
-        )}
-
         {!dismissed && sync && (
           <div className="card card--dark home__sync">
             {sync.closable !== false && (
@@ -268,17 +206,16 @@ export default function HomePage() {
             )}
             {sync.badge && (
               <p className="home__sync-badge">
-                <Icon name="sparkle" size={13} />
+                {syncState === "pending" ? (
+                  <Spinner />
+                ) : (
+                  <Icon name="sparkle" size={13} />
+                )}
                 <span>{sync.badge}</span>
               </p>
             )}
             <p className="home__sync-title">{sync.title}</p>
             <p className="home__sync-msg">{sync.msg}</p>
-            {sync.bar != null && (
-              <div className="home__sync-bar">
-                <i style={{ width: `${sync.bar}%` }} />
-              </div>
-            )}
             {sync.action === "sync" && (
               <button
                 className="btn btn--yt btn--block"
