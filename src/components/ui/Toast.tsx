@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { create } from "zustand";
 import { Icon, type IconName } from "./Icon";
 import { useOverlayStore } from "./overlay-store";
@@ -146,10 +147,15 @@ function ToastRow({ item }: { item: ToastItem }) {
 export function ToastHost() {
   const items = useToastStore((s) => s.items);
   const sheets = useOverlayStore((s) => s.sheets);
+  const pathname = usePathname();
+  const isLogin = pathname === "/login";
+  // 로그인 화면은 하단 탭바가 없어서, 토스트의 기본 하단 위치(탭바 높이 기준)가
+  // 구글 로그인 버튼과 겹친다 — 그 화면에서는 버튼과 위쪽 흐름 아이콘 사이 빈 공간에 띄운다.
+  const atTop = sheets > 0;
   if (!items.length) return null;
   return (
     <div
-      className={`toasts${sheets > 0 ? " toasts--top" : ""}`}
+      className={`toasts${isLogin ? " toasts--login" : atTop ? " toasts--top" : ""}`}
       role="status"
       aria-live="polite"
     >

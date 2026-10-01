@@ -683,6 +683,13 @@
   top: 14px;
   bottom: auto;
 }
+/* 로그인 화면 전용 — 구글 로그인 버튼과도, 위쪽 흐름 아이콘(영상저장 · AI 자동정리 · 코스추천)과도
+   안 겹치게 그 사이 빈 공간 중앙에 띄운다. */
+.toasts--login {
+  top: 72%;
+  bottom: auto;
+  transform: translateY(-50%);
+}
 .toast {
   width: 100%;
   max-width: 380px;
