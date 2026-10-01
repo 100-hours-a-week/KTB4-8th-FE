@@ -278,26 +278,18 @@ export function CoursePopup() {
     }
 
     try {
+      // BE 가 조건 추출(지역 · 날짜 · 카테고리)을 아직 안 내려줘서, 지금은 답변 텍스트만
+      // 받아 대화창에 붙인다 — 조건 카드는 사용자가 직접 수정 버튼으로 채운다.
       const reply = await sendChat.mutateAsync({
         content: text,
       });
-      const patch: Partial<Slots> = { ...(reply.extractedSlots ?? {}) };
-      if (
-        reply.extractedSlots?.region &&
-        reply.extractedSlots.region !== current.slots.region
-      ) {
-        // 지역이 바뀌면 이전에 지역 검색에서 골랐던 좌표는 더 이상 맞지 않는다(regionPoint 는 명세에 없는 화면 전용 필드)
-        patch.regionPoint = null;
-      }
-      patchSlots(patch);
       const botLine: ChatLine = {
-        id: reply.assistantMessage.id,
+        id: uid("msg"),
         role: "ASSISTANT",
-        content: reply.assistantMessage.content,
+        content: reply.content,
       };
       useCourseStore.setState((s) => ({
         lines: [...s.lines, botLine],
-        options: reply.options?.length ? reply.options : [],
       }));
     } catch (err) {
       useCourseStore.setState((s) => ({

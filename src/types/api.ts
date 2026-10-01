@@ -234,13 +234,13 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+/** POST /user/chat-messages 는 202 Accepted + Location 헤더만 주고, 실제 봇 답변은
+    그 주소(GET .../chat-messages/{chatId}/response)를 완료될 때까지 폴링해서 받는다
+    (features/recommendations/queries.ts 의 useSendChatMessage 가 그 과정을 감싼다).
+    BE 응답엔 텍스트(content)뿐이고, 조건 카드용 구조화 필드(지역·날짜·카테고리 등)나
+    선택지 버튼에 해당하는 값은 아직 없다 — BE/AI 쪽에서 아직 정해지지 않은 부분이다. */
 export interface ChatReply {
-  userMessage: ChatMessage;
-  assistantMessage: ChatMessage;
-  /** 명세에 없음 — 조건 카드를 채울 구조화 필드 */
-  extractedSlots?: RecommendationSlots;
-  /** 명세에 없음 — 선택지 버튼 */
-  options?: string[];
+  content: string;
 }
 
 /* ── 주소 ───────────────────────────────────────────────── */

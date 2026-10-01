@@ -1,7 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, isApiError } from "@/lib/api/client";
+import {
+  API_BASE,
+  api,
+  headers,
+  isApiError,
+  toApiError,
+} from "@/lib/api/client";
+import { sleep } from "@/lib/format";
 import type {
   Candidate,
   Category,
@@ -35,12 +42,61 @@ export interface SendChatBody {
   content: string;
 }
 
-/** POST /user/chat-messages — 응답(ChatReply)에는 사용자 메시지가 들어있지 않다.
-    화면이 보낸 메시지를 낙관적으로 먼저 대화 로그에 넣는다. */
+type BeGetReplyResponse =
+  | { status: "IN_PROGRESS"; poll_after: number }
+  | { status: "COMPLETED"; chat: { content: string; is_by_bot: boolean } };
+
+/** POST 응답의 Location 헤더(".../chat-messages/{chatId}/response")에서 chatId 를 뽑아낸다 —
+    응답 본문에는 안 들어있고 헤더로만 온다. */
+function parseChatId(location: string | null): string {
+  const match = location?.match(/\/chat-messages\/(\d+)\/response/);
+  if (!match) throw new Error("CHAT_LOCATION_MISSING");
+  return match[1];
+}
+
+async function fetchReply(chatId: string): Promise<BeGetReplyResponse> {
+  const path = `/user/chat-messages/${chatId}/response`;
+  const res = await fetch(API_BASE + path, {
+    headers: headers(),
+    credentials: "include",
+    cache: "no-store",
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw toApiError(body, res.status, path);
+  return body as BeGetReplyResponse;
+}
+
+/** 완료될 때까지 폴링한다. BE 가 IN_PROGRESS 응답에 poll_after(초)를 함께 주므로 그만큼
+    기다렸다 다시 묻는다 — 최대 30회(지금 BE 기준 약 30초)까지만 시도하고 포기한다. */
+async function pollUntilComplete(chatId: string): Promise<string> {
+  for (let i = 0; i < 30; i++) {
+    const reply = await fetchReply(chatId);
+    if (reply.status === "COMPLETED") return reply.chat.content;
+    await sleep((reply.poll_after || 1) * 1000);
+  }
+  throw new Error("CHAT_REPLY_TIMEOUT");
+}
+
+/** POST /user/chat-messages — BE 는 봇 답변을 바로 주지 않고 202 Accepted + Location 헤더만
+    돌려준다(비동기 처리). 진짜 답변은 그 Location 을 완료될 때까지 폴링해서 받아와야 한다.
+    주의: BE 응답(GetReplyResponse)엔 텍스트뿐이고, 조건 카드용 구조화 필드(지역·날짜·카테고리)나
+    선택지 버튼에 해당하는 값은 아직 없다 — BE/AI 쪽에서 아직 정해지지 않은 부분이다. */
 export function useSendChatMessage() {
   return useMutation({
-    mutationFn: async (body: SendChatBody) =>
-      (await api.post<ChatReply>("/user/chat-messages", body)).data,
+    mutationFn: async (body: SendChatBody): Promise<ChatReply> => {
+      const path = "/user/chat-messages";
+      const res = await fetch(API_BASE + path, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(body),
+        credentials: "include",
+      });
+      const parsed = await res.json().catch(() => null);
+      if (!res.ok) throw toApiError(parsed, res.status, path);
+      const chatId = parseChatId(res.headers.get("Location"));
+      const content = await pollUntilComplete(chatId);
+      return { content };
+    },
   });
 }
 
