@@ -1075,21 +1075,3 @@
   height: 112px;
   font-size: 30px;
 }
-.avatar--g1 {
-  background: linear-gradient(140deg, #3fcb92, #0e8a58);
-}
-.avatar--g2 {
-  background: linear-gradient(140deg, #7b5cff, #4a7bff);
-}
-.avatar--g3 {
-  background: linear-gradient(140deg, #42c9a3, #1e8f8f);
-}
-.avatar--g4 {
-  background: linear-gradient(140deg, #f2c14e, #e08a2b);
-}
-.avatar--g5 {
-  background: linear-gradient(140deg, #ff7bac, #b14be0);
-}
-.avatar--g6 {
-  background: linear-gradient(140deg, #5b6b7f, #2c3a4b);
-}
