@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   title: "KeepGo",
   description:
     "저장만 해둔 그곳, 이제 진짜 떠나요 — 좋아요한 쇼츠에서 찾은 장소로 외출 코스를 만들어 드려요.",
+  icons: {
+    // 브라우저 탭 · 북마크 아이콘. iOS "홈 화면에 추가"도 같은 이미지를 쓴다.
+    icon: "/app-icon.png",
+    apple: "/app-icon.png",
+  },
 };
 
 export const viewport: Viewport = {

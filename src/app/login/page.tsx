@@ -9,9 +9,9 @@ import { loginWithAccessToken } from "@/features/auth/session";
    가입·로그인은 구글 OAuth 단일 수단이고, BE(Spring Security oauth2Login)가 전담한다.
    버튼은 BE 의 로그인 시작 경로로 브라우저를 통째로 이동시킬 뿐이다.
 
-   로그인 성공 후 BE 가 돌려주는 accessToken 은 화면(BE 응답)에 직접 찍히는 대신
-   src/app/login/oauth2/code/[provider]/route.ts 가 대신 받아 세션에 저장하고 홈으로 보낸다.
-   Google Cloud Console 의 승인된 리디렉션 URI 에 이 콜백 주소가 등록돼 있어야 동작한다. */
+   로그인 성공 후 BE(OidcLoginSuccessHandler)가 accessToken 을 쿼리로 붙여
+   앱 루트(/)로 리다이렉트한다 — 그 값을 받아 세션에 저장하는 쪽은 src/app/page.tsx 다.
+   Google Cloud Console 의 승인된 리디렉션 URI 에 BE 의 콜백 주소가 등록돼 있어야 동작한다. */
 export default function LoginPage() {
   const router = useRouter();
   const [movingToOauth, setMovingToOauth] = useState(false);
