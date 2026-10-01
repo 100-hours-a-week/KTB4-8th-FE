@@ -109,7 +109,7 @@ export default function CollectionPage() {
           />
         )}
         {!isLoading && !isError && rows.length > 0 && (
-          <div className="stagger">
+          <div>
             {rows.map((row) => (
               <CollectionRow
                 key={row.id}
