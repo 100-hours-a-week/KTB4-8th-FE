@@ -51,6 +51,7 @@ jobs:
       NEXT_PUBLIC_API_BASE_URL: /api/v1
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
       NEXT_PUBLIC_NAVER_MAP_CLIENT_ID: ${{ vars.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID }}
+      NEXT_PUBLIC_CLARITY_PROJECT_ID: ${{ vars.NEXT_PUBLIC_CLARITY_PROJECT_ID }}
 
     steps:
       - name: Checkout repository
@@ -132,12 +133,14 @@ jobs:
           NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY }}
           GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
           NAVER_MAP_CLIENT_ID: ${{ vars.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID }}
+          CLARITY_PROJECT_ID: ${{ vars.NEXT_PUBLIC_CLARITY_PROJECT_ID }}
         run: |
           docker build \
             --platform linux/amd64 \
             --file Dockerfile \
             --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
             --build-arg NEXT_PUBLIC_NAVER_MAP_CLIENT_ID="$NAVER_MAP_CLIENT_ID" \
+            --build-arg NEXT_PUBLIC_CLARITY_PROJECT_ID="$CLARITY_PROJECT_ID" \
             --tag "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA" \
             .
 
