@@ -272,6 +272,41 @@ export const api = {
   del: <T>(path: string) => send<T>("DELETE", path),
 };
 
+/** POST /user/profile-image — multipart 업로드. JSON 이 아니라서 send() 를 안 쓰고
+    따로 둔다(Content-Type 을 직접 지정하면 브라우저가 만드는 멀티파트 boundary 가 깨진다).
+    성공하면 Location 헤더에 저장 경로가 오고, 그 값을 PATCH /user 의 profileImageUrl 로 써야 한다. */
+export async function uploadProfileImage(
+  blob: Blob,
+  filename: string,
+): Promise<string> {
+  const form = new FormData();
+  form.append("profileImage", blob, filename);
+  const h: Record<string, string> = {};
+  const s = readSession();
+  if (s?.accessToken)
+    h.Authorization = `${s.tokenType || "Bearer"} ${s.accessToken}`;
+
+  const res = await fetch(API_BASE + "/user/profile-image", {
+    method: "POST",
+    headers: h,
+    body: form,
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+    throw toApiError(body, res.status, "/user/profile-image");
+  }
+  const location = res.headers.get("Location");
+  if (!location) throw new Error("UPLOAD_NO_LOCATION");
+  return location;
+}
+
 /** 목록 응답의 page 커서를 함께 쓰는 헬퍼 */
 export type Paged<T> = { data: T[]; page?: Page };
 

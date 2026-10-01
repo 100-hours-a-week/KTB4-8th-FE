@@ -9,24 +9,33 @@ import type { NotificationSettings } from "@/types/api";
    프로토타입 js/pages/mypage.js, js/pages/profile-edit.js 의 KG.api 호출을 TanStack Query 로 옮겼다. */
 
 export interface PatchUserBody {
-  nickname?: string;
-  /** 프리셋 id(AVATAR_PRESETS) 또는 'upload:<dataURL>' — 명세: PATCH /user 는 profileImageUrl 이 아니라 profileImageId 를 받는다 */
-  profileImageId?: string | null;
+  nickname: string;
+  /** POST /user/profile-image 로 먼저 올리고 받은 storagePath. 안 보내면(undefined) 사진은 그대로 둔다
+      — BE 가 profileImagePath 가 없으면 기존 사진을 건드리지 않도록 되어 있다. */
+  profileImageUrl?: string;
 }
 
 export interface PatchUserResponse {
-  id: string;
   nickname: string;
   profileImageUrl: string | null;
-  updatedAt: string;
 }
 
-/** PATCH /user — 닉네임 · 프로필 사진 저장 */
+/** PATCH /user — 닉네임 · 프로필 사진 저장.
+    BE 전역 Jackson 설정이 property-naming-strategy: SNAKE_CASE 라서, 요청도
+    profile_image_url 로 보내야 한다(camelCase 로 보내면 BE 가 null 로 받는다).
+    응답 변환은 backend.ts 의 "PATCH /user" 라우트(toPatchUserResponse)가 맡는다. */
 export function usePatchUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: PatchUserBody) =>
-      (await api.patch<PatchUserResponse>("/user", body)).data,
+      (
+        await api.patch<PatchUserResponse>("/user", {
+          nickname: body.nickname,
+          ...(body.profileImageUrl !== undefined
+            ? { profile_image_url: body.profileImageUrl }
+            : {}),
+        })
+      ).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.me }),
   });
 }

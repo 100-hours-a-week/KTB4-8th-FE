@@ -2,7 +2,7 @@
    BE 는 아직 명세(2026-09-21)의 { data } envelope · Problem Details 를 따르지 않고 DTO 를 snake_case 로 그대로 돌려준다.
    실서버로 보내는 API 는 여기 표에 등록하고, 요청 · 응답을 FE 도메인 타입으로 옮겨 화면은 그대로 둔다.
    */
-import type { Advertisement, Category, Place } from "@/types/api";
+import type { Advertisement, Category, Place, User } from "@/types/api";
 
 interface BackendRoute {
   /** "GET /places" — API_BASE 를 뺀 경로 */
@@ -23,6 +23,12 @@ interface BeHotPlace {
   name?: string;
   location?: string;
   category?: string;
+}
+
+interface BeMember {
+  nickname?: string;
+  email?: string;
+  profile_image_url?: string | null;
 }
 
 const CATEGORY_BY_LABEL: Record<string, Category> = {
@@ -68,7 +74,32 @@ function toPlaces(raw: unknown): Place[] {
   }));
 }
 
+function toUser(raw: unknown): User {
+  const m = (raw ?? {}) as BeMember;
+  return {
+    // BE 응답에 회원 id 가 없다 — 화면은 캐시 키 용도로만 쓰고 실제 식별엔 안 쓴다
+    id: "me",
+    nickname: m.nickname ?? "",
+    profileImageUrl: m.profile_image_url ?? null,
+    email: m.email,
+    // BE 에 알림 설정 · 가입일 조회 API 가 아직 없다 — 화면이 기본값으로 동작하도록 채운다
+    eventNotificationAgreed: true,
+    analysisNotificationAgreed: true,
+    createdAt: "",
+  };
+}
+
+function toPatchUserResponse(raw: unknown) {
+  const m = (raw ?? {}) as BeMember;
+  return {
+    nickname: m.nickname ?? "",
+    profileImageUrl: m.profile_image_url ?? null,
+  };
+}
+
 export const BACKEND_ROUTES: BackendRoute[] = [
+  { key: "GET /user", response: toUser },
+  { key: "PATCH /user", response: toPatchUserResponse },
   { key: "GET /advertisements", response: toAdvertisements },
   // BE 는 cursor 를 필수 파라미터로 받는다(빈 값이면 첫 페이지)
   { key: "GET /places", search: "cursor=", response: toPlaces },

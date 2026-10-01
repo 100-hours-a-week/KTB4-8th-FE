@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import { AppBar } from "@/components/ui/AppBar";
 import { Icon } from "@/components/ui/Icon";
-import { Avatar } from "@/components/ui/Primitives";
+import { Avatar, Spinner } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { fmtDot } from "@/lib/format";
 import { useAccounts, useLogout, useMe } from "@/features/auth/session";
-import { useAnalyticsStats, useStartSync } from "@/features/sync/queries";
+import { useAnalyticsStats, useSyncYoutubeNow } from "@/features/sync/queries";
 import { useDisconnectGoogle } from "@/features/user/queries";
 
 /* 09 · 마이페이지 — 프로토타입 js/pages/mypage.js 를 그대로 옮겼다.
@@ -20,12 +20,14 @@ export default function MyPage() {
   const meQuery = useMe();
   const accountsQuery = useAccounts();
   const statsQuery = useAnalyticsStats();
-  const startSync = useStartSync();
+  const syncNow = useSyncYoutubeNow();
   const disconnectGoogle = useDisconnectGoogle();
   const logout = useLogout();
 
   const user = meQuery.data;
   const account = accountsQuery.data?.[0];
+  // BE 에 GET /user/accounts 가 아직 없다 — 이메일은 GET /user 응답에 같이 들어있어 그쪽을 우선한다
+  const email = user?.email ?? account?.email;
   const stats = statsQuery.data;
 
   function syncLabel() {
@@ -38,9 +40,10 @@ export default function MyPage() {
   }
 
   async function handleResync() {
+    // BE 에 진행률 조회 API 가 없어, 끝날 때까지(동기 처리) 기다렸다가 성공 여부만 알려준다
     try {
-      await startSync.mutateAsync();
-      toast.ok("동기화를 시작했어요. 홈에서 진행 상황을 볼 수 있어요.");
+      await syncNow.mutateAsync();
+      toast.ok("좋아요 영상을 불러왔어요.");
     } catch (err) {
       toast.fromError(err);
     }
@@ -90,7 +93,7 @@ export default function MyPage() {
             />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span className="me__name">{user?.nickname ?? ""}</span>
-              <span className="me__mail">{account?.email ?? ""}</span>
+              <span className="me__mail">{email ?? ""}</span>
             </span>
             <button
               className="me__edit"
@@ -110,7 +113,7 @@ export default function MyPage() {
                 <Icon name="google" size={18} />
               </span>
               <span className="me__row-key">연동 계정</span>
-              <span className="me__row-val">{account?.email || "-"}</span>
+              <span className="me__row-val">{email || "-"}</span>
             </div>
             <div className="me__row">
               <span className="me__row-ico">
@@ -148,6 +151,7 @@ export default function MyPage() {
             <button
               className="me__row"
               type="button"
+              disabled={syncNow.isPending}
               onClick={() => void handleResync()}
             >
               <span className="me__row-ico">
@@ -155,7 +159,11 @@ export default function MyPage() {
               </span>
               <span className="me__row-key">좋아요 영상 다시 불러오기</span>
               <span className="me__row-val">
-                <Icon name="chevron" size={16} />
+                {syncNow.isPending ? (
+                  <Spinner />
+                ) : (
+                  <Icon name="chevron" size={16} />
+                )}
               </span>
             </button>
             {account?.youtubeConnected && (

@@ -45,3 +45,14 @@ export function useStartSync() {
     onSuccess: () => qc.invalidateQueries({ queryKey: syncKeys.stats }),
   });
 }
+
+/** POST /user/youtube-analyze — BE 에 실제로 구현된 동기화 API.
+    진행률을 알려주는 조회 API 가 BE 에 없어서, 끝날 때까지 기다렸다가(동기 처리) 성공 여부만 본다.
+    LOCAL_DUMMY 켜짐 여부와 무관하게 항상 실제 BE 를 호출한다(더미는 /user/liked-video-syncs 만 가로챈다). */
+export function useSyncYoutubeNow() {
+  return useMutation({
+    mutationFn: async () => {
+      await api.post<void>("/user/youtube-analyze");
+    },
+  });
+}

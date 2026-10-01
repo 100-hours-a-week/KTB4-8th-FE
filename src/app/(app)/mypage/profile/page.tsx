@@ -8,14 +8,25 @@ import { Sheet } from "@/components/ui/Sheet";
 import {
   Avatar,
   AVATAR_PRESETS,
-  imageToDataUrl,
+  imageToBlob,
+  initialsToBlob,
+  PersonGlyph,
+  presetToBlob,
   Spinner,
 } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
-import { describe, isApiError } from "@/lib/api/client";
+import { describe, isApiError, uploadProfileImage } from "@/lib/api/client";
 import { MAX_NICKNAME, NICKNAME_DISALLOWED } from "@/lib/constants";
 import { useAccounts, useMe } from "@/features/auth/session";
 import { usePatchUser } from "@/features/user/queries";
+
+/** 저장 버튼을 누를 때 실제로 업로드해야 하는 것. null 이면 사진은 안 바꾼다.
+    BE 는 profileImageUrl 에 실제 업로드된 파일의 저장 경로만 받아서(가짜 id 불가),
+    프리셋도 캔버스로 그려 POST /user/profile-image 에 올린 뒤 그 경로를 써야 한다. */
+type PendingPhoto =
+  | { kind: "preset"; bg: string; icon: string }
+  | { kind: "upload"; blob: Blob; filename: string }
+  | { kind: "clear" };
 
 /* 10 · 프로필 수정 — PATCH /user. 프로토타입 js/pages/profile-edit.js 를 그대로 옮겼다.
    흔들림 애니메이션(is-shake)은 React 리렌더 타이밍과 무관하게 매번 재생돼야 해서
@@ -32,8 +43,7 @@ export default function ProfileEditPage() {
   const [initialized, setInitialized] = useState(false);
   const [nickname, setNickname] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
-  const [photoId, setPhotoId] = useState<string | null>(null);
-  const [photoDirty, setPhotoDirty] = useState(false);
+  const [pending, setPending] = useState<PendingPhoto | null>(null);
   const [photoSheetOpen, setPhotoSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -87,12 +97,27 @@ export default function ProfileEditPage() {
     setSaving(true);
     setFieldError(null);
     try {
-      const body: { nickname: string; profileImageId?: string | null } = {
+      // 프리셋 · 앨범 사진 · 이니셜(되돌리기) 모두 실제 파일로 먼저 올려서 저장 경로를 받아야
+      // PATCH /user 가 유효한 profileImageUrl 로 받아들인다(가짜 id 는 500 이 난다).
+      // BE 에 "사진 없음(null)"을 표현할 방법이 없어서, 되돌리기도 이니셜 이미지를 진짜로
+      // 그려 올리는 식으로 처리한다 — Avatar 의 이니셜 폴백과 똑같이 보인다.
+      let profileImageUrl: string | undefined;
+      if (pending?.kind === "preset") {
+        const blob = await presetToBlob(pending.bg, pending.icon);
+        profileImageUrl = await uploadProfileImage(blob, "preset.png");
+      } else if (pending?.kind === "upload") {
+        profileImageUrl = await uploadProfileImage(
+          pending.blob,
+          pending.filename,
+        );
+      } else if (pending?.kind === "clear") {
+        const blob = await initialsToBlob(nickname);
+        profileImageUrl = await uploadProfileImage(blob, "default.png");
+      }
+      await patchUser.mutateAsync({
         nickname,
-      };
-      // 명세: PATCH /user 는 profileImageUrl 이 아니라 profileImageId 를 받는다
-      if (photoDirty) body.profileImageId = photoId;
-      await patchUser.mutateAsync(body);
+        ...(profileImageUrl !== undefined ? { profileImageUrl } : {}),
+      });
       toast.ok("프로필을 저장했어요.");
       router.replace("/mypage");
     } catch (err) {
@@ -110,10 +135,12 @@ export default function ProfileEditPage() {
     }
   }
 
-  function applyPhoto(nextPhoto: string | null, nextPhotoId: string | null) {
+  function applyPhoto(
+    nextPhoto: string | null,
+    nextPending: PendingPhoto | null,
+  ) {
     setPhoto(nextPhoto);
-    setPhotoId(nextPhotoId);
-    setPhotoDirty(true);
+    setPending(nextPending);
     setPhotoSheetOpen(false);
   }
 
@@ -178,7 +205,7 @@ export default function ProfileEditPage() {
           <input
             className="field__input"
             id="email"
-            value={accountsQuery.data?.[0]?.email ?? ""}
+            value={meQuery.data?.email ?? accountsQuery.data?.[0]?.email ?? ""}
             disabled
             readOnly
           />
@@ -227,21 +254,22 @@ function PhotoSheet({
 }: {
   nickname: string;
   current: string | null;
-  onApply: (photo: string | null, photoId: string | null) => void;
+  onApply: (photo: string | null, pending: PendingPhoto | null) => void;
   onClose: () => void;
 }) {
   const [picked, setPicked] = useState<string | null>(current);
-  const [pickedId, setPickedId] = useState<string | null>(null);
+  // null = 새로 고른 게 없다(저장 시 기존 사진 유지) — current 와 별개로, 사진을 아예 안 바꿨다는 뜻
+  const [pendingLocal, setPendingLocal] = useState<PendingPhoto | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handlePreset(preset: (typeof AVATAR_PRESETS)[number]) {
-    setPicked(`preset:${preset.grad}:${preset.emoji}`);
-    setPickedId(preset.id);
+    setPicked(`preset:${preset.bg}:${preset.icon}`);
+    setPendingLocal({ kind: "preset", bg: preset.bg, icon: preset.icon });
   }
 
   function handleClear() {
     setPicked(null);
-    setPickedId(null);
+    setPendingLocal({ kind: "clear" });
   }
 
   function handleUploadClick() {
@@ -255,10 +283,9 @@ function PhotoSheet({
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const url = await imageToDataUrl(file);
-      setPicked(url);
-      // 업로드 엔드포인트가 명세에 없어 프로토타입과 마찬가지로 dataURL 자체를 임시 id 로 쓴다
-      setPickedId(`upload:${url}`);
+      const blob = await imageToBlob(file);
+      setPicked(URL.createObjectURL(blob));
+      setPendingLocal({ kind: "upload", blob, filename: file.name });
       toast.ok("사진을 불러왔어요. 확인 후 변경을 눌러주세요.");
     } catch (err) {
       const msg =
@@ -281,7 +308,7 @@ function PhotoSheet({
         <button
           className="btn btn--block"
           type="button"
-          onClick={() => onApply(picked, pickedId)}
+          onClick={() => onApply(picked, pendingLocal)}
         >
           이 사진으로 변경
         </button>
@@ -303,16 +330,17 @@ function PhotoSheet({
       </p>
       <div className="photogrid">
         {AVATAR_PRESETS.map((p) => {
-          const url = `preset:${p.grad}:${p.emoji}`;
+          const url = `preset:${p.bg}:${p.icon}`;
           return (
             <button
               key={p.id}
-              className={`photopick avatar--${p.grad}`}
+              className="photopick"
               type="button"
+              style={{ background: `#${p.bg}` }}
               aria-pressed={picked === url}
               onClick={() => handlePreset(p)}
             >
-              {p.emoji}
+              <PersonGlyph color={`#${p.icon}`} />
             </button>
           );
         })}

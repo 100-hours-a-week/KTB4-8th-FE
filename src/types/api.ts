@@ -42,7 +42,8 @@ export interface User {
   eventNotificationAgreed: boolean;
   analysisNotificationAgreed: boolean;
   createdAt: string;
-  /** 명세의 GET /user 응답에는 email 이 없다 — GET /user/accounts 로 조회한다 */
+  /** 명세엔 없던 필드지만, 실제 BE의 GET /user 응답엔 들어있다(GET /user/accounts 는 BE에 없다) */
+  email?: string;
 }
 
 export interface OauthAccount {
