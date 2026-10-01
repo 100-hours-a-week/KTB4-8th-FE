@@ -6,20 +6,19 @@ import { Icon } from "@/components/ui/Icon";
 import { Avatar, Spinner } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
-import { fmtDot } from "@/lib/format";
 import { useAccounts, useLogout, useMe } from "@/features/auth/session";
-import { useAnalyticsStats, useSyncYoutubeNow } from "@/features/sync/queries";
+import { useSyncYoutubeNow } from "@/features/sync/queries";
 import { useDisconnectGoogle } from "@/features/user/queries";
 
 /* 09 · 마이페이지 — 프로토타입 js/pages/mypage.js 를 그대로 옮겼다.
-   연동된 구글 계정 정보, YouTube 연동 상태, 동기화 현황, 로그아웃을 다룬다. */
+   YouTube 연동 상태 · 동기화 상태 · 가입일은 BE 에 아직 조회 API 가 없어 화면에서 뺐다
+   (BE 준비되면 다시 추가). */
 
 export default function MyPage() {
   const router = useRouter();
 
   const meQuery = useMe();
   const accountsQuery = useAccounts();
-  const statsQuery = useAnalyticsStats();
   const syncNow = useSyncYoutubeNow();
   const disconnectGoogle = useDisconnectGoogle();
   const logout = useLogout();
@@ -28,16 +27,6 @@ export default function MyPage() {
   const account = accountsQuery.data?.[0];
   // BE 에 GET /user/accounts 가 아직 없다 — 이메일은 GET /user 응답에 같이 들어있어 그쪽을 우선한다
   const email = user?.email ?? account?.email;
-  const stats = statsQuery.data;
-
-  function syncLabel() {
-    if (!stats || !stats.syncedVideoCount) return "동기화 전";
-    if (stats.pendingVideoCount + stats.inProgressVideoCount > 0) {
-      return `분석 중 ${stats.completedVideoCount}/${stats.syncedVideoCount}`;
-    }
-    if (stats.failedVideoCount) return `일부 실패 ${stats.failedVideoCount}건`;
-    return "최신 상태";
-  }
 
   async function handleResync() {
     // BE 에 진행률 조회 API 가 없어, 끝날 때까지(동기 처리) 기다렸다가 성공 여부만 알려준다
@@ -114,33 +103,6 @@ export default function MyPage() {
               </span>
               <span className="me__row-key">연동 계정</span>
               <span className="me__row-val">{email || "-"}</span>
-            </div>
-            <div className="me__row">
-              <span className="me__row-ico">
-                <Icon name="youtube" size={18} />
-              </span>
-              <span className="me__row-key">YouTube 연동</span>
-              <span
-                className={`me__row-val${account?.youtubeConnected ? " me__row-val--ok" : ""}`}
-              >
-                {account?.youtubeConnected ? "연결됨" : "연결 안 됨"}
-              </span>
-            </div>
-            <div className="me__row">
-              <span className="me__row-ico">
-                <Icon name="refresh" size={18} />
-              </span>
-              <span className="me__row-key">동기화 상태</span>
-              <span className="me__row-val">{syncLabel()}</span>
-            </div>
-            <div className="me__row">
-              <span className="me__row-ico">
-                <Icon name="clock" size={18} />
-              </span>
-              <span className="me__row-key">가입일</span>
-              <span className="me__row-val">
-                {user?.createdAt ? fmtDot(new Date(user.createdAt)) : "-"}
-              </span>
             </div>
           </div>
         </div>
