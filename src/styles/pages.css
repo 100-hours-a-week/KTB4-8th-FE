@@ -792,6 +792,9 @@
   margin-bottom: 8px;
   position: relative;
 }
+.home__sync-badge--error {
+  color: #ff8a8a;
+}
 .home__sync-title {
   font: var(--t-h2);
   position: relative;

@@ -6,7 +6,6 @@ import { AppBar } from "@/components/ui/AppBar";
 import { Icon, YouTubeMark } from "@/components/ui/Icon";
 import { Empty, Skeleton, Spinner } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
-import { isApiError } from "@/lib/api/client";
 import { useCourseStore } from "@/features/recommendations/courseStore";
 import { useSyncYoutubeNow } from "@/features/sync/queries";
 import {
@@ -27,7 +26,7 @@ import { PlaceListSheet } from "@/features/places/PlaceListSheet";
    진행률 · 결과 건수를 알려주는 조회 API 가 없다. 그래서 몇 개를 불러왔는지는 보여줄 수 없고,
    "불러오는 중 / 불러옴" 두 상태만 구분한다 — 실제로 없는 숫자를 지어내지 않는다. */
 
-type SyncState = "idle" | "pending" | "done";
+type SyncState = "idle" | "pending" | "done" | "failed";
 
 interface SyncCardModel {
   badge?: string;
@@ -55,6 +54,15 @@ function buildSyncCard(state: SyncState): SyncCardModel {
       msg: "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
       action: "course",
       actionLabel: "코스 추천받기",
+    };
+  }
+  if (state === "failed") {
+    return {
+      badge: "불러오기 실패",
+      title: "좋아요 영상을 불러오지 못했어요.",
+      msg: "일시적인 문제로 실패했어요. 다시 시도해 주세요.",
+      action: "sync",
+      actionLabel: "다시 시도",
     };
   }
   return {
@@ -144,7 +152,6 @@ export default function HomePage() {
 
   const hscrollRef = useDragScroll();
 
-  const handleStartSyncRef = useRef<() => void>(() => {});
   const handleStartSync = useCallback(async () => {
     setSyncState("pending");
     setDismissed(false);
@@ -152,20 +159,11 @@ export default function HomePage() {
       await syncNow.mutateAsync();
       setSyncState("done");
       toast.ok("좋아요 영상을 불러왔어요.", "완료");
-    } catch (err) {
-      setSyncState("idle");
-      const retryable =
-        isApiError(err) &&
-        (err.code === "YOUTUBE_SERVICE_FAILURE" ||
-          err.code === "YOUTUBE_SERVICE_TIMEOUT");
-      toast.fromError(err, {
-        onRetry: retryable ? () => handleStartSyncRef.current() : undefined,
-      });
+    } catch {
+      // 실패 안내는 카드(sync.failed)로만 보여준다 — 토스트는 따로 안 띄운다.
+      setSyncState("failed");
     }
   }, [syncNow]);
-  useEffect(() => {
-    handleStartSyncRef.current = () => void handleStartSync();
-  }, [handleStartSync]);
 
   // 최초 진입 1회 — startSync=1 쿼리(온보딩 · 코스 추천 팝업에서 옴)를 소비해 동기화를 시작한다
   useEffect(() => {
@@ -205,9 +203,13 @@ export default function HomePage() {
               </button>
             )}
             {sync.badge && (
-              <p className="home__sync-badge">
+              <p
+                className={`home__sync-badge${syncState === "failed" ? " home__sync-badge--error" : ""}`}
+              >
                 {syncState === "pending" ? (
                   <Spinner />
+                ) : syncState === "failed" ? (
+                  <Icon name="alert" size={13} />
                 ) : (
                   <Icon name="sparkle" size={13} />
                 )}
@@ -222,7 +224,7 @@ export default function HomePage() {
                 type="button"
                 onClick={() => void handleStartSync()}
               >
-                <YouTubeMark size={24} />
+                {syncState !== "failed" && <YouTubeMark size={24} />}
                 <span>{sync.actionLabel}</span>
               </button>
             )}
