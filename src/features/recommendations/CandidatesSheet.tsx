@@ -99,9 +99,10 @@ export function CandidatesSheet({
     const reason = result.emptyReason ?? "NO_MATCH";
     const copy = EMPTY_COPY[reason];
     return (
-      <Sheet title="추천 결과" sub={reason} back center onClose={onClose}>
+      <Sheet title="추천 결과" back center onClose={onClose}>
         <Empty
           icon="alert"
+          className="empty--tight"
           title={copy.title}
           message={copy.message}
           actions={

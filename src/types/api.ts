@@ -203,8 +203,9 @@ export interface Candidate {
   area: string;
   startAt: string;
   endAt: string;
-  estimatedDurationMinutes: number;
-  /** 명세에 없음 — 후보 카드의 "총 N분 이동" */
+  /** BE 실제 추천 응답(snippets/details)엔 이 필드가 없다 — 있을 때만 보여준다 */
+  estimatedDurationMinutes?: number;
+  /** 명세에 없음 — 후보 카드의 "총 N분 이동"(BE 실제 응답엔 있음: totalTravelTime) */
   totalTravelMinutes?: number;
   components: CandidateComponent[];
 }
@@ -215,8 +216,10 @@ export interface CandidateComponent {
   type: "PLACE" | "EVENT";
   name: string;
   category: Category;
-  estimatedArrivalAt: string;
-  estimatedStayMinutes: number;
+  /** BE 실제 추천 응답엔 장소별 도착 시각이 없다 — 있을 때만 보여준다 */
+  estimatedArrivalAt?: string;
+  /** BE 실제 추천 응답엔 장소별 머무름 시간이 없다 — 있을 때만 보여준다 */
+  estimatedStayMinutes?: number;
   /** 명세에 없음 — AI 응답에는 존재 */
   travelMinutes?: number;
   reason?: string | null;
@@ -237,10 +240,21 @@ export interface ChatMessage {
 /** POST /user/chat-messages 는 202 Accepted + Location 헤더만 주고, 실제 봇 답변은
     그 주소(GET .../chat-messages/{chatId}/response)를 완료될 때까지 폴링해서 받는다
     (features/recommendations/queries.ts 의 useSendChatMessage 가 그 과정을 감싼다).
-    BE 응답엔 텍스트(content)뿐이고, 조건 카드용 구조화 필드(지역·날짜·카테고리 등)나
-    선택지 버튼에 해당하는 값은 아직 없다 — BE/AI 쪽에서 아직 정해지지 않은 부분이다. */
+    BE 가 조건 추출 결과(slot)도 같이 주기 시작했다 — 다만 "시간대"(오전/오후/저녁) 개념은
+    AI/BE 어디에도 없어서 날짜(date)까지만 자동으로 채울 수 있다. */
 export interface ChatReply {
   content: string;
+  slot?: ChatSlot;
+}
+
+export interface ChatSlot {
+  origin?: { latitude: number; longitude: number } | null;
+  region?: string | null;
+  /** "yyyy-MM-dd" */
+  date?: string | null;
+  availableMinutes?: AvailableMinutes | null;
+  /** BE/AI 는 한 번에 하나만 돌려준다(한국어 라벨, 예: "카페") */
+  category?: string | null;
 }
 
 /* ── 주소 ───────────────────────────────────────────────── */

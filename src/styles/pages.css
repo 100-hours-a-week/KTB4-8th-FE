@@ -879,8 +879,19 @@
   padding: 0;
   cursor: pointer;
 }
+/* 카드 전체가 아니라 이미지에만 호버 효과를 준다(card--tap:hover 의 전체 박스 그림자는 끈다) */
+.placecard:hover {
+  box-shadow: none;
+}
 .placecard .thumb {
   width: 100%;
+  transition:
+    transform var(--d-fast) var(--e-out),
+    box-shadow var(--d-base) var(--e-io);
+}
+.placecard:hover .thumb {
+  transform: translateY(-3px);
+  box-shadow: var(--sh-2);
 }
 .placecard__name {
   font: var(--t-h3);

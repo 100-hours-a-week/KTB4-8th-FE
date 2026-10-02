@@ -979,6 +979,13 @@
   flex-direction: column;
   gap: var(--s-2);
 }
+/* 제목줄 바로 아래 뜨는 빈 상태(추천 결과 등) — 기본 --s-10 위아래 여백은 내용이
+   길 때 기준이라 이렇게 짧은 화면에선 헐렁해 보인다. 위아래를 좁혀 시트 자체를
+   더 짧고 자연스럽게 만든다(아래쪽은 시트 바디의 --s-4 만큼이 더해지는 걸 감안했다). */
+.empty--tight {
+  padding-top: var(--s-6);
+  padding-bottom: var(--s-6);
+}
 
 .spinner {
   width: 18px;

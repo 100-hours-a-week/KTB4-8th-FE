@@ -7,8 +7,9 @@ import { Icon } from "@/components/ui/Icon";
 import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { isApiError } from "@/lib/api/client";
+import { CATEGORY_BY_LABEL } from "@/lib/api/backend";
 import { CATEGORY_LABEL, TIME_OF_DAY_LABEL } from "@/lib/constants";
-import { fmtDate, toIso, uid } from "@/lib/format";
+import { fmtDate, uid } from "@/lib/format";
 import {
   defaultOrigin,
   isReady,
@@ -21,10 +22,10 @@ import {
 import {
   useCancelRecommendation,
   useClearChat,
-  useCreateRecommendation,
-  useRecommendationPoll,
+  useRequestRecommendation,
   useSendChatMessage,
-  type CreateRecommendationBody,
+  useUpdateSlot,
+  type UpdateSlotBody,
 } from "./queries";
 import { RegionSheet } from "./RegionSheet";
 import { DateTimeSheet } from "./DateTimeSheet";
@@ -36,7 +37,12 @@ import {
   type RelaxSuggestion,
 } from "./CandidatesSheet";
 import { CandidateDetailSheet } from "./CandidateDetailSheet";
-import type { Candidate, RecommendationRun, TimeOfDay } from "@/types/api";
+import type {
+  Candidate,
+  ChatSlot,
+  RecommendationRun,
+  TimeOfDay,
+} from "@/types/api";
 
 /* 05 · 코스 추천(챗봇) — 탭 이동이 아니라 화면 위에 뜨는 팝업(풀스크린 시트)이다.
    흐름: 대화로 조건 추출 → 조건 카드 확인 · 수정 → 추천 작업 생성(202)
@@ -80,26 +86,31 @@ type ViewState =
   | { name: "detail"; result: RecommendationRun; candidate: Candidate }
   | null;
 
-/** 추천 요청 본문 — 목 핸들러(createRecommendationHandler)가 실제로 받는 필드 그대로다.
-    (@/types/api 의 RecommendationRequest 가 쓰는 region/datetime/availableTime 필드와는 다르다 —
-    CONTRACT 이 "이미 끝난 목 레이어에 맞추라"고 명시해서, 실제 핸들러 기준으로 맞췄다) */
-function buildRecommendationBody(
-  slots: Slots,
-  origin: Origin,
-): CreateRecommendationBody {
+/** "yyyy-MM-ddTHH:mm:ss" — BE가 java.time.LocalDateTime으로 받아서, toIso()가 붙이는
+    "+09:00" 오프셋이 있으면 못 읽는다(타임존 없는 로컬 시각이어야 한다). */
+function toLocalDateTime(date: Date): string {
+  const p2 = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${date.getFullYear()}-${p2(date.getMonth() + 1)}-${p2(date.getDate())}` +
+    `T${p2(date.getHours())}:${p2(date.getMinutes())}:00`
+  );
+}
+
+/** "의도 카드" PATCH 본문 — BE가 추천 요청 때 쓰는 조건은 이걸로 먼저 반영해 둬야 한다
+    (POST /user/recommendation 은 본문을 안 읽는다). BE가 전체 필드를 다 요구해서
+    (@NotNull/@NotBlank) 아직 안 고른 값도 기본값으로 채워 보낸다. */
+function buildSlotUpdateBody(slots: Slots, origin: Origin): UpdateSlotBody {
   const start = new Date(`${slots.date}T00:00:00+09:00`);
   start.setHours(TIME_START[slots.timeOfDay ?? "AFTERNOON"] ?? 13, 0, 0, 0);
-  const end = new Date(
-    start.getTime() + (slots.availableMinutes ?? 180) * 60000,
-  );
   return {
-    currentLocation: {
-      latitude: origin.latitude ?? 0,
-      longitude: origin.longitude ?? 0,
+    location: {
+      lat: origin.latitude ?? 0,
+      lng: origin.longitude ?? 0,
     },
-    startAt: toIso(start),
-    endAt: toIso(end),
-    preferences: slots.categories.length ? slots.categories : undefined,
+    requested_location_name: slots.region ?? origin.label,
+    requested_date_time: toLocalDateTime(start),
+    available_time: slots.availableMinutes ?? 180,
+    categories: slots.categories.map((c) => CATEGORY_LABEL[c]),
   };
 }
 
@@ -117,7 +128,6 @@ export function CoursePopup() {
   const options = useCourseStore((s) => s.options);
   const origin = useCourseStore((s) => s.origin);
   const slots = useCourseStore((s) => s.slots);
-  const runId = useCourseStore((s) => s.runId);
   const done = useCourseStore((s) => s.done);
   const patchSlots = useCourseStore((s) => s.patchSlots);
   const reset = useCourseStore((s) => s.reset);
@@ -135,10 +145,12 @@ export function CoursePopup() {
 
   const sendChat = useSendChatMessage();
   const clearChat = useClearChat();
-  const createRecommendation = useCreateRecommendation();
+  const updateSlot = useUpdateSlot();
+  const recommend = useRequestRecommendation();
   const cancelRecommendation = useCancelRecommendation();
-  const generating = phase === "creating" || phase === "polling";
-  const poll = useRecommendationPoll(runId, open && phase === "polling");
+  const generating = phase === "creating";
+  // 조건 추출용 채팅은 첫 메시지 한 번만 받는다(handleSend 주석 참고)
+  const firstMessageSent = lines.some((l) => l.role === "USER");
 
   /* 대화 식별값이 있으면 화면을 떠났다가 돌아와도 기존 상태를 복원한다.
      식별값이 없을 때만 새 대화를 발급하고 서버의 이전 문맥을 비운다. */
@@ -207,47 +219,20 @@ export function CoursePopup() {
     return () => window.clearTimeout(t);
   }, [open, phase]);
 
-  /* 추천 결과 폴링 반영 — RECOMMENDATION_NOT_COMPLETED(409) 는 useRecommendationPoll 의
-     refetchInterval 이 retryAfterSeconds 만큼 기다렸다 알아서 다시 부르므로 조용히 무시한다. */
-  useEffect(() => {
-    if (phase !== "polling") return;
-    if (poll.data) {
-      useCourseStore.setState({ phase: "idle" });
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 비동기 폴링 결과 도착에 반응하는 화면 전환
-      setView({ name: "candidates", result: poll.data });
-      return;
-    }
-    if (poll.error) {
-      const err = poll.error;
-      if (isApiError(err) && err.code === "RECOMMENDATION_NOT_COMPLETED")
-        return;
-      useCourseStore.setState({ phase: "idle" });
-      if (isApiError(err) && err.code === "RECOMMENDATION_RUN_NOT_FOUND") {
-        useCourseStore.setState((s) => ({
-          lines: [
-            ...s.lines,
-            {
-              id: uid("msg"),
-              role: "ASSISTANT",
-              content:
-                "추천 결과가 만료되었어요.\n같은 조건으로 다시 받아볼 수 있어요.",
-            } as ChatLine,
-          ],
-        }));
-      }
-      toast.fromError(err, { onRetry: () => void requestRecommendation() });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [poll.data, poll.error, phase]);
-
+  /* 추천 요청 — BE 가 동기 처리라 POST 응답이 바로 최종 결과다(202+폴링 아님).
+     BE 는 POST 본문을 안 읽고 서버에 저장된 "의도 카드" 값을 쓰므로, 먼저 PATCH 로
+     현재 조건을 반영해 둔 다음 추천을 요청한다. */
   async function requestRecommendation() {
     const state = useCourseStore.getState();
     if (state.phase !== "idle" || !state.origin) return;
     useCourseStore.setState({ phase: "creating" });
     try {
-      const body = buildRecommendationBody(state.slots, state.origin);
-      const run = await createRecommendation.mutateAsync(body);
-      useCourseStore.setState({ runId: run.runId, phase: "polling" });
+      await updateSlot.mutateAsync(
+        buildSlotUpdateBody(state.slots, state.origin),
+      );
+      const run = await recommend.mutateAsync();
+      useCourseStore.setState({ phase: "idle" });
+      setView({ name: "candidates", result: run });
     } catch (err) {
       useCourseStore.setState({ phase: "idle" });
       const retryable = !(
@@ -259,10 +244,43 @@ export function CoursePopup() {
     }
   }
 
+  /* 채팅 응답의 조건 추출 결과를 조건 카드에 반영한다. null 인 필드는 아직 못 뽑아낸
+     것뿐이라 기존 값을 그대로 둔다(덮어쓰지 않음). "시간대"는 AI/BE 에 개념 자체가
+     없어서 여기서 안 건드린다 — 사용자가 "날짜 · 시간" 수정에서 항상 직접 고른다. */
+  function applyChatSlot(slot: ChatSlot | undefined) {
+    if (!slot) return;
+    const patch: Partial<Slots> = {};
+    if (slot.region != null) patch.region = slot.region;
+    if (slot.date != null) patch.date = slot.date;
+    if (slot.availableMinutes != null)
+      patch.availableMinutes = slot.availableMinutes;
+    if (slot.category != null) {
+      const mapped = CATEGORY_BY_LABEL[slot.category];
+      if (mapped) patch.categories = [mapped];
+    }
+    if (Object.keys(patch).length) patchSlots(patch);
+
+    if (slot.origin) {
+      const { latitude, longitude } = slot.origin;
+      useCourseStore.setState((s) => ({
+        origin: s.origin
+          ? { ...s.origin, latitude, longitude }
+          : { label: "대화에서 알려준 위치", latitude, longitude },
+      }));
+    }
+  }
+
   async function handleSend(preset?: string) {
     const current = useCourseStore.getState();
     const text = (preset ?? draft).trim();
     if (!text || current.phase !== "idle") return;
+    // 조건 추출은 첫 메시지 한 번만 받는다 — 두 번째 메시지부터는 BE 가 이전 조건과
+    // 병합하다 자주 실패하고(서버 쪽 null 처리 버그), 어차피 "시간대"는 AI 가 못 뽑아내서
+    // 카드에서 직접 고쳐야 한다. 그래서 나머지는 전부 조건 카드의 수정 버튼으로 받는다.
+    if (current.lines.some((l) => l.role === "USER")) {
+      toast.info("조건은 아래 카드에서 직접 수정해 주세요.");
+      return;
+    }
 
     const userLine: ChatLine = { id: uid("msg"), role: "USER", content: text };
     useCourseStore.setState((s) => ({
@@ -278,8 +296,6 @@ export function CoursePopup() {
     }
 
     try {
-      // BE 가 조건 추출(지역 · 날짜 · 카테고리)을 아직 안 내려줘서, 지금은 답변 텍스트만
-      // 받아 대화창에 붙인다 — 조건 카드는 사용자가 직접 수정 버튼으로 채운다.
       const reply = await sendChat.mutateAsync({
         content: text,
       });
@@ -291,6 +307,7 @@ export function CoursePopup() {
       useCourseStore.setState((s) => ({
         lines: [...s.lines, botLine],
       }));
+      applyChatSlot(reply.slot);
     } catch (err) {
       useCourseStore.setState((s) => ({
         lines: [
@@ -526,6 +543,10 @@ export function CoursePopup() {
               origin={origin}
               ready={isReady(slots) && phase === "idle"}
               generating={generating}
+              // 첫 메시지를 보낸 뒤에는(AI가 하나도 못 뽑아냈거나 응답 자체가 실패해도)
+              // 조건 카드를 띄워서 "수정" 버튼으로 전부 직접 채울 수 있게 한다 — 안 그러면
+              // 채팅은 막혀 있는데(firstMessageSent) 카드도 안 떠서 아무것도 못 하게 된다.
+              forceShow={firstMessageSent}
               onEditOrigin={() => setView({ name: "region", kind: "origin" })}
               onEditSlot={handleEditSlot}
               onRecommend={() => void requestRecommendation()}
@@ -537,9 +558,13 @@ export function CoursePopup() {
                   ref={textareaRef}
                   className="composer__input"
                   rows={1}
-                  placeholder="어떤 곳에 가고 싶으세요?"
+                  placeholder={
+                    firstMessageSent
+                      ? "조건은 위 카드에서 수정해 주세요"
+                      : "어떤 곳에 가고 싶으세요?"
+                  }
                   value={draft}
-                  disabled={phase !== "idle"}
+                  disabled={phase !== "idle" || firstMessageSent}
                   onChange={(e) => {
                     setDraft(e.target.value);
                     e.target.style.height = "auto";
@@ -556,7 +581,7 @@ export function CoursePopup() {
                   className="composer__send"
                   type="button"
                   aria-label="보내기"
-                  disabled={phase !== "idle"}
+                  disabled={phase !== "idle" || firstMessageSent}
                   onClick={() => void handleSend()}
                 >
                   <Icon name="arrowUp" size={20} />
@@ -615,6 +640,7 @@ function CondCard({
   origin,
   ready,
   generating,
+  forceShow,
   onEditOrigin,
   onEditSlot,
   onRecommend,
@@ -623,6 +649,8 @@ function CondCard({
   origin: Origin | null;
   ready: boolean;
   generating: boolean;
+  /** 첫 메시지를 보낸 뒤에는 추출된 값이 하나도 없어도 카드를 띄운다(수동 입력 경로) */
+  forceShow: boolean;
   onEditOrigin: () => void;
   onEditSlot: (kind: "region" | "datetime" | "available" | "category") => void;
   onRecommend: () => void;
@@ -634,7 +662,7 @@ function CondCard({
     !!slots.availableMinutes ||
     slots.categories.length > 0;
   // 생성이 시작되면 더 이상 손댈 수 없는 조건 카드는 접어, 진행 상태에 화면을 내준다.
-  if (!hasAny || !origin || generating) return null;
+  if ((!hasAny && !forceShow) || !origin || generating) return null;
 
   const availableLabel = slots.availableMinutes
     ? `${slots.availableMinutes / 60}시간`

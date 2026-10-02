@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
-import { Empty, Skeleton, Spinner, Thumb } from "@/components/ui/Primitives";
+import {
+  DummyDataNotice,
+  Empty,
+  Skeleton,
+  Spinner,
+  Thumb,
+} from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { api } from "@/lib/api/client";
 import { CATEGORY_LABEL } from "@/lib/constants";
@@ -144,6 +150,7 @@ export function PlaceDetailSheet({
       )}
       {place && (
         <>
+          <DummyDataNotice />
           <div className="pdetail__hero">
             <Thumb category={place.category} />
           </div>

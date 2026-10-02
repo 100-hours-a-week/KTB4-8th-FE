@@ -90,9 +90,11 @@ export function CandidateDetailSheet({
           <p className="stat__val">{candidate.rank}순위</p>
         </div>
         <div className="stat">
-          <p className="stat__key">총 소요시간</p>
+          <p className="stat__key">총 이동시간</p>
           <p className="stat__val">
-            {fmtDuration(candidate.estimatedDurationMinutes)}
+            {candidate.totalTravelMinutes != null
+              ? fmtDuration(candidate.totalTravelMinutes)
+              : "-"}
           </p>
         </div>
       </div>
@@ -105,9 +107,11 @@ export function CandidateDetailSheet({
               <span className="step__meta">
                 {CATEGORY_LABEL[comp.category]} ·{" "}
                 {i === 0 ? "출발지에서 " : "이전 장소에서 "}
-                {comp.travelMinutes ?? 0}분 이동 ·{" "}
-                {fmtHm(comp.estimatedArrivalAt)} 도착 ·{" "}
-                {comp.estimatedStayMinutes}분 머무름
+                {comp.travelMinutes ?? 0}분 이동
+                {comp.estimatedArrivalAt &&
+                  ` · ${fmtHm(comp.estimatedArrivalAt)} 도착`}
+                {comp.estimatedStayMinutes != null &&
+                  ` · ${comp.estimatedStayMinutes}분 머무름`}
               </span>
               {comp.reason && (
                 <span className="step__reason">{comp.reason}</span>

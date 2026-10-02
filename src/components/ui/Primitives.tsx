@@ -63,20 +63,37 @@ export function Empty({
   title,
   message,
   actions,
+  className,
 }: {
   icon?: IconName;
   title: string;
   message?: ReactNode;
   actions?: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="empty">
+    <div className={className ? `empty ${className}` : "empty"}>
       <div className="empty__icon">
         <Icon name={icon} size={28} />
       </div>
       <p className="empty__title">{title}</p>
       {message && <p className="empty__msg">{message}</p>}
       {actions && <div className="empty__actions">{actions}</div>}
+    </div>
+  );
+}
+
+/** 장소·이벤트 상세가 테스트용 더미 데이터일 때 띄우는 안내 배너.
+    지금은 보관함·추천에 실제로 뜨는 장소·이벤트가 전부 더미라서 예외 없이 쓰지만,
+    BE 에 실제 장소 상세 API 가 생기면 그걸로 받아온 항목에는 안 띄워야 한다. */
+export function DummyDataNotice() {
+  return (
+    <div className="banner banner--info" style={{ marginBottom: 16 }}>
+      <Icon name="info" size={18} />
+      <span className="banner__msg">
+        지금 보시는 장소 정보는 서비스 점검을 위해 넣어둔 예시 데이터예요. 실제
+        장소 정보가 아니니 참고해 주세요.
+      </span>
     </div>
   );
 }
