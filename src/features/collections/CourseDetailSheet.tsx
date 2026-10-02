@@ -61,7 +61,7 @@ export function CourseDetailSheet({
       foot={
         course && (
           <button
-            className="btn btn--ghost btn--block"
+            className="btn btn--soft btn--block"
             type="button"
             onClick={() => void handleDelete()}
           >

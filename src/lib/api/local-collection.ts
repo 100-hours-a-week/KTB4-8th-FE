@@ -2,6 +2,7 @@
    `/user/collections/me/...` 요청과 보관한 장소·이벤트의 상세 조회만 여기서 처리하고,
    나머지 API 는 그대로 BE 로 보낸다. BE 보관함 API 가 나오면 이 파일과 client.ts 의 호출 한 줄을 지운다. */
 import { toIso } from "@/lib/format";
+import { LOCAL_DUMMY } from "@/lib/constants";
 import type { CandidateComponent, Category } from "@/types/api";
 
 const STORAGE_KEY = "keepgo.collection.local.v1";
@@ -63,7 +64,10 @@ interface Store {
 
 const PLACES: CatalogPlace[] = [
   {
-    id: "701",
+    // 홈의 "요즘 뜨는 곳" 1번 카드(backend.ts 의 be-place-0)와 같은 장소라 id 를 맞췄다.
+    // 예전엔 "701"과 "be-place-0"이 이름·내용이 같은 채로 따로 있어서, 홈에서 저장하면
+    // 보관함에 같은 장소가 두 번 쌓였다 — 하나로 합쳤다.
+    id: "be-place-0",
     name: "어라운드 성수",
     category: "CAFE",
     region: "서울 성동구",
@@ -85,8 +89,12 @@ const PLACES: CatalogPlace[] = [
     longitude: 126.991,
   },
   {
-    id: "703",
-    name: "보안여관",
+    // 홈의 "요즘 뜨는 곳" 3번 카드(backend.ts 의 be-place-2)와 같은 장소라 id · 이름을 맞췄다.
+    // BE 더미 응답 이름이 "보안여관 전시"라(TrendingPlacesResponse.stub()), 홈 카드와 상세 화면의
+    // 이름이 다르게 보이지 않도록 카탈로그 이름도 그대로 맞춘다.
+    // 예전엔 "703"과 "be-place-2"가 따로 있어서 홈에서 저장하면 보관함에 같은 장소가 두 번 쌓였다 — 하나로 합쳤다.
+    id: "be-place-2",
+    name: "보안여관 전시",
     category: "EXHIBITION",
     region: "서울 종로구",
     description: "1940년대 여관을 고쳐 만든 복합 문화 공간",
@@ -129,17 +137,7 @@ const PLACES: CatalogPlace[] = [
     longitude: 127.0521,
   },
   // 홈의 "요즘 뜨는 곳"은 BE 더미 응답이고 id 가 be-place-N 이다(backend.ts). 저장 · 상세가 이어지도록 같은 id 를 둔다.
-  {
-    id: "be-place-0",
-    name: "어라운드 성수",
-    category: "CAFE",
-    region: "서울 성동구",
-    description: "성수동 골목 안쪽, 층고 높은 로스터리 카페",
-    googlePlaceId: null,
-    imageUrl: null,
-    latitude: 37.5445,
-    longitude: 127.056,
-  },
+  // be-place-0(어라운드 성수) · be-place-2(보안여관 전시)는 위 카탈로그에 이미 같은 id 로 있어서 여기서는 뺐다.
   {
     id: "be-place-1",
     name: "을지로 산수갑산",
@@ -150,17 +148,6 @@ const PLACES: CatalogPlace[] = [
     imageUrl: null,
     latitude: 37.5663,
     longitude: 126.991,
-  },
-  {
-    id: "be-place-2",
-    name: "보안여관 전시",
-    category: "EXHIBITION",
-    region: "서울 종로구",
-    description: "1940년대 여관을 고쳐 만든 복합 문화 공간의 전시",
-    googlePlaceId: null,
-    imageUrl: null,
-    latitude: 37.5765,
-    longitude: 126.972,
   },
 ];
 
@@ -180,7 +167,7 @@ const EVENTS: CatalogEvent[] = [
     id: "802",
     name: "보안여관 기획전 〈밤의 기록〉",
     category: "EXHIBITION",
-    placeId: "703",
+    placeId: "be-place-2",
     region: "서울 종로구",
     description: "사진·설치 작업 20여 점을 모은 기획 전시",
     startAt: "2026-09-05T11:00:00+09:00",
@@ -202,7 +189,7 @@ const EVENTS: CatalogEvent[] = [
     id: "804",
     name: "가을 미디어 아트전",
     category: "EXHIBITION",
-    placeId: "703",
+    placeId: "be-place-2",
     region: "서울 종로구",
     description: "빛과 사운드로 가을의 풍경을 재해석한 미디어 전시",
     startAt: "2026-09-20T10:00:00+09:00",
@@ -253,7 +240,7 @@ function seedStore(): Store {
   const cafe = [
     makeComponent(
       1,
-      "701",
+      "be-place-0",
       at(3, 13),
       60,
       0,
@@ -279,7 +266,7 @@ function seedStore(): Store {
   const culture = [
     makeComponent(
       1,
-      "703",
+      "be-place-2",
       at(4, 14),
       90,
       0,
@@ -297,8 +284,18 @@ function seedStore(): Store {
 
   return {
     items: [
-      { id: "L-seed-1", itemType: "PLACE", itemId: "701", createdAt: ago(2) },
-      { id: "L-seed-2", itemType: "PLACE", itemId: "703", createdAt: ago(30) },
+      {
+        id: "L-seed-1",
+        itemType: "PLACE",
+        itemId: "be-place-0",
+        createdAt: ago(2),
+      },
+      {
+        id: "L-seed-2",
+        itemType: "PLACE",
+        itemId: "be-place-2",
+        createdAt: ago(30),
+      },
       { id: "L-seed-3", itemType: "PLACE", itemId: "705", createdAt: ago(80) },
       { id: "L-seed-4", itemType: "EVENT", itemId: "802", createdAt: ago(5) },
       { id: "L-seed-5", itemType: "EVENT", itemId: "801", createdAt: ago(50) },
@@ -334,12 +331,41 @@ function seedStore(): Store {
   };
 }
 
+/** 옛 카탈로그 id 를 지금의 be-place-N id 로 옮긴다(카탈로그 id 통합).
+    "701"(어라운드 성수) → "be-place-0", "703"(보안여관) → "be-place-2".
+    이 수정 전에 홈에서 저장해서 옛 id · be-place-N 이 둘 다 들어있는 브라우저는, 같은 장소가
+    보관함에 두 번 보이던 걸 여기서 한 번만 남기고 정리한다. */
+const LEGACY_PLACE_IDS: Record<string, string> = {
+  "701": "be-place-0",
+  "703": "be-place-2",
+};
+
+function migrateLegacyIds(store: Store): Store {
+  const seen = new Set<string>();
+  const items: StoredItem[] = [];
+  for (const item of store.items) {
+    const itemId =
+      item.itemType === "PLACE" && item.itemId in LEGACY_PLACE_IDS
+        ? LEGACY_PLACE_IDS[item.itemId]
+        : item.itemId;
+    const key = `${item.itemType}:${itemId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push(itemId === item.itemId ? item : { ...item, itemId });
+  }
+  return items.length === store.items.length &&
+    items.every((it, i) => it === store.items[i])
+    ? store
+    : { ...store, items };
+}
+
 function load(): Store {
   if (memory) return memory;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      memory = JSON.parse(raw) as Store;
+      memory = migrateLegacyIds(JSON.parse(raw) as Store);
+      save();
       return memory;
     }
   } catch {
@@ -390,6 +416,14 @@ function isSaved(store: Store, itemType: "PLACE" | "EVENT", itemId: string) {
   return store.items.some(
     (i) => i.itemType === itemType && i.itemId === itemId,
   );
+}
+
+/** 홈의 "요즘 뜨는 곳" 카드가 쓴다 — BE 트렌딩 응답엔 보관함 여부가 안 들어있어서(saved 항상 undefined),
+    카드가 화면에 뜰 때마다 보관함 더미 저장소를 직접 확인해 북마크 아이콘 초기 상태를 정한다.
+    페이지를 떠났다 돌아와도(컴포넌트가 다시 마운트돼도) 이 값으로 다시 채워지므로 초기화되지 않는다. */
+export function isPlaceSavedLocally(itemId: string): boolean {
+  if (!LOCAL_DUMMY || typeof window === "undefined") return false;
+  return isSaved(load(), "PLACE", itemId);
 }
 
 /* ── 라우팅 ────────────────────────────────────────────── */

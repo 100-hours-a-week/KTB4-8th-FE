@@ -165,6 +165,7 @@ export function useCancelRecommendation() {
 
 /** POST /user/collections/me/items — 코스 후보를 그대로 보관함에 저장한다(itemId = candidateId) */
 export function useAddCourseItem() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (course: Candidate) =>
       (
@@ -174,5 +175,7 @@ export function useAddCourseItem() {
           course,
         })
       ).data,
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["collections", "items"] }),
   });
 }

@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
 import { Empty, Skeleton, Spinner, Thumb } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { api } from "@/lib/api/client";
 import { CATEGORY_LABEL } from "@/lib/constants";
-import { usePlace } from "./queries";
+import {
+  useDeleteCollectionItem,
+  useSaveCollectionItem,
+} from "@/features/collections/queries";
+import { placeKeys, usePlace } from "./queries";
 import type { CollectionItem } from "@/types/api";
 
 /* 장소 상세 팝업 — 프로토타입 js/pages/home.js 의 openPlaceSheet() 를 그대로 옮겼다.
@@ -30,6 +35,9 @@ export function PlaceDetailSheet({
   const { data: place, isLoading, isError, error } = usePlace(placeId);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const qc = useQueryClient();
+  const saveItem = useSaveCollectionItem();
+  const deleteItem = useDeleteCollectionItem();
 
   // 조회된 place 가 바뀔 때마다(최초 로딩·재조회) 저장 여부를 서버 값으로 다시 맞춘다.
   // (렌더 중 상태 조정 패턴: https://react.dev/learn/you-might-not-need-an-effect)
@@ -43,16 +51,29 @@ export function PlaceDetailSheet({
     if (isError) toast.fromError(error);
   }, [isError, error]);
 
-  async function handleSave() {
-    if (!place || saved || saving) return;
+  async function handleToggle() {
+    if (!place || saving) return;
     setSaving(true);
     try {
-      await api.post<CollectionItem>("/user/collections/me/items", {
-        itemType: "PLACE",
-        itemId: place.id,
-      });
-      setSaved(true);
-      toast.ok("보관함에 담았어요.");
+      if (!saved) {
+        await saveItem.mutateAsync({ itemType: "PLACE", itemId: place.id });
+        setSaved(true);
+        toast.ok("보관함에 담았어요.");
+      } else {
+        // 개별 삭제 API 는 itemId 가 아니라 보관함 행 id 를 받아서, 목록에서 행을 먼저 찾는다.
+        const r = await api.get<CollectionItem[]>(
+          "/user/collections/me/items",
+          { type: "PLACE", size: 50 },
+        );
+        const row = (r.data || []).find(
+          (x) => x.item && String(x.item.id) === String(place.id),
+        );
+        if (row) await deleteItem.mutateAsync(row.id);
+        setSaved(false);
+        toast.info("보관함에서 삭제했어요.");
+      }
+      // 홈 카드 · 더보기 목록이 들고 있는 이 장소의 캐시도 같이 지워서 바로 반영되게 한다.
+      void qc.invalidateQueries({ queryKey: placeKeys.detail(place.id) });
     } catch (err) {
       toast.fromError(err);
     } finally {
@@ -81,20 +102,20 @@ export function PlaceDetailSheet({
               <span>지도에서 보기</span>
             </button>
             <button
-              className="btn"
+              className={`btn${saved ? " btn--soft" : ""}`}
               type="button"
-              disabled={saved || saving}
-              onClick={() => void handleSave()}
+              disabled={saving}
+              onClick={() => void handleToggle()}
             >
               {saving ? (
                 <>
                   <Spinner />
-                  <span>담는 중</span>
+                  <span>{saved ? "삭제하는 중" : "담는 중"}</span>
                 </>
               ) : saved ? (
                 <>
-                  <Icon name="check" size={18} />
-                  <span>보관됨</span>
+                  <Icon name="trash" size={18} />
+                  <span>보관함에서 삭제</span>
                 </>
               ) : (
                 <>
