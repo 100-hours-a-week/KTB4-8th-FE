@@ -39,6 +39,7 @@ import {
 import { CandidateDetailSheet } from "./CandidateDetailSheet";
 import type {
   Candidate,
+  Category,
   ChatSlot,
   RecommendationRun,
   TimeOfDay,
@@ -255,8 +256,10 @@ export function CoursePopup() {
     if (slot.availableMinutes != null)
       patch.availableMinutes = slot.availableMinutes;
     if (slot.category != null) {
-      const mapped = CATEGORY_BY_LABEL[slot.category];
-      if (mapped) patch.categories = [mapped];
+      const mapped = slot.category
+        .map((label) => CATEGORY_BY_LABEL[label])
+        .filter((c): c is Category => !!c);
+      if (mapped.length) patch.categories = mapped;
     }
     if (Object.keys(patch).length) patchSlots(patch);
 

@@ -253,8 +253,9 @@ export interface ChatSlot {
   /** "yyyy-MM-dd" */
   date?: string | null;
   availableMinutes?: AvailableMinutes | null;
-  /** BE/AI 는 한 번에 하나만 돌려준다(한국어 라벨, 예: "카페") */
-  category?: string | null;
+  /** 한국어 라벨 배열(예: ["카페"]). AI 쪽 스키마가 문자열→배열로 바뀐 적이 있어서,
+      BE 가 문자열 하나만 내려주는 동안에도 FE 는 항상 배열로 다룬다. */
+  category?: string[] | null;
 }
 
 /* ── 주소 ───────────────────────────────────────────────── */

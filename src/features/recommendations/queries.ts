@@ -41,8 +41,9 @@ interface BeChatSlot {
   /** "yyyy-MM-dd" */
   datetime?: string | null;
   available_time?: number | null;
-  /** 한국어 라벨 하나(예: "카페") — BE/AI 가 한 번에 하나만 준다 */
-  category?: string | null;
+  /** AI 쪽 스키마가 문자열("카페") → 배열(["카페"])로 바뀐 적이 있어서, BE 가 둘 중
+      뭘 내려주든 받을 수 있게 둘 다 허용한다. */
+  category?: string | string[] | null;
 }
 
 type BeGetReplyResponse =
@@ -74,7 +75,12 @@ function toChatSlot(
     region: beSlot.region ?? null,
     date: beSlot.datetime ?? null,
     availableMinutes,
-    category: beSlot.category ?? null,
+    category:
+      beSlot.category == null
+        ? null
+        : Array.isArray(beSlot.category)
+          ? beSlot.category
+          : [beSlot.category],
   };
 }
 
