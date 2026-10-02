@@ -1010,10 +1010,13 @@
 .banner {
   display: flex;
   gap: var(--s-3);
-  align-items: flex-start;
+  align-items: center;
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-md);
   font: var(--t-sm);
+}
+.banner svg {
+  flex: none;
 }
 .banner--error {
   background: var(--danger-bg);

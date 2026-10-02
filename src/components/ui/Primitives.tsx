@@ -83,16 +83,16 @@ export function Empty({
   );
 }
 
-/** 장소·이벤트 상세가 테스트용 더미 데이터일 때 띄우는 안내 배너.
-    지금은 보관함·추천에 실제로 뜨는 장소·이벤트가 전부 더미라서 예외 없이 쓰지만,
-    BE 에 실제 장소 상세 API 가 생기면 그걸로 받아온 항목에는 안 띄워야 한다. */
+/** 장소·이벤트·코스 상세가 테스트용 더미 데이터일 때 띄우는 안내 배너.
+    지금은 보관함·추천에 실제로 뜨는 장소·이벤트·코스가 전부 더미라서 예외 없이 쓰지만,
+    BE 에 실제 상세 API 가 생기면 그걸로 받아온 항목에는 안 띄워야 한다. */
 export function DummyDataNotice() {
   return (
     <div className="banner banner--info" style={{ marginBottom: 16 }}>
-      <Icon name="info" size={18} />
+      <Icon name="alertCircle" size={24} />
       <span className="banner__msg">
-        지금 보시는 장소 정보는 서비스 점검을 위해 넣어둔 예시 데이터예요. 실제
-        장소 정보가 아니니 참고해 주세요.
+        지금 보시는 정보는 서비스 점검을 위해 넣어둔 예시 데이터예요. 실제
+        정보가 아니니 참고해 주세요.
       </span>
     </div>
   );

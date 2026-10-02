@@ -36,6 +36,8 @@ export const ICON_PATHS = {
   search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>',
   bell: '<path d="M18 9a6 6 0 10-12 0c0 5-2 6.5-2 6.5h16S18 14 18 9z"/><path d="M10.3 19.5a2 2 0 003.4 0"/>',
   alert: '<path d="M12 3l9.5 16.5h-19z"/><path d="M12 9.5v4M12 17h.01"/>',
+  alertCircle:
+    '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v6M12 16.5h.01"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
   youtube:
     '<rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="M10.3 9.4l4.8 2.6-4.8 2.6z" fill="currentColor" stroke="none"/>',

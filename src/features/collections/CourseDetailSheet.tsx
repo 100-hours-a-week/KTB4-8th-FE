@@ -3,7 +3,12 @@
 import { useEffect } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
-import { categoryLabel, Empty, Skeleton } from "@/components/ui/Primitives";
+import {
+  categoryLabel,
+  DummyDataNotice,
+  Empty,
+  Skeleton,
+} from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { fmtDot, fmtDuration } from "@/lib/format";
@@ -86,6 +91,7 @@ export function CourseDetailSheet({
       )}
       {course && (
         <>
+          <DummyDataNotice />
           <div className="stats">
             <div className="stat">
               <p className="stat__key">추천 순위</p>
