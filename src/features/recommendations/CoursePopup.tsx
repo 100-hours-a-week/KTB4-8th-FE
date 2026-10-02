@@ -149,7 +149,7 @@ export function CoursePopup() {
   const recommend = useRequestRecommendation();
   const cancelRecommendation = useCancelRecommendation();
   const generating = phase === "creating";
-  // 조건 추출용 채팅은 첫 메시지 한 번만 받는다(handleSend 주석 참고)
+  // 메시지를 한 번이라도 보냈는지 — CondCard 를 강제로 띄우는 fallback 에 쓴다
   const firstMessageSent = lines.some((l) => l.role === "USER");
 
   /* 대화 식별값이 있으면 화면을 떠났다가 돌아와도 기존 상태를 복원한다.
@@ -274,13 +274,6 @@ export function CoursePopup() {
     const current = useCourseStore.getState();
     const text = (preset ?? draft).trim();
     if (!text || current.phase !== "idle") return;
-    // 조건 추출은 첫 메시지 한 번만 받는다 — 두 번째 메시지부터는 BE 가 이전 조건과
-    // 병합하다 자주 실패하고(서버 쪽 null 처리 버그), 어차피 "시간대"는 AI 가 못 뽑아내서
-    // 카드에서 직접 고쳐야 한다. 그래서 나머지는 전부 조건 카드의 수정 버튼으로 받는다.
-    if (current.lines.some((l) => l.role === "USER")) {
-      toast.info("조건은 아래 카드에서 직접 수정해 주세요.");
-      return;
-    }
 
     const userLine: ChatLine = { id: uid("msg"), role: "USER", content: text };
     useCourseStore.setState((s) => ({
@@ -543,9 +536,8 @@ export function CoursePopup() {
               origin={origin}
               ready={isReady(slots) && phase === "idle"}
               generating={generating}
-              // 첫 메시지를 보낸 뒤에는(AI가 하나도 못 뽑아냈거나 응답 자체가 실패해도)
-              // 조건 카드를 띄워서 "수정" 버튼으로 전부 직접 채울 수 있게 한다 — 안 그러면
-              // 채팅은 막혀 있는데(firstMessageSent) 카드도 안 떠서 아무것도 못 하게 된다.
+              // 메시지를 한 번 보낸 뒤에는(AI가 하나도 못 뽑아냈거나 응답 자체가 실패해도)
+              // 조건 카드를 띄워서 "수정" 버튼으로 직접 채울 수 있는 길을 열어둔다.
               forceShow={firstMessageSent}
               onEditOrigin={() => setView({ name: "region", kind: "origin" })}
               onEditSlot={handleEditSlot}
@@ -558,13 +550,9 @@ export function CoursePopup() {
                   ref={textareaRef}
                   className="composer__input"
                   rows={1}
-                  placeholder={
-                    firstMessageSent
-                      ? "조건은 위 카드에서 수정해 주세요"
-                      : "어떤 곳에 가고 싶으세요?"
-                  }
+                  placeholder="어떤 곳에 가고 싶으세요?"
                   value={draft}
-                  disabled={phase !== "idle" || firstMessageSent}
+                  disabled={phase !== "idle"}
                   onChange={(e) => {
                     setDraft(e.target.value);
                     e.target.style.height = "auto";
@@ -581,7 +569,7 @@ export function CoursePopup() {
                   className="composer__send"
                   type="button"
                   aria-label="보내기"
-                  disabled={phase !== "idle" || firstMessageSent}
+                  disabled={phase !== "idle"}
                   onClick={() => void handleSend()}
                 >
                   <Icon name="arrowUp" size={20} />
