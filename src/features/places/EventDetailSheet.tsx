@@ -32,7 +32,7 @@ export interface EventDetailSheetProps {
 
 export function EventDetailSheet({ eventId, onClose }: EventDetailSheetProps) {
   const { data: event, isLoading, isError, error } = useEvent(eventId);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(!!event?.saved);
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
   const saveItem = useSaveCollectionItem();

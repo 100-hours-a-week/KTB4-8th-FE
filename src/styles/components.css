@@ -110,6 +110,11 @@
   max-width: var(--phone-w);
   min-width: 0;
 }
+/* 소프트웨어 키보드가 열리면(useFixedPin) 탭바가 키보드 위로 같이 떠오르는 대신
+   그 자리에서 사라지게 한다 — 떠 있는 탭바가 입력창·시트 사이에 끼는 걸 막는다. */
+:root[data-kg-keyboard] .tabbar {
+  display: none;
+}
 .tabbar__item {
   display: flex;
   flex-direction: column;

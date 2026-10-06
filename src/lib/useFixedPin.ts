@@ -5,8 +5,11 @@ import { useEffect } from "react";
 /* iOS 는 입력창에 포커스하면 키보드 위 보조 막대(이전·다음·완료)만큼 화면 영역을 줄이면서
    position:fixed 요소(탭바 · 시트)를 함께 밀어 올린다. 탭바는 그대로 있고 보조 막대가 그 위를
    덮는 모양이어야 하므로, 포커스 직전 위치를 기억해 밀린 만큼 --kg-pin 으로 되돌린다.
-   소프트웨어 키보드처럼 크게 줄어드는 경우(80px 이상)는 브라우저 동작에 맡긴다. */
+   소프트웨어 키보드처럼 크게 줄어드는 경우(80px 이상)는 브라우저 동작에 맡긴다 — 대신 탭바를
+   아예 숨겨서, 탭바가 키보드 위로 같이 떠오르는 대신 키보드가 올라오는 자리에서 사라지게 한다
+   (data-kg-keyboard 를 보고 .tabbar 에 display:none 을 거는 쪽은 components.css). */
 const MAX_ACCESSORY_SHRINK = 80;
+const KEYBOARD_ATTR = "data-kg-keyboard";
 const SETTLE_MS = 1500;
 const RELEASE_MS = 700;
 
@@ -32,11 +35,12 @@ export function useFixedPin() {
     const apply = () => {
       if (base === null) return;
       const shrink = window.innerHeight - vv.height;
-      const delta =
-        shrink < MAX_ACCESSORY_SHRINK
-          ? base - sensor.getBoundingClientRect().bottom
-          : 0;
+      const keyboardOpen = shrink >= MAX_ACCESSORY_SHRINK;
+      const delta = keyboardOpen
+        ? 0
+        : base - sensor.getBoundingClientRect().bottom;
       root.style.setProperty("--kg-pin", `${Math.round(delta * 10) / 10}px`);
+      root.toggleAttribute(KEYBOARD_ATTR, keyboardOpen);
     };
 
     const burst = () => {
@@ -63,6 +67,7 @@ export function useFixedPin() {
         if (isField(document.activeElement)) return;
         base = null;
         root.style.removeProperty("--kg-pin");
+        root.removeAttribute(KEYBOARD_ATTR);
       }, RELEASE_MS);
     };
 
@@ -78,6 +83,7 @@ export function useFixedPin() {
       cancelAnimationFrame(raf);
       window.clearTimeout(releaseTimer);
       root.style.removeProperty("--kg-pin");
+      root.removeAttribute(KEYBOARD_ATTR);
       sensor.remove();
     };
   }, []);

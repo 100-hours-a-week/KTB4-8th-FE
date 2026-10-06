@@ -115,10 +115,14 @@ function buildSlotUpdateBody(slots: Slots, origin: Origin): UpdateSlotBody {
   };
 }
 
+/** 날짜는 채팅에서 자동 추출되고 시간대는 사용자가 직접 고르므로, 둘 중 하나만 있어도
+    채워진 부분은 보여준다(둘 다 없을 때만 빈 문자열 → "미입력"). */
 function dateTimeLabel(slots: Slots): string {
   const d = slots.date ? fmtDate(new Date(`${slots.date}T00:00:00+09:00`)) : "";
   const t = slots.timeOfDay ? TIME_OF_DAY_LABEL[slots.timeOfDay] : "";
-  return d && t ? `${d} ${t}` : "";
+  if (d && t) return `${d} ${t}`;
+  if (d) return `${d} · 시간대 선택`;
+  return t;
 }
 
 export function CoursePopup() {
@@ -416,7 +420,9 @@ export function CoursePopup() {
 
   function handleAdded(course: Candidate, itemId: string) {
     useCourseStore.setState({ done: { course, itemId } });
-    setView(null);
+    // 후보 목록은 그대로 남겨 둔다 — 완료 화면에서 뒤로가기를 누르면
+    // 같은 후보 목록으로 돌아가 다른 코스도 이어서 담을 수 있다.
+    setView((v) => (v?.name === "detail" ? { name: "candidates", result: v.result } : v));
   }
 
   async function handleAgain() {
@@ -454,7 +460,11 @@ export function CoursePopup() {
         center
         back
         showClose={false}
-        onBack={() => handleGoHome()}
+        onBack={() =>
+          // 완료 화면에서는 "뒤로"가 홈이 아니라 방금 담은 후보 목록으로 돌아간다
+          // (view 는 handleAdded 에서 candidates 로 유지해 둔 상태).
+          done ? useCourseStore.setState({ done: null }) : handleGoHome()
+        }
         actions={
           <button
             className="iconbtn"

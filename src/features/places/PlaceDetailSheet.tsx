@@ -39,7 +39,7 @@ export function PlaceDetailSheet({
   onBack,
 }: PlaceDetailSheetProps) {
   const { data: place, isLoading, isError, error } = usePlace(placeId);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(!!place?.saved);
   const [saving, setSaving] = useState(false);
   const qc = useQueryClient();
   const saveItem = useSaveCollectionItem();
