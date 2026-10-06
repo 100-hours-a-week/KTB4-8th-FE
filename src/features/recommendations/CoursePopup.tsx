@@ -422,7 +422,9 @@ export function CoursePopup() {
     useCourseStore.setState({ done: { course, itemId } });
     // 후보 목록은 그대로 남겨 둔다 — 완료 화면에서 뒤로가기를 누르면
     // 같은 후보 목록으로 돌아가 다른 코스도 이어서 담을 수 있다.
-    setView((v) => (v?.name === "detail" ? { name: "candidates", result: v.result } : v));
+    setView((v) =>
+      v?.name === "detail" ? { name: "candidates", result: v.result } : v,
+    );
   }
 
   async function handleAgain() {
