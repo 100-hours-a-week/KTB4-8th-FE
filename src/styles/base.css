@@ -152,6 +152,9 @@ img {
   min-width: 0;
   height: 100vh;
   height: 100dvh;
+  /* iOS 는 키보드가 열려도 레이아웃 뷰포트가 그대로라 시트가 키보드 밑으로 들어간다.
+     키보드가 열린 동안만 useFixedPin 이 보이는 영역(visualViewport)의 높이를 넣어 준다. */
+  height: var(--kg-vvh, 100dvh);
   max-width: var(--phone-w);
   pointer-events: none;
   z-index: 60;

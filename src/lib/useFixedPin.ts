@@ -36,10 +36,14 @@ export function useFixedPin() {
       if (base === null) return;
       const shrink = window.innerHeight - vv.height;
       const keyboardOpen = shrink >= MAX_ACCESSORY_SHRINK;
+      // 키보드가 열리면 오버레이를 보이는 영역(visualViewport)에 정확히 맞춘다 —
+      // 안 그러면 iOS 에서 시트가 키보드 아래로 들어가 입력창이 가려진다.
       const delta = keyboardOpen
-        ? 0
+        ? vv.offsetTop
         : base - sensor.getBoundingClientRect().bottom;
       root.style.setProperty("--kg-pin", `${Math.round(delta * 10) / 10}px`);
+      if (keyboardOpen) root.style.setProperty("--kg-vvh", `${vv.height}px`);
+      else root.style.removeProperty("--kg-vvh");
       root.toggleAttribute(KEYBOARD_ATTR, keyboardOpen);
     };
 
@@ -67,6 +71,7 @@ export function useFixedPin() {
         if (isField(document.activeElement)) return;
         base = null;
         root.style.removeProperty("--kg-pin");
+        root.style.removeProperty("--kg-vvh");
         root.removeAttribute(KEYBOARD_ATTR);
       }, RELEASE_MS);
     };
@@ -83,6 +88,7 @@ export function useFixedPin() {
       cancelAnimationFrame(raf);
       window.clearTimeout(releaseTimer);
       root.style.removeProperty("--kg-pin");
+      root.style.removeProperty("--kg-vvh");
       root.removeAttribute(KEYBOARD_ATTR);
       sensor.remove();
     };
