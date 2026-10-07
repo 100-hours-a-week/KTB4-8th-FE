@@ -350,6 +350,7 @@ export function CoursePopup() {
     } catch {
       /* 초기화 실패는 화면 상태만 되돌린다 */
     }
+    setView(null);
     reset();
   }
 
@@ -434,10 +435,12 @@ export function CoursePopup() {
     } catch {
       /* 무시 — 화면 상태는 어차피 초기화한다 */
     }
+    setView(null);
     reset();
   }
 
   function handleGoCollection() {
+    setView(null);
     setOpen(false);
     router.push("/collection?tab=COURSE");
   }
@@ -612,7 +615,8 @@ export function CoursePopup() {
       {view?.name === "category" && (
         <CategorySheet onClose={() => setView(null)} />
       )}
-      {(view?.name === "candidates" || view?.name === "detail") && (
+      {/* 완료 화면에서는 후보 시트를 숨긴다 — 뒤로가기로 done 이 풀리면 다시 나타난다 */}
+      {!done && (view?.name === "candidates" || view?.name === "detail") && (
         <CandidatesSheet
           result={view.result}
           slots={slots}

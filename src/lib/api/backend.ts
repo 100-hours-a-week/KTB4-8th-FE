@@ -131,6 +131,12 @@ interface BeRecommendationMetadata {
     snippets 는 details 와 같은 순서 · 같은 정보를 요약한 것뿐이라 details 만 쓴다.
     BE 응답엔 후보별 candidateId · 코스 전체 소요시간 · 장소별 도착시각/머무름시간이 아예
     없다 — 억지로 숫자를 만들어내지 않고 없는 채로 둔다(화면이 있을 때만 보여준다). */
+/** AI 가 코스 이름 앞에 붙이기도 하는 "[코스 1]" 같은 순번 표시를 뗀다(순위는 화면에 따로 나온다). */
+function cleanCourseTitle(title: string | undefined): string {
+  const raw = title ?? "";
+  return raw.replace(/^\s*\[\s*코스\s*\d+\s*\]\s*/, "") || raw;
+}
+
 function toRecommendationRun(raw: unknown): RecommendationRun {
   const r = (raw ?? {}) as {
     metadata?: BeRecommendationMetadata;
@@ -143,7 +149,7 @@ function toRecommendationRun(raw: unknown): RecommendationRun {
   const candidates: Candidate[] = details.map((d, i) => ({
     candidateId: `be-candidate-${i}`,
     rank: i + 1,
-    name: d.title ?? "",
+    name: cleanCourseTitle(d.title),
     area,
     startAt: scheduledTime,
     endAt: scheduledTime,

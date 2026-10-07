@@ -869,21 +869,17 @@
   flex: 1;
   min-width: 0;
 }
-/* 좌우 버튼 개수가 다르면(예: 뒤로가기 1개 + 초기화·닫기 2개) flex 가운데 정렬은
-   진짜 화면 중앙이 아니라 남은 공간의 중앙에 온다. 헤더 전체 너비에 겹쳐 그려
-   버튼 구성과 무관하게 항상 화면 중앙에 오도록 한다. */
-.sheet__head--center {
-  position: relative;
-  justify-content: space-between;
+/* 제목을 가운데 정렬하되 버튼과 겹치지 않게 한다. 좌우 영역에 같은 최소 너비(버튼 1개 분량)를
+   줘서 버튼 개수와 무관하게 제목이 진짜 화면 중앙에 오고, 긴 제목은 그 사이에서 줄바꿈된다. */
+.sheet__head--center .sheet__lead,
+.sheet__head--center .sheet__actions {
+  min-width: 40px;
+}
+.sheet__head--center .sheet__actions {
+  justify-content: flex-end;
 }
 .sheet__head--center .sheet__titles {
-  position: absolute;
-  top: 50%;
-  left: var(--s-4);
-  right: var(--s-4);
-  transform: translateY(-50%);
   text-align: center;
-  pointer-events: none;
 }
 .sheet__title {
   font: var(--t-h2);
