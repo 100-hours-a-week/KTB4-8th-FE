@@ -123,7 +123,7 @@ export function CandidatesSheet({
             )
           }
         />
-        {copy.relax && (
+        {copy.relax && relaxSuggestions.length > 0 && (
           <>
             <p
               className="cond__legend"

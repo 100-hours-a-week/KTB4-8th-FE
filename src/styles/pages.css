@@ -1202,6 +1202,8 @@
   min-height: 46px;
   max-height: 96px;
   resize: none;
+  /* 한 줄일 때 안쪽 여백 때문에 스크롤바가 보이지 않게 숨기고, 늘어나다 최대 높이에 닿으면 JS 가 켠다 */
+  overflow-y: hidden;
   padding: 12px var(--s-4);
   border: 1.5px solid var(--line);
   border-radius: var(--r-xl);
@@ -1280,6 +1282,13 @@
   border-radius: var(--r-xs);
   padding: 3px 7px;
 }
+.cond__badge--btn {
+  border: 0;
+  cursor: pointer;
+}
+.cond__badge--btn:hover {
+  background: var(--brand-100);
+}
 .cond__edit {
   margin-left: auto;
   border: 0;
@@ -1297,12 +1306,100 @@
   color: var(--ink-3);
   margin: var(--s-2) 0 7px;
 }
+.cond__legendrow {
+  display: flex;
+  align-items: center;
+  margin: var(--s-2) 0 7px;
+}
+.cond__legendrow .cond__legend {
+  margin: 0;
+}
+.cond__legendactions {
+  margin-left: auto;
+  display: flex;
+  gap: var(--s-4);
+}
+.cond__legendactions .cond__edit {
+  margin-left: 0;
+}
+/* 접힌 조건 카드 — 한 줄 요약 막대.
+   요약 글자를 누르면 전체를 줄바꿈해서 보여 주고(다시 누르면 한 줄),
+   오른쪽 화살표를 누르면 조건 카드가 다시 펼쳐진다. */
+.cond--bar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding-top: var(--s-3);
+  padding-bottom: var(--s-3);
+}
+.cond__bar-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.cond__bar-main:disabled {
+  cursor: default;
+}
+.cond__bar-title {
+  flex: none;
+  font: var(--t-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.cond__bar-sum {
+  flex: 1;
+  min-width: 0;
+  font: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cond--bar[data-full="true"] .cond__bar-sum {
+  white-space: normal;
+  overflow: visible;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.cond--bar .cond__badge {
+  flex: none;
+}
+.cond__bar-chev {
+  flex: none;
+  display: flex;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  /* 아래 화살표를 뒤집어 "위로 펼치기" 모양으로 쓴다 */
+  transform: rotate(180deg);
+}
 .cond__grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr) — 값이 길어도 칸 너비는 고정하고, 길면 줄바꿈으로 세로를 늘린다 */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
 }
 .cond__slot {
+  min-width: 0;
+  /* 2열 격자: 왼쪽은 항목 이름 · 값, 오른쪽은 필수/선택 · 수정.
+     오른쪽 열의 너비는 "수정 ›" 이 정하고, 필수/선택은 그 왼쪽 끝에 맞춰 놓인다.
+     같은 줄의 옆 칸이 길어져 이 칸이 늘어나도 내용은 항상 위쪽에 둔다. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 6px;
+  row-gap: 3px;
+  align-content: start;
   border: 1.5px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
@@ -1323,11 +1420,16 @@
   font: var(--t-xs);
   color: var(--ink-3);
 }
-.cond__slot-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 3px;
+.cond__slot-req {
+  font: var(--t-xs);
+  color: var(--ink-3);
+  /* 오른쪽 열 안에서 "수정 ›" 의 왼쪽 끝에 맞춘다 */
+  justify-self: start;
+}
+/* 필수는 굵게 + 브랜드 초록으로 강조 */
+.cond__slot-req--must {
+  font-weight: 700;
+  color: var(--brand-600);
 }
 .cond__slot-val {
   font: var(--t-h3);
@@ -1335,9 +1437,8 @@
   font-size: 14.5px;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 .cond__slot--empty .cond__slot-val {
   color: var(--ink-4);
@@ -1349,6 +1450,7 @@
 .cond__slot-go {
   font: var(--t-xs);
   color: var(--ink-4);
+  align-self: center;
 }
 .cond .btn {
   margin-top: var(--s-3);

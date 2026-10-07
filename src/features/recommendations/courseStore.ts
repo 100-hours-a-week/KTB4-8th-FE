@@ -23,6 +23,8 @@ export interface Origin {
 export interface Slots {
   region: string | null;
   regionPoint?: { latitude: number | null; longitude: number | null } | null;
+  /** 지역을 검색 결과에서 골랐을 때의 주소(예: "서울 마포구 양화로 188"). 대화로 채워진 지역에는 없다 */
+  regionAddress?: string | null;
   date: string | null;
   timeOfDay: TimeOfDay | null;
   availableMinutes: AvailableMinutes | null;
@@ -72,16 +74,18 @@ function newConversationId() {
   return `course-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** 현재 위치를 알 수 없을 때(권한 거부·시간 초과·한국 밖) 쓰는 기본 출발지 — 실제 현재 위치가 아니다 */
 export const defaultOrigin = (): Origin => ({
   label: "강남구 테헤란로",
   latitude: 37.5,
   longitude: 127.0364,
-  current: true,
+  current: false,
 });
 
 export const emptySlots = (): Slots => ({
   region: null,
   regionPoint: null,
+  regionAddress: null,
   date: null,
   timeOfDay: null,
   availableMinutes: null,
@@ -111,7 +115,8 @@ export const useCourseStore = create<CourseState>()(
           lines: [],
           phase: "idle",
           options: [],
-          origin: defaultOrigin(),
+          // 비워 두면 팝업이 열려 있는 동안 CoursePopup 이 현재 위치를 다시 찾아 채운다
+          origin: null,
           slots: emptySlots(),
           runId: null,
           done: null,

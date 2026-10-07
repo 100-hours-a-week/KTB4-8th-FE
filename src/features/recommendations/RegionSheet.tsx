@@ -262,6 +262,7 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
       patchSlots({
         region: chosen.label,
         regionPoint: { latitude: chosen.latitude, longitude: chosen.longitude },
+        regionAddress: chosen.sub,
       });
     }
     onClose();

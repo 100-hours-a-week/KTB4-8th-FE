@@ -36,9 +36,10 @@ export interface SendChatBody {
 }
 
 interface BeChatSlot {
-  origin?: { lat: number; lng: number } | null;
+  /** 조건에 출발지가 없을 때도 {lat: null, lng: null} 로 온다 */
+  origin?: { lat: number | null; lng: number | null } | null;
   region?: string | null;
-  /** "yyyy-MM-dd" */
+  /** "yyyy-MM-dd" 또는 "yyyy-MM-ddTHH:mm:ss" — 날짜 부분만 쓴다 */
   datetime?: string | null;
   available_time?: number | null;
   /** AI 쪽 스키마가 문자열("카페") → 배열(["카페"])로 바뀐 적이 있어서, BE 가 둘 중
@@ -69,11 +70,13 @@ function toChatSlot(
       ? (beSlot.available_time as AvailableMinutes)
       : null;
   return {
-    origin: beSlot.origin
-      ? { latitude: beSlot.origin.lat, longitude: beSlot.origin.lng }
-      : null,
+    origin:
+      typeof beSlot.origin?.lat === "number" &&
+      typeof beSlot.origin?.lng === "number"
+        ? { latitude: beSlot.origin.lat, longitude: beSlot.origin.lng }
+        : null,
     region: beSlot.region ?? null,
-    date: beSlot.datetime ?? null,
+    date: beSlot.datetime ? beSlot.datetime.slice(0, 10) : null,
     availableMinutes,
     category:
       beSlot.category == null

@@ -8,10 +8,22 @@ import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { isApiError } from "@/lib/api/client";
 import { CATEGORY_BY_LABEL } from "@/lib/api/backend";
-import { CATEGORY_LABEL, TIME_OF_DAY_LABEL } from "@/lib/constants";
+import {
+  currentPosition,
+  permissionState,
+  reverseGeocode,
+  searchAddress,
+} from "@/lib/address/address";
+import {
+  CATEGORY_LABEL,
+  CATEGORY_ORDER,
+  TIME_OF_DAY_LABEL,
+} from "@/lib/constants";
+import { nearestRegion, searchRegions } from "@/lib/address/regionDb";
 import { fmtDate, uid } from "@/lib/format";
 import {
   defaultOrigin,
+  emptySlots,
   isReady,
   useCourseStore,
   type ChatLine,
@@ -67,16 +79,77 @@ const INTRO_GREETING =
   "가고 싶은 곳을 편하게 말씀해 주세요.\n예) 이번 주 토요일 오후에 카페 가고 싶어";
 const INTRO_HINT = "지역과 시간도 함께 알려주시면 더 정확해요.";
 
-/** 후보가 0개일 때 "이렇게 바꿔볼까요?" 제안 — 프로토타입의 KG.db.relaxedSuggestions 를 대신한다.
-    UI 전용 데이터라 명세에는 없고, 화면(이 파일)에 직접 둔다. */
-const RELAX_SUGGESTIONS: RelaxSuggestion[] = [
-  {
-    label: "외출 가능 시간을 3시간 → 6시간으로",
-    patch: { availableMinutes: 360 },
-  },
-  { label: "카테고리에 전시를 추가", patch: { addCategory: "EXHIBITION" } },
-  { label: "지역을 성동구 전체로", patch: { region: "서울 성동구" } },
-];
+/** 후보가 0개일 때 "이렇게 바꿔볼까요?" 제안 — 지금 입력한 조건을 기준으로 만든다.
+    · 외출 시간: 지금보다 긴 단계가 있을 때만
+    · 카테고리: 이미 고른 게 있고 아직 안 고른 게 남았을 때만(고른 게 없으면 이미 전체다)
+    · 지역: 지금 지역이 속한 시·군·구를 알 수 있을 때만("서울 성동구 전체로")
+    조건을 알 수 없는 제안은 만들지 않는다. */
+function buildRelaxSuggestions(slots: Slots): RelaxSuggestion[] {
+  const out: RelaxSuggestion[] = [];
+
+  const current = slots.availableMinutes ?? 180;
+  const nextMinutes = ([180, 360, 540] as const).find((m) => m > current);
+  if (nextMinutes) {
+    out.push({
+      label: `외출 가능 시간을 ${current / 60}시간 → ${nextMinutes / 60}시간으로`,
+      patch: { availableMinutes: nextMinutes },
+    });
+  }
+
+  if (slots.categories.length > 0) {
+    const missing = CATEGORY_ORDER.find((c) => !slots.categories.includes(c));
+    if (missing) {
+      out.push({
+        label: `카테고리에 ${CATEGORY_LABEL[missing]} 추가`,
+        patch: { addCategory: missing },
+      });
+    }
+  }
+
+  const gu = guOfRegion(slots);
+  if (gu) {
+    out.push({
+      label: `지역을 ${gu} 전체로`,
+      patch: { region: gu },
+    });
+  }
+  return out;
+}
+
+/** "서울 마포구 양화로 188" · "경기도 성남시 분당구 삼평동" 같은 주소 앞부분에서
+    "서울 마포구" · "경기 성남시 분당구" 를 뽑는다. 시·군·구가 없으면 null. */
+function guFromAddress(address: string | null | undefined): string | null {
+  const m = address
+    ?.trim()
+    .match(/^(\S+)\s+(\S+[시군구](?:\s+\S+구)?)(?:\s|$)/);
+  if (!m) return null;
+  const sido = m[1].replace(/(특별자치시|특별자치도|특별시|광역시|도)$/, "");
+  return `${sido} ${m[2]}`;
+}
+
+/** 조건의 지역(이름 또는 지도 좌표)이 속한 "서울 성동구" 같은 시·군·구. 알 수 없거나
+    이미 구 단위로 골랐다면 null. */
+function guOfRegion(slots: Slots): string | null {
+  const q = slots.region?.trim();
+  if (!q) return null;
+  // 검색 결과에서 골랐다면 그 주소에 시·군·구가 들어 있다 — 가장 정확하다
+  const fromAddress = guFromAddress(slots.regionAddress);
+  if (fromAddress) return fromAddress;
+  let region = searchRegions(q, 1)[0] ?? null;
+  const point = slots.regionPoint;
+  if (!region && point?.latitude != null && point.longitude != null) {
+    const near = nearestRegion(point.latitude, point.longitude);
+    if (near && near.distanceKm <= 3) region = near.region;
+  }
+  if (!region?.sigungu) return null;
+  if (q.replace(/\s+/g, "").endsWith(region.sigungu.replace(/\s+/g, "")))
+    return null;
+  const sido = region.sido.replace(
+    /(특별자치시|특별자치도|특별시|광역시|도)$/,
+    "",
+  );
+  return `${sido} ${region.sigungu}`;
+}
 
 type ViewState =
   | { name: "region"; kind: "region" | "origin" }
@@ -120,7 +193,8 @@ function buildSlotUpdateBody(slots: Slots, origin: Origin): UpdateSlotBody {
 function dateTimeLabel(slots: Slots): string {
   const d = slots.date ? fmtDate(new Date(`${slots.date}T00:00:00+09:00`)) : "";
   const t = slots.timeOfDay ? TIME_OF_DAY_LABEL[slots.timeOfDay] : "";
-  if (d && t) return `${d} ${t}`;
+  // 날짜와 시간대 사이는 보통 공백보다 살짝 넓게(en space) 띄운다
+  if (d && t) return `${d}\u2002${t}`;
   if (d) return `${d} · 시간대 선택`;
   return t;
 }
@@ -143,6 +217,12 @@ export function CoursePopup() {
   const [draft, setDraft] = useState("");
   const [view, setView] = useState<ViewState>(null);
   const [stepIndex, setStepIndex] = useState(0);
+  // 조건 카드를 접어 둔 대화의 식별값. 새 대화(reset 이 새 식별값을 발급)가 시작되면
+  // 값이 달라져서 카드는 자동으로 다시 펼쳐진다.
+  const conversationId = useCourseStore((s) => s.conversationId);
+  const [collapsedKey, setCollapsedKey] = useState<string | null>(null);
+  const convKey = conversationId ?? "none";
+  const condCollapsed = collapsedKey === convKey;
 
   const logRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -176,9 +256,34 @@ export function CoursePopup() {
     wasOpenRef.current = open;
   }, [clearChat, open, reset]);
 
-  /* 기본 출발지 — 프로토타입처럼 팝업을 처음 열 때 한 번 채워둔다 */
+  /* 출발지 — 비어 있으면 기본값을 먼저 깔고, 브라우저 위치로 현재 위치를 찾으면 바꾼다.
+     권한 거부 · 시간 초과 · 한국 밖이면 기본값을 그대로 둔다. 그 사이 사용자가 출발지를
+     직접 고쳤다면(스토어의 출발지가 방금 깐 기본값 객체가 아니면) 덮어쓰지 않는다. */
   useEffect(() => {
-    if (open && !origin) useCourseStore.setState({ origin: defaultOrigin() });
+    if (!open || origin) return;
+    const fallback = defaultOrigin();
+    useCourseStore.setState({ origin: fallback });
+    void (async () => {
+      try {
+        if ((await permissionState()) === "denied") return;
+        const pos = await currentPosition();
+        const hit = await reverseGeocode(pos.latitude, pos.longitude);
+        useCourseStore.setState((s) =>
+          s.origin === fallback
+            ? {
+                origin: {
+                  label: hit.label,
+                  latitude: pos.latitude,
+                  longitude: pos.longitude,
+                  current: true,
+                },
+              }
+            : s,
+        );
+      } catch {
+        /* 기본 출발지를 그대로 쓴다 */
+      }
+    })();
   }, [open, origin]);
 
   /* 하단 내비게이션과 브라우저 뒤로가기는 팝업만 닫고 대화 상태는 유지한다. */
@@ -249,13 +354,34 @@ export function CoursePopup() {
     }
   }
 
+  /* 지역 검색(법정동 DB + 지하철역)으로 이름에 맞는 주소를 찾아 조건에 저장한다.
+     찾는 동안 지역이 바뀌었으면 버린다. 못 찾으면 아무 일도 하지 않는다. */
+  async function resolveRegionAddress(region: string) {
+    try {
+      const hits = await searchAddress(region);
+      const hit = hits.find((h) => guFromAddress(h.sub));
+      if (!hit) return;
+      if (useCourseStore.getState().slots.region !== region) return;
+      patchSlots({ regionAddress: hit.sub });
+    } catch {
+      /* 주소를 못 찾으면 지역 제안만 빠진다 */
+    }
+  }
+
   /* 채팅 응답의 조건 추출 결과를 조건 카드에 반영한다. null 인 필드는 아직 못 뽑아낸
      것뿐이라 기존 값을 그대로 둔다(덮어쓰지 않음). "시간대"는 AI/BE 에 개념 자체가
      없어서 여기서 안 건드린다 — 사용자가 "날짜 · 시간" 수정에서 항상 직접 고른다. */
   function applyChatSlot(slot: ChatSlot | undefined) {
     if (!slot) return;
     const patch: Partial<Slots> = {};
-    if (slot.region != null) patch.region = slot.region;
+    if (slot.region != null) {
+      patch.region = slot.region;
+      // 대화로 지역이 바뀌면 검색 결과에서 골랐던 좌표 · 주소는 더 이상 이 지역의 것이 아니다
+      if (slot.region !== useCourseStore.getState().slots.region) {
+        patch.regionPoint = null;
+        patch.regionAddress = null;
+      }
+    }
     if (slot.date != null) patch.date = slot.date;
     if (slot.availableMinutes != null)
       patch.availableMinutes = slot.availableMinutes;
@@ -266,6 +392,9 @@ export function CoursePopup() {
       if (mapped.length) patch.categories = mapped;
     }
     if (Object.keys(patch).length) patchSlots(patch);
+    // 대화로 새 지역이 들어왔으면, 검색과 같은 방법으로 주소를 찾아 둔다(구 단위 제안에 쓴다)
+    if (patch.region != null && patch.regionAddress === null)
+      void resolveRegionAddress(patch.region);
 
     if (slot.origin) {
       const { latitude, longitude } = slot.origin;
@@ -407,6 +536,7 @@ export function CoursePopup() {
     if (patch.region) {
       next.region = patch.region;
       next.regionPoint = null;
+      next.regionAddress = null;
     }
     patchSlots(next);
     setView(null);
@@ -437,6 +567,24 @@ export function CoursePopup() {
     }
     setView(null);
     reset();
+  }
+
+  async function handleResetSlots() {
+    const ok = await confirm({
+      title: "조건을 초기화할까요?",
+      message: (
+        <>
+          지역 · 날짜 · 시간대 · 외출 가능 시간 · 카테고리가 모두 비워집니다.
+          <br />
+          출발지와 대화 내용은 그대로 유지돼요.
+        </>
+      ),
+      ok: "초기화",
+      danger: true,
+    });
+    if (!ok) return;
+    patchSlots(emptySlots());
+    toast.info("조건을 초기화했어요.");
   }
 
   function handleGoCollection() {
@@ -557,6 +705,9 @@ export function CoursePopup() {
               // 메시지를 한 번 보낸 뒤에는(AI가 하나도 못 뽑아냈거나 응답 자체가 실패해도)
               // 조건 카드를 띄워서 "수정" 버튼으로 직접 채울 수 있는 길을 열어둔다.
               forceShow={firstMessageSent}
+              collapsed={condCollapsed}
+              onToggle={() => setCollapsedKey(condCollapsed ? null : convKey)}
+              onResetSlots={() => void handleResetSlots()}
               onEditOrigin={() => setView({ name: "region", kind: "origin" })}
               onEditSlot={handleEditSlot}
               onRecommend={() => void requestRecommendation()}
@@ -575,6 +726,9 @@ export function CoursePopup() {
                     setDraft(e.target.value);
                     e.target.style.height = "auto";
                     e.target.style.height = `${Math.min(96, e.target.scrollHeight)}px`;
+                    // 최대 높이에 닿았을 때만 스크롤을 보인다(그 전에는 숨겨 둔다)
+                    e.target.style.overflowY =
+                      e.target.scrollHeight > 96 ? "auto" : "hidden";
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -620,7 +774,7 @@ export function CoursePopup() {
         <CandidatesSheet
           result={view.result}
           slots={slots}
-          relaxSuggestions={RELAX_SUGGESTIONS}
+          relaxSuggestions={buildRelaxSuggestions(slots)}
           onClose={() => setView(null)}
           onSelect={(candidate) =>
             setView({ name: "detail", result: view.result, candidate })
@@ -648,6 +802,9 @@ function CondCard({
   ready,
   generating,
   forceShow,
+  collapsed,
+  onToggle,
+  onResetSlots,
   onEditOrigin,
   onEditSlot,
   onRecommend,
@@ -658,10 +815,43 @@ function CondCard({
   generating: boolean;
   /** 첫 메시지를 보낸 뒤에는 추출된 값이 하나도 없어도 카드를 띄운다(수동 입력 경로) */
   forceShow: boolean;
+  /** 접힌 상태에서는 한 줄 요약 막대만 보이고, 누르면 다시 펼쳐진다 */
+  collapsed: boolean;
+  onToggle: () => void;
+  /** 지역 · 날짜 · 시간대 · 외출 시간 · 카테고리를 비운다(출발지와 대화는 그대로) */
+  onResetSlots: () => void;
   onEditOrigin: () => void;
   onEditSlot: (kind: "region" | "datetime" | "available" | "category") => void;
   onRecommend: () => void;
 }) {
+  const availableLabel = slots.availableMinutes
+    ? `${slots.availableMinutes / 60}시간`
+    : "";
+  const categoriesLabel = slots.categories
+    .map((c) => CATEGORY_LABEL[c])
+    .join(", ");
+  const summary = [
+    slots.region,
+    dateTimeLabel(slots).replace("\u2002", " "),
+    availableLabel,
+    categoriesLabel,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // 접힌 막대의 요약: 한 줄로 보다가 눌러서 전체를 펼쳐 볼 수 있다. 잘리는 경우에만 토글을 보인다.
+  const [barFull, setBarFull] = useState(false);
+  const [truncated, setTruncated] = useState(false);
+  const sumRef = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    const el = sumRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const check = () => setTruncated(el.scrollWidth > el.clientWidth + 1);
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [collapsed, summary]);
+
   const hasAny =
     ready ||
     !!slots.region ||
@@ -671,12 +861,35 @@ function CondCard({
   // 생성이 시작되면 더 이상 손댈 수 없는 조건 카드는 접어, 진행 상태에 화면을 내준다.
   if ((!hasAny && !forceShow) || !origin || generating) return null;
 
-  const availableLabel = slots.availableMinutes
-    ? `${slots.availableMinutes / 60}시간`
-    : "";
-  const categoriesLabel = slots.categories
-    .map((c) => CATEGORY_LABEL[c])
-    .join(", ");
+  if (collapsed) {
+    return (
+      <div className="cond cond--bar" data-full={barFull ? "true" : undefined}>
+        <button
+          className="cond__bar-main"
+          type="button"
+          aria-expanded={barFull}
+          aria-label={barFull ? "조건을 한 줄로 보기" : "조건 전체 보기"}
+          disabled={!truncated && !barFull}
+          onClick={() => setBarFull((v) => !v)}
+        >
+          <span className="cond__bar-title">추출된 조건</span>
+          <span className="cond__bar-sum" ref={sumRef}>
+            {summary || "아직 비어 있어요"}
+          </span>
+        </button>
+        {ready && <span className="cond__badge">추천 가능</span>}
+        <button
+          className="cond__bar-chev"
+          type="button"
+          aria-expanded={false}
+          aria-label="조건 카드 펼치기"
+          onClick={onToggle}
+        >
+          <Icon name="chevronDown" size={16} />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="cond">
@@ -686,12 +899,41 @@ function CondCard({
         </span>
         <span className="cond__origin-label">출발지</span>
         <span className="cond__origin-value">{origin.label}</span>
-        {origin.current && <span className="cond__badge">현재 위치</span>}
+        {origin.current && (
+          <button
+            className="cond__badge cond__badge--btn"
+            type="button"
+            onClick={onEditOrigin}
+          >
+            현재 위치
+          </button>
+        )}
         <button className="cond__edit" type="button" onClick={onEditOrigin}>
           수정 ›
         </button>
       </div>
-      <p className="cond__legend">추출된 조건</p>
+      <div className="cond__legendrow">
+        <p className="cond__legend">추출된 조건</p>
+        <div className="cond__legendactions">
+          {(slots.region ||
+            slots.date ||
+            slots.timeOfDay ||
+            slots.availableMinutes ||
+            slots.categories.length > 0) && (
+            <button className="cond__edit" type="button" onClick={onResetSlots}>
+              조건 초기화
+            </button>
+          )}
+          <button
+            className="cond__edit"
+            type="button"
+            aria-expanded
+            onClick={onToggle}
+          >
+            숨기기
+          </button>
+        </div>
+      </div>
       <div className="cond__grid">
         <SlotButton
           label="지역"
@@ -749,13 +991,14 @@ function SlotButton({
       type="button"
       onClick={onClick}
     >
-      <span className="cond__slot-key">
-        {label} · {required ? "필수" : "선택"}
+      <span className="cond__slot-key">{label}</span>
+      <span
+        className={`cond__slot-req${required ? " cond__slot-req--must" : ""}`}
+      >
+        {required ? "필수" : "선택"}
       </span>
-      <span className="cond__slot-row">
-        <span className="cond__slot-val">{value || "미입력"}</span>
-        <span className="cond__slot-go">수정 ›</span>
-      </span>
+      <span className="cond__slot-val">{value || "미입력"}</span>
+      <span className="cond__slot-go">수정 ›</span>
     </button>
   );
 }

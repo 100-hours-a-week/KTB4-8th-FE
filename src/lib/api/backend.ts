@@ -157,7 +157,8 @@ function toRecommendationRun(raw: unknown): RecommendationRun {
     components: (d.items ?? []).map((item, j) => {
       const travelMinutes = item.description ? Number(item.description) : NaN;
       return {
-        sequence: item.sequence ?? j + 1,
+        // BE 순번은 0부터 오므로 그대로 쓰지 않고 목록 순서대로 1부터 매긴다
+        sequence: j + 1,
         guideId: `be-candidate-${i}-place-${j}`,
         type: "PLACE" as const,
         name: item.name ?? "",
