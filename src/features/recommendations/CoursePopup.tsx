@@ -230,6 +230,15 @@ export function CoursePopup() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const shakeTimer = useRef<number | null>(null);
 
+  /* 입력창의 미전송 글과, 길이에 맞춰 늘어나 있던 높이·스크롤을 처음 상태로 되돌린다 */
+  function clearDraft() {
+    setDraft("");
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.overflowY = "hidden";
+  }
+
   /* 글자 수 제한에 닿았을 때 입력창을 흔들고 잠깐 빨갛게 한다(프로필 이름 입력창과 같은 동작).
      같은 클래스를 연달아 켜도 매번 재생되도록 DOM 클래스를 직접 다룬다. */
   function shakeComposer() {
@@ -504,6 +513,7 @@ export function CoursePopup() {
     }
     setView(null);
     reset();
+    clearDraft();
   }
 
   function handleClose() {
@@ -513,6 +523,7 @@ export function CoursePopup() {
       setView(null);
       setOpen(false);
       reset();
+      clearDraft();
       void clearChat.mutateAsync().catch(() => {
         /* 화면은 이미 새 대화로 전환되므로 서버 초기화 실패는 닫기를 막지 않는다. */
       });
@@ -590,6 +601,7 @@ export function CoursePopup() {
     }
     setView(null);
     reset();
+    clearDraft();
   }
 
   async function handleResetSlots() {
