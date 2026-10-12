@@ -118,6 +118,17 @@ interface SubwayStationResult {
   longitude: number;
 }
 
+/** 같은 이름의 역을 한 역으로 볼 최대 거리 — 환승역의 노선별 승강장은 보통 수백 m,
+    멀어도 1.5km 안팎(부산 동래역 1·4호선)이고, 같은 이름의 다른 도시 역은 수십 km 이상
+    떨어져 있어서 그 사이인 3km 로 둔다 */
+const SAME_STATION_KM = 3;
+
+function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const dLat = (aLat - bLat) * 111;
+  const dLng = (aLng - bLng) * 88;
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
 async function searchSubwayStations(q: string): Promise<AddressHit[]> {
   /* 카카오 키워드 검색은 역 이름의 접미사까지 포함했을 때 정확도가 크게 올라간다.
      사용자가 "성수", "왕십리"처럼 자연스럽게 입력해도 각각 "성수역",
@@ -134,17 +145,30 @@ async function searchSubwayStations(q: string): Promise<AddressHit[]> {
   /* 환승역은 카카오가 노선마다 한 건씩 주므로(왕십리역 → 2·5·수인분당·경의중앙 4건)
      역 이름으로 묶어 한 줄로 만들고, 노선만 배열로 모은다.
      좌표·주소는 먼저 온 건(정확도순 1위)을 대표로 쓴다 — 노선별 승강장 좌표가
-     미세하게 다를 뿐 같은 역이라 지역 지정 용도로는 차이가 없다. */
-  const merged = new Map<string, AddressHit>();
+     미세하게 다를 뿐 같은 역이라 지역 지정 용도로는 차이가 없다.
+     다만 이름만 같고 다른 도시에 있는 역(안산 중앙역 · 부산 중앙역)은 다른 역이라,
+     이름이 같아도 가까이 있을 때만 한 줄로 합친다. */
+  const merged: AddressHit[] = [];
   for (const station of payload.data ?? []) {
-    const hit = merged.get(station.name);
+    const hit = merged.find(
+      (h) =>
+        h.label === station.name &&
+        h.latitude != null &&
+        h.longitude != null &&
+        distanceKm(
+          h.latitude,
+          h.longitude,
+          station.latitude,
+          station.longitude,
+        ) <= SAME_STATION_KM,
+    );
     if (hit) {
       if (station.line && !hit.lines?.includes(station.line)) {
         hit.lines?.push(station.line);
       }
       continue;
     }
-    merged.set(station.name, {
+    merged.push({
       id: `kakao-subway-${station.id}`,
       label: station.name,
       sub: station.address,
@@ -154,7 +178,7 @@ async function searchSubwayStations(q: string): Promise<AddressHit[]> {
       lines: station.line ? [station.line] : [],
     });
   }
-  return [...merged.values()];
+  return merged;
 }
 
 /** 지역 검색 — 2자 미만이면 빈 배열. API 키가 없으면 자체 지역 DB로 대체한다. */

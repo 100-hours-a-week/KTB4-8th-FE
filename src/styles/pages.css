@@ -1538,7 +1538,12 @@
   white-space: nowrap;
 }
 .subway-line--num {
-  width: 22px;
+  /* 원을 홀수(23px)로, 위쪽 여백을 1px 둬야 숫자가 세로 정중앙에 온다.
+     브라우저가 글자를 1px 단위로만 옮겨서, 짝수(22px)에서는 숫자 윤곽이 모든 숫자에서
+     0.5px 위로 치우친다. 1·2배 화면에서 숫자 1~9를 측정해 정한 값이다. */
+  width: 23px;
+  height: 23px;
+  padding-top: 1px;
   border-radius: 50%;
   font-size: 12.5px;
   font-weight: 800;
