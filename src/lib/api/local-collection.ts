@@ -47,7 +47,7 @@ interface StoredCourse {
   area: string;
   rank?: number;
   componentCount: number;
-  estimatedDurationMinutes: number;
+  estimatedDurationMinutes?: number;
   totalTravelMinutes?: number;
   components: CandidateComponent[];
   startAt: string;
@@ -508,7 +508,7 @@ export async function handleLocalCollection(
         name: string;
         area: string;
         rank?: number;
-        estimatedDurationMinutes: number;
+        estimatedDurationMinutes?: number;
         totalTravelMinutes?: number;
         components: CandidateComponent[];
         startAt: string;

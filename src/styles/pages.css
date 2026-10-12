@@ -1242,6 +1242,17 @@
   box-shadow: none;
   cursor: not-allowed;
 }
+.composer__count {
+  font: var(--t-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-4);
+  margin: 6px 4px 0;
+  text-align: right;
+}
+.composer__count[data-full="true"] {
+  color: var(--danger);
+}
 .composer__note {
   font: var(--t-xs);
   color: var(--ink-4);

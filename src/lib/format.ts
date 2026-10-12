@@ -37,8 +37,9 @@ export function fmtHm(iso: string) {
   return `${p2(d.getHours())}:${p2(d.getMinutes())}`;
 }
 
-/** 3시간 42분 */
-export function fmtDuration(min: number) {
+/** 3시간 42분 — BE 가 값을 안 주면(undefined · null · NaN) "NaN시간" 대신 "-" 를 보여준다 */
+export function fmtDuration(min: number | null | undefined) {
+  if (min == null || !Number.isFinite(min)) return "-";
   if (min < 60) return `${min}분`;
   const h = Math.floor(min / 60);
   const m = min % 60;

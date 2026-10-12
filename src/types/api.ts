@@ -147,7 +147,8 @@ export interface CourseSummary {
   area: string;
   rank?: number;
   componentCount: number;
-  estimatedDurationMinutes: number;
+  /** BE 추천 응답에 없을 수 있다 — 없으면 화면에 "-" 로 보여준다 */
+  estimatedDurationMinutes?: number;
   totalTravelMinutes?: number;
 }
 

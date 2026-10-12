@@ -17,6 +17,8 @@ import {
 import {
   CATEGORY_LABEL,
   CATEGORY_ORDER,
+  CHAT_COUNT_SHOW_AT,
+  MAX_CHAT_MESSAGE,
   TIME_OF_DAY_LABEL,
 } from "@/lib/constants";
 import { nearestRegion, searchRegions } from "@/lib/address/regionDb";
@@ -410,6 +412,11 @@ export function CoursePopup() {
     const current = useCourseStore.getState();
     const text = (preset ?? draft).trim();
     if (!text || current.phase !== "idle") return;
+    if (text.length > MAX_CHAT_MESSAGE) {
+      // 서버까지 가면 500 으로 실패하니 보내기 전에 막는다
+      toast.info(`메시지는 ${MAX_CHAT_MESSAGE}자까지 보낼 수 있어요.`);
+      return;
+    }
 
     const userLine: ChatLine = { id: uid("msg"), role: "USER", content: text };
     useCourseStore.setState((s) => ({
@@ -721,6 +728,7 @@ export function CoursePopup() {
                   rows={1}
                   placeholder="어떤 곳에 가고 싶으세요?"
                   value={draft}
+                  maxLength={MAX_CHAT_MESSAGE}
                   disabled={phase !== "idle"}
                   onChange={(e) => {
                     setDraft(e.target.value);
@@ -747,6 +755,16 @@ export function CoursePopup() {
                   <Icon name="arrowUp" size={20} />
                 </button>
               </div>
+              {draft.length >= CHAT_COUNT_SHOW_AT && (
+                <p
+                  className="composer__count"
+                  data-full={
+                    draft.length >= MAX_CHAT_MESSAGE ? "true" : "false"
+                  }
+                >
+                  {draft.length}/{MAX_CHAT_MESSAGE}
+                </p>
+              )}
               {generating && (
                 <p className="composer__note">
                   생성 중에는 입력과 전송이 잠시 멈춰요.

@@ -34,6 +34,12 @@ type PendingPhoto =
 
 const MAX_NAME = MAX_NICKNAME;
 
+/** 서버에 저장된 이름을 입력 규칙(허용 문자만, 최대 길이)에 맞게 다듬는다.
+    소셜 가입 때 구글 이름("code startup" 등)이 그대로 기본 닉네임이 되어 규칙을 넘길 수 있다. */
+function toEditableNickname(name: string) {
+  return name.replace(NICKNAME_DISALLOWED, "").slice(0, MAX_NAME);
+}
+
 export default function ProfileEditPage() {
   const router = useRouter();
   const meQuery = useMe();
@@ -55,7 +61,7 @@ export default function ProfileEditPage() {
   // (렌더 중 상태 조정 패턴: https://react.dev/learn/you-might-not-need-an-effect)
   if (!initialized && meQuery.data) {
     setInitialized(true);
-    setNickname(meQuery.data.nickname);
+    setNickname(toEditableNickname(meQuery.data.nickname));
     setPhoto(meQuery.data.profileImageUrl);
   }
 
@@ -82,6 +88,7 @@ export default function ProfileEditPage() {
       overflowed = true;
     }
     setNickname(next);
+    if (fieldError) setFieldError(null);
     if (overflowed) shake();
   }
 
@@ -94,6 +101,12 @@ export default function ProfileEditPage() {
   }
 
   async function handleSave() {
+    // 버튼이 막혀 있어도 엔터 등으로 호출될 수 있어서 한 번 더 막는다
+    if (!nickname.trim()) {
+      setFieldError("최소 1글자 이상 입력해 주세요.");
+      shake();
+      return;
+    }
     setSaving(true);
     setFieldError(null);
     try {
@@ -184,6 +197,7 @@ export default function ProfileEditPage() {
             className="field__input"
             id="nickname"
             value={nickname}
+            maxLength={MAX_NAME}
             onChange={handleNicknameChange}
             onKeyDown={handleNicknameKeyDown}
           />
@@ -219,7 +233,7 @@ export default function ProfileEditPage() {
         <button
           className="btn btn--soft btn--block"
           type="button"
-          disabled={saving}
+          disabled={saving || !nickname.trim()}
           onClick={() => void handleSave()}
         >
           {saving ? (

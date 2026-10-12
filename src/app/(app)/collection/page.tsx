@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AppBar } from "@/components/ui/AppBar";
 import { Icon } from "@/components/ui/Icon";
 import { Empty, Skeleton, Thumb } from "@/components/ui/Primitives";
@@ -30,10 +31,34 @@ const TABS: { key: ItemFilter; label: string }[] = [
 
 type Overlay = { name: "place" | "event" | "course"; id: string } | null;
 
+/** URL 의 ?tab= 값이 유효한 탭이면 그 탭을, 아니면 "전체"를 돌려준다 */
+function parseTab(value: string | null): ItemFilter {
+  const upper = value?.toUpperCase();
+  return TABS.find((t) => t.key === upper)?.key ?? "ALL";
+}
+
+/* useSearchParams 는 Suspense 경계 안에서만 써야 정적 빌드가 깨지지 않는다 */
 export default function CollectionPage() {
-  const [tab, setTab] = useState<ItemFilter>("ALL");
+  return (
+    <Suspense fallback={null}>
+      <CollectionContent />
+    </Suspense>
+  );
+}
+
+function CollectionContent() {
+  const tabParam = useSearchParams().get("tab");
+  const [tab, setTab] = useState<ItemFilter>(() => parseTab(tabParam));
   const [overlay, setOverlay] = useState<Overlay>(null);
   const openCourse = useCourseStore((s) => s.setOpen);
+
+  // 이미 보관함에 있는 상태에서 ?tab= 만 바뀌어 들어와도(예: 코스 추천 완료 → 보관함에서 확인하기) 탭을 맞춘다.
+  // (렌더 중 상태 조정 패턴: https://react.dev/learn/you-might-not-need-an-effect)
+  const [prevTabParam, setPrevTabParam] = useState(tabParam);
+  if (tabParam !== prevTabParam) {
+    setPrevTabParam(tabParam);
+    setTab(parseTab(tabParam));
+  }
 
   const { data, isLoading, isError, error, refetch } = useCollectionItems(tab);
 

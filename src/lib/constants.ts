@@ -58,6 +58,11 @@ export const AVAILABLE_OPTIONS: {
 export const MAX_NICKNAME = 10;
 export const MAX_REGION = 30;
 
+/** 코스 추천 챗봇 메시지 길이 제한 — BE 저장 컬럼이 VARCHAR(255) 라 넘으면 500 이 난다 */
+export const MAX_CHAT_MESSAGE = 255;
+/** 이 글자 수부터 입력창 아래에 현재 글자 수를 보여준다 */
+export const CHAT_COUNT_SHOW_AT = 200;
+
 /** 지역명 허용 문자 — 한글 · 영문 · 숫자 · 공백 (특수문자 금지) */
 export const REGION_DISALLOWED = /[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9 ]/g;
 
