@@ -228,6 +228,22 @@ export function CoursePopup() {
 
   const logRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const shakeTimer = useRef<number | null>(null);
+
+  /* 글자 수 제한에 닿았을 때 입력창을 흔들고 잠깐 빨갛게 한다(프로필 이름 입력창과 같은 동작).
+     같은 클래스를 연달아 켜도 매번 재생되도록 DOM 클래스를 직접 다룬다. */
+  function shakeComposer() {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.classList.remove("is-shake");
+    void el.offsetWidth; // 애니메이션 재시작을 위한 강제 리플로우
+    el.classList.add("is-shake");
+    if (shakeTimer.current) window.clearTimeout(shakeTimer.current);
+    shakeTimer.current = window.setTimeout(
+      () => el.classList.remove("is-shake"),
+      420,
+    );
+  }
   const wasOpenRef = useRef(false);
 
   const sendChat = useSendChatMessage();
@@ -730,6 +746,14 @@ export function CoursePopup() {
                   value={draft}
                   maxLength={MAX_CHAT_MESSAGE}
                   disabled={phase !== "idle"}
+                  onPaste={(e) => {
+                    // 붙여넣은 글이 한도를 넘으면 브라우저가 잘라 넣으니, 흔들어서 알려준다
+                    const el = e.currentTarget;
+                    const pasted = e.clipboardData.getData("text").length;
+                    const kept =
+                      el.value.length - (el.selectionEnd - el.selectionStart);
+                    if (kept + pasted > MAX_CHAT_MESSAGE) shakeComposer();
+                  }}
                   onChange={(e) => {
                     setDraft(e.target.value);
                     e.target.style.height = "auto";
@@ -739,6 +763,18 @@ export function CoursePopup() {
                       e.target.scrollHeight > 96 ? "auto" : "hidden";
                   }}
                   onKeyDown={(e) => {
+                    // 이미 한도인데 한 글자를 더 치려고 할 때도 흔들어서 한계를 알려준다
+                    const typing =
+                      (e.key.length === 1 && !e.metaKey && !e.ctrlKey) ||
+                      e.nativeEvent.isComposing;
+                    const el = e.currentTarget;
+                    const hasSelection = el.selectionStart !== el.selectionEnd;
+                    if (
+                      typing &&
+                      !hasSelection &&
+                      el.value.length >= MAX_CHAT_MESSAGE
+                    )
+                      shakeComposer();
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       void handleSend();

@@ -1212,6 +1212,38 @@
     border-color var(--d-fast) var(--e-io),
     background var(--d-fast) var(--e-io);
 }
+/* 글자 수 한도에 닿았을 때: 프로필 이름 입력창(.field__input.is-shake)과 같은 흔들림 + 빨간색 */
+.composer__input.is-shake,
+.composer__input.is-shake:focus {
+  animation: kg-shake 0.34s var(--e-io);
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+/* 입력이 길어지면 나오는 스크롤바 — 기본 굵은 막대 대신 가는 둥근 막대를 안쪽으로 띄운다.
+   위아래 여백은 입력창의 둥근 모서리 밖으로 막대가 삐져나오지 않게 한다. */
+.composer__input::-webkit-scrollbar {
+  width: 10px;
+}
+.composer__input::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 12px 0;
+}
+.composer__input::-webkit-scrollbar-thumb {
+  background: var(--ink-4);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.composer__input::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-3);
+  background-clip: padding-box;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .composer__input {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-4) transparent;
+  }
+}
 .composer__input:focus {
   outline: none;
   border-color: var(--brand);
