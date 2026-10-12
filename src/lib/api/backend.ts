@@ -8,6 +8,7 @@ import type {
   Category,
   Place,
   RecommendationRun,
+  SyncResult,
   User,
 } from "@/types/api";
 
@@ -179,6 +180,20 @@ function toRecommendationRun(raw: unknown): RecommendationRun {
   };
 }
 
+/** POST /user/youtube-analyze 응답 본문 — 불러온 좋아요 영상 수와 정리한 장소 수.
+    본문이 없는 204 응답은 이 어댑터를 거치지 않는다(호출하는 쪽이 개수 없음으로 처리). */
+function toSyncResult(raw: unknown): SyncResult {
+  const body = (raw ?? {}) as { video_count?: unknown; place_count?: unknown };
+  const toCount = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0
+      ? value
+      : null;
+  return {
+    videoCount: toCount(body.video_count),
+    placeCount: toCount(body.place_count),
+  };
+}
+
 export const BACKEND_ROUTES: BackendRoute[] = [
   { key: "GET /user", response: toUser },
   { key: "PATCH /user", response: toPatchUserResponse },
@@ -186,6 +201,7 @@ export const BACKEND_ROUTES: BackendRoute[] = [
   // BE 는 cursor 를 필수 파라미터로 받는다(빈 값이면 첫 페이지)
   { key: "GET /places", search: "cursor=", response: toPlaces },
   { key: "POST /user/recommendation", response: toRecommendationRun },
+  { key: "POST /user/youtube-analyze", response: toSyncResult },
 ];
 
 /** 이 요청을 어댑터가 맡는지 */

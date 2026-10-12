@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
-import type { LikedVideoSync } from "@/types/api";
+import type { LikedVideoSync, SyncResult } from "@/types/api";
 
 /* 홈의 동기화 카드가 쓰는 훅 — 프로토타입 js/pages/home.js 의 bootstrap()/requestSync()/startPolling() 을
    TanStack Query 로 옮겼다. */
@@ -26,8 +26,12 @@ export function useStartSync() {
     LOCAL_DUMMY 켜짐 여부와 무관하게 항상 실제 BE 를 호출한다(더미는 /user/liked-video-syncs 만 가로챈다). */
 export function useSyncYoutubeNow() {
   return useMutation({
-    mutationFn: async () => {
-      await api.post<void>("/user/youtube-analyze");
+    mutationFn: async (): Promise<SyncResult> => {
+      // 204(본문 없음)이면 data 가 비어 있다 — 개수를 모르는 것으로 본다
+      const { data } = await api.post<SyncResult | undefined>(
+        "/user/youtube-analyze",
+      );
+      return data ?? { videoCount: null, placeCount: null };
     },
   });
 }

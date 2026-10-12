@@ -8,6 +8,7 @@ import { Empty, Skeleton, Spinner } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { useCourseStore } from "@/features/recommendations/courseStore";
 import { useSyncYoutubeNow } from "@/features/sync/queries";
+import type { SyncResult } from "@/types/api";
 import {
   useAdvertisements,
   useTrendingPlaces,
@@ -38,7 +39,10 @@ interface SyncCardModel {
   actionLabel?: string;
 }
 
-function buildSyncCard(state: SyncState): SyncCardModel {
+function buildSyncCard(
+  state: SyncState,
+  result: SyncResult | null,
+): SyncCardModel {
   if (state === "pending") {
     return {
       badge: "불러오는 중",
@@ -48,10 +52,17 @@ function buildSyncCard(state: SyncState): SyncCardModel {
     };
   }
   if (state === "done") {
+    // 서버가 개수를 알려 줬을 때만 숫자를 보여준다(없으면 개수 없는 문구)
+    const counted =
+      result?.videoCount != null && result.placeCount != null ? result : null;
     return {
       badge: "정리 완료",
-      title: "좋아요 영상을 불러왔어요.",
-      msg: "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
+      title: counted
+        ? `장소 ${counted.placeCount}곳을 정리했어요.`
+        : "좋아요 영상을 불러왔어요.",
+      msg: counted
+        ? `좋아요 영상 ${counted.videoCount}개에서 찾은 장소와 이벤트로 코스를 만들어 드릴게요.`
+        : "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
       action: "course",
       actionLabel: "코스 추천받기",
     };
@@ -143,6 +154,7 @@ export default function HomePage() {
 
   const [dismissed, setDismissed] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("idle");
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const initDoneRef = useRef(false);
 
@@ -154,9 +166,10 @@ export default function HomePage() {
 
   const handleStartSync = useCallback(async () => {
     setSyncState("pending");
+    setSyncResult(null);
     setDismissed(false);
     try {
-      await syncNow.mutateAsync();
+      setSyncResult(await syncNow.mutateAsync());
       setSyncState("done");
       toast.ok("좋아요 영상을 불러왔어요.", "완료");
     } catch {
@@ -178,7 +191,7 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sync = buildSyncCard(syncState);
+  const sync = buildSyncCard(syncState, syncResult);
   const places = placesQuery.data ?? [];
   const ads = adsQuery.data ?? [];
 

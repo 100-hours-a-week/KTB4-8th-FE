@@ -197,6 +197,12 @@ export type EmptyReason =
   | "TOO_NARROW"
   | "VERIFICATION_PENDING";
 
+/** 좋아요 영상 동기화 결과 개수. 서버가 알려 주지 않으면 null */
+export interface SyncResult {
+  videoCount: number | null;
+  placeCount: number | null;
+}
+
 export interface Candidate {
   candidateId: string;
   rank: number;
