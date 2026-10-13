@@ -97,10 +97,19 @@ export function CourseDetailSheet({
               <p className="stat__key">추천 순위</p>
               <p className="stat__val">{course.rank}순위</p>
             </div>
+            {/* BE 추천 응답에는 소요시간(estimatedDurationMinutes)이 없고 이동시간(totalTravelMinutes)만
+                온다. 소요시간이 있으면 그것을, 없으면 추천 결과 화면과 같은 "총 이동시간"을 보여준다
+                (이동시간을 "소요시간"이라 부르면 뜻이 달라져서 라벨도 함께 바꾼다). */}
             <div className="stat">
-              <p className="stat__key">총 소요시간</p>
+              <p className="stat__key">
+                {course.estimatedDurationMinutes != null
+                  ? "총 소요시간"
+                  : "총 이동시간"}
+              </p>
               <p className="stat__val">
-                {fmtDuration(course.estimatedDurationMinutes)}
+                {fmtDuration(
+                  course.estimatedDurationMinutes ?? course.totalTravelMinutes,
+                )}
               </p>
             </div>
           </div>
