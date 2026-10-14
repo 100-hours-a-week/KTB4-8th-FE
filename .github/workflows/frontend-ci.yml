@@ -142,13 +142,32 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
           NAVER_MAP_CLIENT_ID: ${{ vars.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID }}
           CLARITY_PROJECT_ID: ${{ vars.NEXT_PUBLIC_CLARITY_PROJECT_ID }}
+          SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          # 센트리에서 개발·운영 에러를 나눠 보려고 브랜치로 환경을 정한다 (main 은 production, 그 외는 dev)
+          SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'dev' }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+          # 소스맵 업로드용 비밀 값 — build-arg 가 아니라 secret 으로만 넘겨 이미지에 남기지 않는다
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
+          # 토큰 시크릿이 등록돼 있을 때만 소스맵 업로드용 secret 을 넘긴다(없으면 업로드만 건너뛰고 빌드는 그대로 된다)
+          SECRET_ARGS=()
+          if [[ -n "$SENTRY_AUTH_TOKEN" ]]; then
+            SECRET_ARGS=(--secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN)
+          fi
+
           docker build \
             --platform linux/amd64 \
             --file Dockerfile \
             --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
             --build-arg NEXT_PUBLIC_NAVER_MAP_CLIENT_ID="$NAVER_MAP_CLIENT_ID" \
             --build-arg NEXT_PUBLIC_CLARITY_PROJECT_ID="$CLARITY_PROJECT_ID" \
+            --build-arg NEXT_PUBLIC_SENTRY_DSN="$SENTRY_DSN" \
+            --build-arg NEXT_PUBLIC_SENTRY_ENVIRONMENT="$SENTRY_ENVIRONMENT" \
+            --build-arg SENTRY_ORG="$SENTRY_ORG" \
+            --build-arg SENTRY_PROJECT="$SENTRY_PROJECT" \
+            --build-arg SENTRY_RELEASE="$GITHUB_SHA" \
+            "${SECRET_ARGS[@]}" \
             --tag "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA" \
             .
 

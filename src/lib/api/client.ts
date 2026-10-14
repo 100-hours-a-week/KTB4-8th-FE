@@ -8,6 +8,10 @@ import { backendRoute, codeFromStatus } from "./backend";
 import { LOCAL_DUMMY } from "@/lib/constants";
 import { handleLocalCollection } from "./local-collection";
 import { handleLocalSync } from "./local-sync";
+import {
+  reportApiNetworkError,
+  reportApiServerError,
+} from "@/lib/monitoring/reportApiFailure";
 import { PROBLEMS, UI, type Effect, type Problem, type Tone } from "./problems";
 import type { Envelope, Page } from "@/types/api";
 
@@ -196,14 +200,21 @@ async function send<T>(
     path +
     (extra ? `${search}${search ? "&" : "?"}${extra}` : search);
 
-  const res = await fetch(url, {
-    method,
-    headers: headers(),
-    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
-    signal: opts.signal,
-    cache: "no-store",
-    credentials: "include",
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: headers(),
+      body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+      signal: opts.signal,
+      cache: "no-store",
+      credentials: "include",
+    });
+  } catch (e) {
+    // 응답을 못 받음(BE 다운 · 연결 끊김). 호출한 화면의 처리는 그대로 두고 Sentry 에만 알린다.
+    reportApiNetworkError(method, path, e);
+    throw e;
+  }
 
   if (res.status === 204) return { data: undefined as unknown as T };
 
@@ -220,6 +231,18 @@ async function send<T>(
   }
 
   const err = toApiError(body, res.status, path);
+
+  // 서버 오류(5xx)는 화면이 토스트로 처리해도 개발자가 알아야 한다
+  reportApiServerError(
+    {
+      method,
+      path,
+      status: err.status,
+      code: err.code,
+      traceId: err.problem.traceId,
+    },
+    err,
+  );
 
   // 401 AUTHENTICATION_REQUIRED → refresh 1회 → 실패하면 로그인으로
   if (
