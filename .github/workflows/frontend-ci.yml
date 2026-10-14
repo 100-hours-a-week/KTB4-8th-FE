@@ -2,7 +2,10 @@ name: Frontend CI
 
 on:
   push:
-    branches: [main, feat/v1]
+    branches:
+      - main
+      - develop
+      - feat/v1
   workflow_dispatch:
 
 permissions:
@@ -37,6 +40,10 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
             echo "Frontend source and package-lock.json found"
           else
+            if [[ "$GITHUB_REF" == refs/heads/develop ]]; then
+              echo "V2 application source/package-lock.json is missing; refusing a successful empty CI" >&2
+              exit 1
+            fi
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "Frontend source or package-lock.json is not ready; build checks are skipped"
           fi
@@ -99,6 +106,7 @@ jobs:
           test -f .next/standalone/server.js
           test -d .next/static
 
+  # develop runs quality checks; V2 static publishing needs an application artifact contract.
   publish:
     name: Build and push frontend images
     needs: quality
