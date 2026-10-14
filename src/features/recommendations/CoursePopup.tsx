@@ -65,6 +65,14 @@ import type {
    프로토타입 js/pages/course.js 를 컴포넌트로 옮겼다. */
 
 /** AI 명세에 없는 시간대 → 시작 시각 매핑(명세 미정, 프로토타입 값을 그대로 쓴다) */
+/** 입력을 한도(MAX_CHAT_MESSAGE)에 맞게 자른다. 이모지 같은 2칸짜리 글자가 반으로 잘리지 않게 한다. */
+function clampDraft(value: string): string {
+  if (value.length <= MAX_CHAT_MESSAGE) return value;
+  const cut = value.slice(0, MAX_CHAT_MESSAGE);
+  const last = cut.charCodeAt(cut.length - 1);
+  return last >= 0xd800 && last <= 0xdbff ? cut.slice(0, -1) : cut;
+}
+
 const TIME_START: Record<TimeOfDay, number> = {
   MORNING: 10,
   AFTERNOON: 13,
@@ -229,6 +237,8 @@ export function CoursePopup() {
   const logRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const shakeTimer = useRef<number | null>(null);
+  // 한글 등 조합 중에는 값을 자르지 않는다(자르면 조합이 깨진다). 조합이 끝난 뒤에 자른다.
+  const composingRef = useRef(false);
 
   /* 입력창의 미전송 글과, 길이에 맞춰 늘어나 있던 높이·스크롤을 처음 상태로 되돌린다 */
   function clearDraft() {
@@ -766,8 +776,28 @@ export function CoursePopup() {
                       el.value.length - (el.selectionEnd - el.selectionStart);
                     if (kept + pasted > MAX_CHAT_MESSAGE) shakeComposer();
                   }}
+                  onCompositionStart={() => {
+                    composingRef.current = true;
+                  }}
+                  onCompositionEnd={(e) => {
+                    composingRef.current = false;
+                    // 조합이 끝나면 한도를 넘은 부분을 자르고, 255자에 닿았으면 흔든다
+                    const raw = e.currentTarget.value;
+                    const next = clampDraft(raw);
+                    if (next !== raw) setDraft(next);
+                    if (next.length >= MAX_CHAT_MESSAGE) shakeComposer();
+                  }}
                   onChange={(e) => {
-                    setDraft(e.target.value);
+                    const composing =
+                      composingRef.current ||
+                      (e.nativeEvent as InputEvent).isComposing;
+                    const next = composing
+                      ? e.target.value
+                      : clampDraft(e.target.value);
+                    setDraft(next);
+                    // 255자에 도달하면(조합 중이 아닐 때) 프로필 이름 입력창처럼 흔든다
+                    if (!composing && next.length >= MAX_CHAT_MESSAGE)
+                      shakeComposer();
                     e.target.style.height = "auto";
                     e.target.style.height = `${Math.min(96, e.target.scrollHeight)}px`;
                     // 최대 높이에 닿았을 때만 스크롤을 보인다(그 전에는 숨겨 둔다)
@@ -810,7 +840,7 @@ export function CoursePopup() {
                     draft.length >= MAX_CHAT_MESSAGE ? "true" : "false"
                   }
                 >
-                  {draft.length}/{MAX_CHAT_MESSAGE}
+                  {Math.min(draft.length, MAX_CHAT_MESSAGE)}/{MAX_CHAT_MESSAGE}
                 </p>
               )}
               {generating && (
