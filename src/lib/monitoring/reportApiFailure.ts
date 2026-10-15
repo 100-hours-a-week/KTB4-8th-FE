@@ -26,9 +26,17 @@ interface ApiFailure {
 export function reportApiServerError(failure: ApiFailure, cause: Error) {
   if (failure.status < 500) return;
   const path = normalizeApiPath(failure.path);
+  // 이슈 제목이 BE 의 안내 문구("오류")가 아니라 어느 API 가 실패했는지로 보이게 한다.
+  // 원래 에러의 스택과 메시지는 그대로 이어 붙인다.
+  const reported = new Error(`${failure.method} ${path} ${failure.status}`, {
+    cause,
+  });
+  reported.name = "ApiError";
+  reported.stack = cause.stack;
   withSentry((Sentry) =>
-    Sentry.captureException(cause, {
+    Sentry.captureException(reported, {
       level: "error",
+      extra: { responseMessage: cause.message },
       fingerprint: ["api-error", failure.method, String(failure.status), path],
       tags: {
         "api.method": failure.method,
