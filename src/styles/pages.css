@@ -1370,7 +1370,8 @@
    오른쪽 화살표를 누르면 조건 카드가 다시 펼쳐진다. */
 .cond--bar {
   display: flex;
-  align-items: flex-start;
+  /* 한 줄일 때는 글자·배지·화살표가 카드 세로 가운데에 오게 한다. 여러 줄로 펼치면 위에 맞춘다(아래 data-full) */
+  align-items: center;
   gap: var(--s-2);
   padding-top: var(--s-3);
   padding-bottom: var(--s-3);
@@ -1379,8 +1380,9 @@
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: flex-start;
-  gap: var(--s-2);
+  align-items: center;
+  /* 카드 왼쪽 여백(16px)과 같은 간격으로 글자 사이를 띄운다 — 글자 옆 여백까지 감안해 15.5px */
+  gap: 15.5px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -1406,6 +1408,10 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.cond--bar[data-full="true"],
+.cond--bar[data-full="true"] .cond__bar-main {
+  align-items: flex-start;
 }
 .cond--bar[data-full="true"] .cond__bar-sum {
   white-space: normal;
@@ -1570,15 +1576,14 @@
   white-space: nowrap;
 }
 .subway-line--num {
-  /* 원을 홀수(23px)로, 위쪽 여백을 1px 둬야 숫자가 세로 정중앙에 온다.
-     브라우저가 글자를 1px 단위로만 옮겨서, 짝수(22px)에서는 숫자 윤곽이 모든 숫자에서
-     0.5px 위로 치우친다. 1·2배 화면에서 숫자 1~9를 측정해 정한 값이다. */
+  /* 원과 숫자는 SubwayLineBadge 가 SVG 한 장으로 그린다(숫자가 늘 정중앙) */
+  flex: none;
   width: 23px;
   height: 23px;
-  padding-top: 1px;
-  border-radius: 50%;
-  font-size: 12.5px;
-  font-weight: 800;
+  line-height: 0;
+}
+.subway-line--num svg {
+  display: block;
 }
 .subway-line--name {
   padding: 0 6px;
@@ -2100,6 +2105,61 @@ button.me__row:hover {
   padding: var(--s-4) var(--s-5) var(--s-5);
 }
 
+/* 이용약관 · 개인정보 처리방침 — 본문이 정해지기 전의 준비 중 화면 */
+.legal__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 120px var(--s-8) 0;
+  text-align: center;
+}
+.legal__empty-ico {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--brand-50);
+  color: var(--brand);
+}
+.legal__empty-title {
+  margin-top: 6px;
+  font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
+  color: var(--ink);
+}
+.legal__empty-sub {
+  font: var(--t-sm);
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+/* 데이터 출처 */
+.src__list {
+  padding: 0 var(--s-5);
+}
+.src__item {
+  padding: 14px 4px;
+}
+.src__item + .src__item {
+  border-top: 1px solid var(--line-2);
+}
+.src__name {
+  font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
+  color: var(--ink);
+}
+.src__credit {
+  display: inline-block;
+  margin-top: 6px;
+  font: var(--t-sm);
+  font-weight: 600;
+  color: var(--brand-700);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ══ 10 · 프로필 수정 ════════════════════════════════════════════ */
 .profile__photo {
   text-align: center;
@@ -2403,6 +2463,163 @@ button.me__row:hover {
 }
 .me__row .switch__track {
   margin-left: auto;
+}
+
+/* ══ 출발지 핀 선택 ═════════════════════════════════════════════
+   지도 위 정중앙에 핀을 고정하고, 사용자가 지도를 밀어 위치를 맞춘다(OriginPinPicker).
+   시트는 full 이라 본문이 세로 flex 이고, 지도가 남는 높이를 모두 쓰고 주소 카드가 아래에 붙는다.
+   핀 끝(점)이 지도 중심이라서 .pinmap__pin 은 크기 0 의 기준점이고,
+   말풍선과 줄기는 그 위쪽으로 그린다. 핀은 터치를 받지 않아 지도 드래그를 막지 않는다. */
+.pinmap {
+  position: relative;
+  flex: 1;
+  min-height: 220px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.pinmap__map {
+  /* 네이버 지도는 컨테이너에 position: relative 를 직접 지정한다. 그러면 absolute/inset 으로 준 크기가
+     높이 0 으로 무너지므로, 처음부터 부모를 가득 채우는 명시적인 크기로 둔다. */
+  width: 100%;
+  height: 100%;
+  /* 시트 본문의 세로 스크롤이 지도 드래그를 가로채지 않게 한다 */
+  touch-action: none;
+}
+.pinmap__pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.pinmap__body {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  transition: transform 0.18s var(--e-out);
+}
+.pinmap__bubble {
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font: var(--t-h3);
+  font-size: 14px;
+  letter-spacing: var(--tr-h3);
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(20, 18, 26, 0.3);
+}
+.pinmap__stem {
+  width: 2px;
+  height: 14px;
+  background: var(--ink);
+}
+.pinmap__dot {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9);
+  transition:
+    transform 0.18s var(--e-out),
+    opacity 0.18s linear;
+}
+.pinmap__pin.is-lifted .pinmap__body {
+  transform: translateX(-50%) translateY(-10px);
+}
+.pinmap__pin.is-lifted .pinmap__dot {
+  transform: scale(0.7);
+  opacity: 0.7;
+}
+/* 현재 위치로 이동 — 카카오택시처럼 동그란 조준(나침반) 버튼 */
+.pinmap__locate {
+  position: absolute;
+  right: 14px;
+  /* NAVER 로고와 겹치지 않게 로고 위에 두고, 버튼~로고 간격이 로고 아래 여백(8px)과 같도록 맞춘다 */
+  bottom: 23.5px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 2px 10px rgba(20, 18, 26, 0.22);
+  cursor: pointer;
+}
+.pinmap__locate:disabled {
+  color: var(--ink-4);
+  cursor: default;
+}
+.pinmap__addr {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  /* 장소명 글자 아래~주소 글자 위 간격과 주소 글자 아래~카드 아래 간격이 같도록(약 18px) 글자 줄 높이의 여백까지 감안해 맞춘다 */
+  justify-content: center;
+  padding: 13.5px var(--s-5) 13.4px;
+  /* 한 줄 기준의 높이. 주소가 길어 줄이 넘어가거나 출구 주변 시설 줄이 생기면 내용에 맞게 늘어나고,
+     그때 지도는 OriginPinPicker 가 핀 위치를 유지하며 크기를 맞춘다. */
+  min-height: 79px;
+  background: var(--surface);
+}
+.pinmap__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
+  color: var(--ink);
+}
+.pinmap__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pinmap__sub {
+  margin-top: 9.5px;
+  font: var(--t-sm);
+  color: var(--ink-3);
+}
+/* 지하철 출구 주변 시설 — 핀 아이콘과 브랜드 색으로 주소 줄과 구분한다 */
+.pinmap__facility {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font: var(--t-sm);
+  font-weight: 600;
+  color: var(--brand-700);
+}
+.pinmap__facility svg {
+  flex: none;
+}
+.pinmap__hint {
+  font: var(--t-sm);
+  color: var(--ink-3);
+}
+.pinmap__hint--error {
+  color: var(--danger);
+}
+.pinmap__fallback {
+  padding: var(--s-5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pinmap__body,
+  .pinmap__dot {
+    transition: none;
+  }
 }
 
 /* ══ 고정폭 숫자 ════════════════════════════════════════════════

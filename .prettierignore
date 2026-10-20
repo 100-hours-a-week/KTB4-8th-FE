@@ -3,3 +3,6 @@ node_modules
 out
 build
 coverage
+
+# 스크립트가 만든 데이터 파일(scripts/build-exit-facilities.mjs)
+src/lib/address/exitFacilitiesData.json
