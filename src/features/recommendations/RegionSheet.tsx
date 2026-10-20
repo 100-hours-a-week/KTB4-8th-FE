@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   useEffect,
   useRef,
@@ -10,6 +11,7 @@ import {
 } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
+import { SubwayLineBadge } from "@/components/ui/SubwayLineBadge";
 import {
   addressConfig,
   currentPosition,
@@ -19,9 +21,16 @@ import {
   searchAddress,
   type AddressHit,
 } from "@/lib/address/address";
-import { isNumberedLine, resolveSubwayLine } from "@/lib/address/subwayLines";
+import { describePoint, fetchPointInfo } from "@/lib/address/pointInfo";
 import { MAX_REGION, REGION_DISALLOWED } from "@/lib/constants";
 import { useCourseStore } from "./courseStore";
+
+/* 지도 핀으로 출발지 설정 — 네이버 지도는 서버에서 실행되면 안 되고 첫 로딩 번들에도 넣지 않으려고
+   next/dynamic({ ssr: false }) 으로 필요할 때만 불러온다. */
+const OriginPinPicker = dynamic(
+  () => import("./OriginPinPicker").then((m) => m.OriginPinPicker),
+  { ssr: false },
+);
 
 /* 지역 검색 · 출발지 설정 — 기능정의서 10장. 조건 카드의 "지역" 항목과 "출발지 수정"이 같은 시트를 쓴다
    (kind 로 저장할 곳만 다르다). 프로토타입 js/pages/course.js 의 sheetRegion() 을 그대로 옮겼다. */
@@ -54,6 +63,7 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
   const [geoDenied, setGeoDenied] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [locatedNote, setLocatedNote] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
 
   const debounceRef = useRef<number | null>(null);
   const shakeTimerRef = useRef<number | null>(null);
@@ -113,6 +123,17 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
     setCursor(i);
     setChosen(items[i]);
     setLocatedNote(false);
+  }
+
+  /** 결과를 눌러 고른다. 출발지는 고르는 즉시 입력창에 채우고 출발지로 적용한다(시트는 [저장] 을 눌러야 닫힌다).
+      그래야 [지도에서 핀으로 설정] 이 방금 고른 위치에서 열린다. 지역(목적지)은 기존처럼 [저장] 으로 확정한다. */
+  function choose(i: number, items: AddressHit[]) {
+    if (i < 0 || i >= items.length) return;
+    pick(i, items);
+    if (kind === "origin") {
+      setQuery(items[i].label);
+      commit(items[i]);
+    }
   }
 
   async function runSearch(q: string) {
@@ -191,8 +212,11 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
     if (e.key === "Enter") {
       e.preventDefault();
       if (resultsView.kind === "list") {
-        if (cursor < 0 && resultsView.items.length) pick(0, resultsView.items);
-        else if (chosen) handleSave();
+        if (cursor < 0 && resultsView.items.length) {
+          choose(0, resultsView.items);
+        } else if (chosen) {
+          handleSave();
+        }
       }
       return;
     }
@@ -213,9 +237,20 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
     setResultsView({ kind: "locating" });
     try {
       const pos = await currentPosition();
-      const hit = await reverseGeocode(pos.latitude, pos.longitude);
-      const withCurrent: AddressHit = { ...hit, current: true };
-      setQuery(hit.label);
+      const [hit, info] = await Promise.all([
+        reverseGeocode(pos.latitude, pos.longitude),
+        fetchPointInfo(pos.latitude, pos.longitude),
+      ]);
+      /* 법정동 밑에 상세 주소를 붙이고, 지하철 출구·역 가까이면 "홍대입구역 9번 출구"처럼 보여 준다 */
+      const place = describePoint(hit, info, "region");
+      const withCurrent: AddressHit = {
+        ...hit,
+        label: place?.title ?? hit.label,
+        sub: place?.sub ?? hit.sub,
+        lines: place?.lines.length ? place.lines : undefined,
+        current: true,
+      };
+      setQuery(withCurrent.label);
       setChosen(withCurrent);
       setCursor(0);
       setResultsView({ kind: "list", items: [withCurrent] });
@@ -247,24 +282,29 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
     }
   }
 
-  function handleSave() {
-    if (!chosen) return;
+  /** 고른 위치를 조건에 반영한다(시트는 닫지 않는다) */
+  function commit(hit: AddressHit) {
     if (kind === "origin") {
       setStore({
         origin: {
-          label: chosen.label,
-          latitude: chosen.latitude,
-          longitude: chosen.longitude,
-          current: !!chosen.current,
+          label: hit.label,
+          latitude: hit.latitude,
+          longitude: hit.longitude,
+          current: !!hit.current,
         },
       });
     } else {
       patchSlots({
-        region: chosen.label,
-        regionPoint: { latitude: chosen.latitude, longitude: chosen.longitude },
-        regionAddress: chosen.sub,
+        region: hit.label,
+        regionPoint: { latitude: hit.latitude, longitude: hit.longitude },
+        regionAddress: hit.sub,
       });
     }
+  }
+
+  function handleSave() {
+    if (!chosen) return;
+    commit(chosen);
     onClose();
   }
 
@@ -341,7 +381,7 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
                 type="button"
                 role="option"
                 aria-selected={i === cursor}
-                onClick={() => pick(i, resultsView.items)}
+                onClick={() => choose(i, resultsView.items)}
               >
                 <span className="addr__main">
                   <span className="addr__name">
@@ -351,22 +391,9 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
                 </span>
                 {a.lines && a.lines.length > 0 && (
                   <span className="addr__lines">
-                    {a.lines.map((raw) => {
-                      const line = resolveSubwayLine(raw);
-                      return (
-                        <span
-                          key={raw}
-                          className={`subway-line${
-                            isNumberedLine(line.label)
-                              ? " subway-line--num"
-                              : " subway-line--name"
-                          }`}
-                          style={{ background: line.color }}
-                        >
-                          {line.label}
-                        </span>
-                      );
-                    })}
+                    {a.lines.map((raw) => (
+                      <SubwayLineBadge key={raw} raw={raw} />
+                    ))}
                   </span>
                 )}
               </button>
@@ -386,71 +413,89 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
   }
 
   return (
-    <Sheet
-      title={kind === "origin" ? "출발지 설정" : "지역 검색"}
-      back
-      onClose={onClose}
-      foot={
-        <button
-          className="btn btn--block"
-          type="button"
-          disabled={!chosen}
-          onClick={handleSave}
-        >
-          저장
-        </button>
-      }
-    >
-      <div className="field" style={{ marginTop: 4 }}>
-        <input
-          ref={inputRef}
-          className={`field__input${shaking ? " is-shake" : ""}`}
-          placeholder={
-            addressConfig.provider === "jusoKr" && addressConfig.jusoApiKey
-              ? "도로명 주소·법정동·지하철역을 입력하세요"
-              : "법정동 또는 지하철역을 입력하세요"
-          }
-          value={query}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          autoComplete="off"
-          role="combobox"
-          aria-controls="region-results"
-          aria-expanded={
-            resultsView.kind === "list" && resultsView.items.length > 0
-          }
-          aria-autocomplete="list"
-        />
-        <div className="field__foot">
-          <span className="field__help">
-            지역명 1~{MAX_REGION}자, 한글 · 영문 · 숫자 · 공백만 허용
-            <br />
-            2자 이상부터 법정동 DB와 카카오 지하철역을 함께 검색
-          </span>
-          <span
-            className="field__count"
-            data-full={query.length >= MAX_REGION ? "true" : "false"}
+    <>
+      <Sheet
+        title={kind === "origin" ? "출발지 설정" : "지역 검색"}
+        back
+        onClose={onClose}
+        foot={
+          <button
+            className="btn btn--block"
+            type="button"
+            disabled={!chosen}
+            onClick={handleSave}
           >
-            {query.length}/{MAX_REGION}
-          </span>
-        </div>
-      </div>
-      <button
-        className="btn btn--soft btn--sm btn--pill"
-        type="button"
-        style={{ marginTop: 12 }}
-        disabled={geoDenied || geoLoading}
-        onClick={() => void fillFromCurrentLocation()}
+            저장
+          </button>
+        }
       >
-        <Icon name="pin" size={15} />
-        <span>현재 위치로 설정</span>
-      </button>
-      <p className="cond__legend" style={{ marginTop: 18 }}>
-        검색 결과
-      </p>
-      <div id="region-results" role="listbox">
-        {renderResults()}
-      </div>
-    </Sheet>
+        <div className="field" style={{ marginTop: 4 }}>
+          <input
+            ref={inputRef}
+            className={`field__input${shaking ? " is-shake" : ""}`}
+            placeholder={
+              addressConfig.provider === "jusoKr" && addressConfig.jusoApiKey
+                ? "도로명 주소·법정동·지하철역을 입력하세요"
+                : "법정동 또는 지하철역을 입력하세요"
+            }
+            value={query}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            autoComplete="off"
+            role="combobox"
+            aria-controls="region-results"
+            aria-expanded={
+              resultsView.kind === "list" && resultsView.items.length > 0
+            }
+            aria-autocomplete="list"
+          />
+          <div className="field__foot">
+            <span className="field__help">
+              지역명 1~{MAX_REGION}자, 한글 · 영문 · 숫자 · 공백만 허용
+              <br />
+              2자 이상부터 법정동 DB와 카카오 지하철역을 함께 검색
+            </span>
+            <span
+              className="field__count"
+              data-full={query.length >= MAX_REGION ? "true" : "false"}
+            >
+              {query.length}/{MAX_REGION}
+            </span>
+          </div>
+        </div>
+        <div
+          style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}
+        >
+          <button
+            className="btn btn--soft btn--sm btn--pill"
+            type="button"
+            disabled={geoDenied || geoLoading}
+            onClick={() => void fillFromCurrentLocation()}
+          >
+            <Icon name="pin" size={15} />
+            <span>현재 위치로 설정</span>
+          </button>
+          {kind === "origin" && (
+            <button
+              className="btn btn--soft btn--sm btn--pill"
+              type="button"
+              onClick={() => setPinOpen(true)}
+            >
+              <Icon name="map" size={15} />
+              <span>지도에서 핀으로 설정</span>
+            </button>
+          )}
+        </div>
+        <p className="cond__legend" style={{ marginTop: 18 }}>
+          검색 결과
+        </p>
+        <div id="region-results" role="listbox">
+          {renderResults()}
+        </div>
+      </Sheet>
+      {pinOpen && (
+        <OriginPinPicker onClose={() => setPinOpen(false)} onSaved={onClose} />
+      )}
+    </>
   );
 }

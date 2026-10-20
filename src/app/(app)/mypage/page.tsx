@@ -14,6 +14,12 @@ import { useDisconnectGoogle } from "@/features/user/queries";
    YouTube 연동 상태 · 동기화 상태 · 가입일은 BE 에 아직 조회 API 가 없어 화면에서 뺐다
    (BE 준비되면 다시 추가). */
 
+const SERVICE_INFO = [
+  { href: "/mypage/terms", icon: "file", label: "이용약관" },
+  { href: "/mypage/privacy", icon: "shield", label: "개인정보 처리방침" },
+  { href: "/mypage/data-sources", icon: "info", label: "데이터 출처" },
+] as const;
+
 export default function MyPage() {
   const router = useRouter();
 
@@ -143,6 +149,28 @@ export default function MyPage() {
                 </span>
               </button>
             )}
+          </div>
+        </div>
+
+        <div className="me__group">
+          <p className="me__group-title">서비스 정보</p>
+          <div className="me__rows">
+            {SERVICE_INFO.map(({ href, icon, label }) => (
+              <button
+                key={href}
+                className="me__row"
+                type="button"
+                onClick={() => router.push(href)}
+              >
+                <span className="me__row-ico">
+                  <Icon name={icon} size={18} />
+                </span>
+                <span className="me__row-key">{label}</span>
+                <span className="me__row-val">
+                  <Icon name="chevron" size={16} />
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 
