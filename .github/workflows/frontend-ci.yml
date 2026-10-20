@@ -6,6 +6,9 @@ on:
       - main
       - develop
       - feat/v1
+  pull_request:
+    branches:
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -106,11 +109,11 @@ jobs:
           test -f .next/standalone/server.js
           test -d .next/static
 
-  # develop runs quality checks; V2 static publishing needs an application artifact contract.
+  # Cloud central CD deploys successful develop images to keepgo-v2-frontend.
   publish:
-    name: Build and push frontend images
+    name: ${{ github.ref == 'refs/heads/develop' && 'Dev - Build and Push Image' || 'Build and push frontend images' }}
     needs: quality
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/v1'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/v1' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
@@ -171,11 +174,13 @@ jobs:
             --tag "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA" \
             .
 
-          docker build \
-            --platform linux/amd64 \
-            --file Dockerfile.nginx \
-            --tag "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA" \
-            .
+          if [[ "$GITHUB_REF" != refs/heads/develop ]]; then
+            docker build \
+              --platform linux/amd64 \
+              --file Dockerfile.nginx \
+              --tag "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA" \
+              .
+          fi
       - name: Push frontend and Nginx iamges
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -183,4 +188,6 @@ jobs:
           NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY }}
         run: |
           docker push "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA"
-          docker push "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA"
+          if [[ "$GITHUB_REF" != refs/heads/develop ]]; then
+            docker push "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA"
+          fi
