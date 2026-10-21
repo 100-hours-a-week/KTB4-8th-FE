@@ -2,7 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE, api, headers, toApiError } from "@/lib/api/client";
+import { CHAT_V2 } from "@/lib/constants";
 import { sleep } from "@/lib/format";
+import { sendChatMessageV2 } from "./chatV2";
+import { cancelRecommendationV2, requestRecommendationV2 } from "./recommendV2";
 import type {
   AvailableMinutes,
   Candidate,
@@ -120,25 +123,31 @@ async function pollUntilComplete(chatId: string): Promise<ChatReply> {
   throw new Error("CHAT_REPLY_TIMEOUT");
 }
 
-/** POST /user/chat-messages — BE 는 봇 답변을 바로 주지 않고 202 Accepted + Location 헤더만
+async function sendChatMessageV1(body: SendChatBody): Promise<ChatReply> {
+  const path = "/user/chat-messages";
+  const res = await fetch(API_BASE + path, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+  const parsed = await res.json().catch(() => null);
+  if (!res.ok) throw toApiError(parsed, res.status, path);
+  const chatId = parseChatId(res.headers.get("Location"));
+  return await pollUntilComplete(chatId);
+}
+
+/** 채팅 전송. NEXT_PUBLIC_CHAT_V2=on 이면 v2(SSE)로, 아니면 v1(202 + 폴링)로 보낸다.
+    두 방식 모두 같은 ChatReply 를 돌려줘서 화면(CoursePopup)은 어느 쪽인지 모른다.
+
+    [v1] POST /user/chat-messages — BE 는 봇 답변을 바로 주지 않고 202 Accepted + Location 헤더만
     돌려준다(비동기 처리). 진짜 답변은 그 Location 을 완료될 때까지 폴링해서 받아와야 한다.
     BE 가 이제 조건 추출 결과(slot)도 같이 주므로, CoursePopup 이 그걸로 조건 카드를
     자동으로 채운다(시간대 제외 — ChatSlot 주석 참고). */
 export function useSendChatMessage() {
   return useMutation({
-    mutationFn: async (body: SendChatBody): Promise<ChatReply> => {
-      const path = "/user/chat-messages";
-      const res = await fetch(API_BASE + path, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify(body),
-        credentials: "include",
-      });
-      const parsed = await res.json().catch(() => null);
-      if (!res.ok) throw toApiError(parsed, res.status, path);
-      const chatId = parseChatId(res.headers.get("Location"));
-      return await pollUntilComplete(chatId);
-    },
+    mutationFn: (body: SendChatBody): Promise<ChatReply> =>
+      CHAT_V2 ? sendChatMessageV2(body) : sendChatMessageV1(body),
   });
 }
 
@@ -179,7 +188,9 @@ export function useUpdateSlot() {
 export function useRequestRecommendation() {
   return useMutation({
     mutationFn: async () =>
-      (await api.post<RecommendationRun>("/user/recommendation")).data,
+      CHAT_V2
+        ? requestRecommendationV2()
+        : (await api.post<RecommendationRun>("/user/recommendation")).data,
   });
 }
 
@@ -189,6 +200,7 @@ export function useRequestRecommendation() {
 export function useCancelRecommendation() {
   return useMutation({
     mutationFn: async () => {
+      if (CHAT_V2) return cancelRecommendationV2();
       await api.post<void>("/user/recommendation/cancellation");
     },
   });

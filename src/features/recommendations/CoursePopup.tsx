@@ -41,6 +41,7 @@ import {
   useUpdateSlot,
   type UpdateSlotBody,
 } from "./queries";
+import { isRecommendationStopped } from "./recommendV2";
 import { RegionSheet } from "./RegionSheet";
 import { DateTimeSheet } from "./DateTimeSheet";
 import { AvailableSheet } from "./AvailableSheet";
@@ -382,6 +383,8 @@ export function CoursePopup() {
       setView({ name: "candidates", result: run });
     } catch (err) {
       useCourseStore.setState({ phase: "idle" });
+      // 사용자가 취소한 추천은 오류가 아니다 — 안내는 취소 처리(handleCancel)가 한다
+      if (isRecommendationStopped(err)) return;
       const retryable = !(
         isApiError(err) && err.code === "RECOMMENDATION_LIMIT_EXCEEDED"
       );
