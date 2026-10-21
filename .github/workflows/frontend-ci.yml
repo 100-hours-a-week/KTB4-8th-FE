@@ -148,6 +148,7 @@ jobs:
           SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
           # 센트리에서 개발·운영 에러를 나눠 보려고 브랜치로 환경을 정한다 (main 은 production, 그 외는 dev)
           SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'dev' }}
+          CHAT_V2: ${{ github.ref_name == 'develop' && 'on' || '' }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
           # 소스맵 업로드용 비밀 값 — build-arg 가 아니라 secret 으로만 넘겨 이미지에 남기지 않는다
@@ -163,6 +164,7 @@ jobs:
             --platform linux/amd64 \
             --file Dockerfile \
             --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+            --build-arg NEXT_PUBLIC_CHAT_V2="$CHAT_V2" \
             --build-arg NEXT_PUBLIC_NAVER_MAP_CLIENT_ID="$NAVER_MAP_CLIENT_ID" \
             --build-arg NEXT_PUBLIC_CLARITY_PROJECT_ID="$CLARITY_PROJECT_ID" \
             --build-arg NEXT_PUBLIC_SENTRY_DSN="$SENTRY_DSN" \
