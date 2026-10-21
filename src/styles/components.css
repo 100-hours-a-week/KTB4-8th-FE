@@ -20,6 +20,51 @@
   background: transparent;
   backdrop-filter: none;
 }
+/* 당겨서 새로고침 아이콘 — 로고 헤더(z-index 5) 밑에 숨어 있다가 끄는 만큼 내려온다 */
+.ptr {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 4;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--brand-600);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 14px rgba(23, 22, 27, 0.22);
+  pointer-events: none;
+  /* 헤더 높이에서 아이콘 크기만큼 올려 두면 처음엔 헤더 뒤에 완전히 가려진다 */
+  transform: translateY(calc(var(--appbar-h) - 44px + var(--ptr-pull, 0px)))
+    scale(var(--ptr-scale, 1));
+  transition:
+    transform 0.28s var(--e-out),
+    opacity 0.2s var(--e-io);
+}
+.ptr.is-dragging {
+  transition: none;
+}
+.ptr__icon {
+  display: grid;
+  transform: rotate(var(--ptr-rot, 0deg));
+}
+.ptr.is-dragging .ptr__icon {
+  transition: none;
+}
+/* 불러오는 중에는 화살표 대신 앱의 도넛 스피너(.spinner)를 쓴다 — 스스로 돌기 때문에 끌 때 준 각도는 풀어 준다 */
+.ptr.is-refreshing .ptr__icon {
+  transform: none;
+}
+/* 메인의 로고 헤더 — 스크롤해도 위에 붙어 있다. 아래로 지나가는 내용(어두운 카드 등)이 흐릿하게 비치지 않도록 불투명한 흰 배경을 쓴다 */
+.appbar--brand {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
 .appbar__lead {
   flex: none;
   width: 40px;

@@ -30,7 +30,7 @@ export function AppBar({
 
   if (brand) {
     return (
-      <header className="appbar appbar--plain">
+      <header className="appbar appbar--plain appbar--brand">
         <p className="appbar__brand">KeepGo</p>
         <div className="appbar__actions">{action}</div>
       </header>

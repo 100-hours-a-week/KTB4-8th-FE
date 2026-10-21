@@ -73,6 +73,11 @@ export const NICKNAME_DISALLOWED = /[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]/g;
     BE 가 준비돼 그 API 를 직접 쓰려면 NEXT_PUBLIC_LOCAL_DUMMY=off 로 끈다. */
 export const LOCAL_DUMMY = process.env.NEXT_PUBLIC_LOCAL_DUMMY !== "off";
 
+/** 좋아요 영상 분석 진행률(몇 개 중 몇 개 · 남은 시간)을 가짜로 보여 준다. BE 에 진행률 조회 API 가 없어서다.
+    API 가 생기면 off 로 끄고 실제 값을 쓴다. */
+export const SYNC_PROGRESS_DUMMY =
+  process.env.NEXT_PUBLIC_SYNC_PROGRESS_DUMMY !== "off";
+
 /** 챗봇 채팅 전송을 BE v2(POST /api/v2/member/chat-messages, SSE)로 보낸다. 꺼져 있으면 v1(202 + 폴링).
     BE 에 v2 채팅이 배포돼 있을 때만 on 으로 켠다. */
 export const CHAT_V2 = process.env.NEXT_PUBLIC_CHAT_V2 === "on";
