@@ -17,6 +17,9 @@ import type { Envelope, Page } from "@/types/api";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
 
+/** v2 API(보관함 등)의 기준 경로. v1 과 달리 /api/v2/member 아래에 있다. */
+export const API_BASE_V2 = "/api/v2/member";
+
 export class ApiError extends Error {
   problem: Problem;
   code: string;
@@ -174,6 +177,8 @@ interface RequestOptions {
   query?: Record<string, unknown>;
   body?: unknown;
   signal?: AbortSignal;
+  /** 기본(v1) 대신 쓸 기준 경로 — v2 API 호출용. 지정하면 로컬 더미 · 응답 어댑터를 거치지 않는다. */
+  base?: string;
   /** 내부용 — refresh 재시도 여부 */
   retried?: boolean;
 }
@@ -183,20 +188,21 @@ async function send<T>(
   path: string,
   opts: RequestOptions = {},
 ): Promise<Envelope<T>> {
-  const local = LOCAL_DUMMY
-    ? ((await handleLocalCollection(method, path, opts.query, opts.body)) ??
-      (await handleLocalSync(method, path)))
-    : null;
+  const local =
+    LOCAL_DUMMY && !opts.base
+      ? ((await handleLocalCollection(method, path, opts.query, opts.body)) ??
+        (await handleLocalSync(method, path)))
+      : null;
   if (local) {
     if ("error" in local) throw new ApiError(makeProblem(local.error, path));
     return { data: local.data as T };
   }
 
-  const route = backendRoute(method, path);
+  const route = opts.base ? null : backendRoute(method, path);
   const search = qs(opts.query);
   const extra = route?.search;
   const url =
-    API_BASE +
+    (opts.base ?? API_BASE) +
     path +
     (extra ? `${search}${search ? "&" : "?"}${extra}` : search);
 
@@ -227,6 +233,8 @@ async function send<T>(
 
   if (res.ok) {
     if (route) return { data: route.response(body) as T };
+    // v2 는 { data } envelope 없이 본문을 그대로 돌려준다
+    if (opts.base) return { data: body as T };
     return body as Envelope<T>;
   }
 
@@ -283,6 +291,16 @@ async function send<T>(
 
   throw err;
 }
+
+/** v2 API — /api/v2/member 아래. 응답 본문을 data 로 감싸 돌려준다. */
+export const apiV2 = {
+  get: <T>(
+    path: string,
+    query?: Record<string, unknown>,
+    signal?: AbortSignal,
+  ) => send<T>("GET", path, { query, signal, base: API_BASE_V2 }),
+  del: <T>(path: string) => send<T>("DELETE", path, { base: API_BASE_V2 }),
+};
 
 export const api = {
   get: <T>(

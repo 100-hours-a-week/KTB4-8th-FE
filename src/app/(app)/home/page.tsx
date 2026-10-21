@@ -4,10 +4,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppBar } from "@/components/ui/AppBar";
 import { Icon, YouTubeMark } from "@/components/ui/Icon";
+import { PullIndicator, usePullToRefresh } from "@/components/ui/PullToRefresh";
 import { Empty, Skeleton, Spinner } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { useCourseStore } from "@/features/recommendations/courseStore";
 import { useSyncYoutubeNow } from "@/features/sync/queries";
+import {
+  DUMMY_SYNC_RESULT,
+  formatRemaining,
+  parseSyncDemo,
+  simulateSync,
+  useSyncProgress,
+  type SyncDemoMode,
+  type SyncProgress,
+} from "@/features/sync/progress";
+import { SYNC_PROGRESS_DUMMY } from "@/lib/constants";
 import type { SyncResult } from "@/types/api";
 import {
   useAdvertisements,
@@ -24,8 +35,9 @@ import { PlaceListSheet } from "@/features/places/PlaceListSheet";
    렌더되는 값이 없다) 뺐다.
 
    동기화 카드: BE 의 POST /user/youtube-analyze 는 끝날 때까지 기다리는 동기 처리이고,
-   진행률 · 결과 건수를 알려주는 조회 API 가 없다. 그래서 몇 개를 불러왔는지는 보여줄 수 없고,
-   "불러오는 중 / 불러옴" 두 상태만 구분한다 — 실제로 없는 숫자를 지어내지 않는다. */
+   진행률 · 결과 건수를 알려주는 조회 API 가 없다. 그래서 SYNC_PROGRESS_DUMMY 가 켜져 있으면
+   시작한 시각에서 계산한 **가짜** 진행률(몇 개 중 몇 개 · 남은 시간)을 보여 주고, 실제 요청이
+   끝나면 완료로 바꾼다. 끄면(off) 예전처럼 "불러오는 중 / 불러옴" 두 상태만 구분한다. */
 
 type SyncState = "idle" | "pending" | "done" | "failed";
 
@@ -42,7 +54,16 @@ interface SyncCardModel {
 function buildSyncCard(
   state: SyncState,
   result: SyncResult | null,
+  progress: SyncProgress | null,
 ): SyncCardModel {
+  if (state === "pending" && progress) {
+    return {
+      badge: `AI 분석 중 ${progress.percent}%`,
+      title: "좋아요 영상을 정리하고 있어요.",
+      msg: `${progress.total}개 중 ${progress.analyzed}개 분석 완료 · 장소 ${progress.places}곳 발견`,
+      closable: false,
+    };
+  }
   if (state === "pending") {
     return {
       badge: "불러오는 중",
@@ -56,7 +77,6 @@ function buildSyncCard(
     const counted =
       result?.videoCount != null && result.placeCount != null ? result : null;
     return {
-      badge: "정리 완료",
       title: counted
         ? `장소 ${counted.placeCount}곳을 정리했어요.`
         : "좋아요 영상을 불러왔어요.",
@@ -155,6 +175,9 @@ export default function HomePage() {
   const [dismissed, setDismissed] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>("idle");
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  // 가짜 진행률의 시작 시각 — 동기화가 진행 중일 때만 값이 있다
+  const [syncStartedAt, setSyncStartedAt] = useState<number | null>(null);
+  const demoRef = useRef<SyncDemoMode | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const initDoneRef = useRef(false);
 
@@ -164,17 +187,36 @@ export default function HomePage() {
 
   const hscrollRef = useDragScroll();
 
+  // 당겨서 새로고침 — 인기 장소와 이벤트를 다시 불러온다. 시트나 코스 추천 팝업이 열려 있을 때는 끈다.
+  const courseOpen = useCourseStore((s) => s.open);
+  const pullState = usePullToRefresh(
+    () => Promise.all([placesQuery.refetch(), adsQuery.refetch()]),
+    overlay === null && !courseOpen,
+  );
+
   const handleStartSync = useCallback(async () => {
     setSyncState("pending");
     setSyncResult(null);
     setDismissed(false);
+    setSyncStartedAt(SYNC_PROGRESS_DUMMY ? Date.now() : null);
     try {
-      setSyncResult(await syncNow.mutateAsync());
+      // ?syncDemo= 로 들어왔으면 BE 를 부르지 않고 가짜로 진행시킨다
+      const result = demoRef.current
+        ? await simulateSync(demoRef.current)
+        : await syncNow.mutateAsync();
+      // 진행률이 가짜인 동안은, BE 가 개수를 안 알려주면 가짜 개수로 마무리한다
+      setSyncResult(
+        SYNC_PROGRESS_DUMMY && result.videoCount == null
+          ? DUMMY_SYNC_RESULT
+          : result,
+      );
       setSyncState("done");
       toast.ok("좋아요 영상을 불러왔어요.", "완료");
     } catch {
       // 실패 안내는 카드(sync.failed)로만 보여준다 — 토스트는 따로 안 띄운다.
       setSyncState("failed");
+    } finally {
+      setSyncStartedAt(null);
     }
   }, [syncNow]);
 
@@ -183,6 +225,13 @@ export default function HomePage() {
     if (initDoneRef.current) return;
     initDoneRef.current = true;
     const params = new URLSearchParams(window.location.search);
+    // 개발용 토큰으로 로그인한 로컬 계정은 유튜브 연동이 없어 실제 동기화가 늘 실패한다.
+    // 그래서 진행률 더미가 켜져 있으면 BE 를 부르지 않고 가짜로 끝까지 진행시킨다(?syncDemo=fail 로 실패도 볼 수 있다).
+    demoRef.current =
+      parseSyncDemo(params.get("syncDemo")) ??
+      (SYNC_PROGRESS_DUMMY && process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN
+        ? "done"
+        : null);
     if (params.get("startSync") === "1") {
       router.replace("/home");
       // eslint-disable-next-line react-hooks/set-state-in-effect -- URL 파라미터로 진입 시 동기화를 트리거하는 1회성 초기화
@@ -191,7 +240,10 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const sync = buildSyncCard(syncState, syncResult);
+  const progress = useSyncProgress(
+    syncState === "pending" ? syncStartedAt : null,
+  );
+  const sync = buildSyncCard(syncState, syncResult, progress);
   const places = placesQuery.data ?? [];
   const ads = adsQuery.data ?? [];
 
@@ -202,9 +254,12 @@ export default function HomePage() {
   return (
     <>
       <AppBar brand />
+      <PullIndicator {...pullState} />
       <div className="scroll">
         {!dismissed && sync && (
-          <div className="card card--dark home__sync">
+          <div
+            className={`card card--dark home__sync${sync.badge ? " home__sync--badged" : ""}`}
+          >
             {sync.closable !== false && (
               <button
                 className="home__sync-close"
@@ -231,6 +286,23 @@ export default function HomePage() {
             )}
             <p className="home__sync-title">{sync.title}</p>
             <p className="home__sync-msg">{sync.msg}</p>
+            {progress && (
+              <>
+                <div
+                  className="home__sync-bar"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progress.percent}
+                >
+                  <i style={{ width: `${progress.percent}%` }} />
+                </div>
+                <p className="home__sync-eta">
+                  <Icon name="clock" size={13} />
+                  <span>{formatRemaining(progress.remainingSeconds)}</span>
+                </p>
+              </>
+            )}
             {sync.action === "sync" && (
               <button
                 className="btn btn--yt btn--block"

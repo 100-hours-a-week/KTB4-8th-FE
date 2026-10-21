@@ -138,7 +138,13 @@ function cleanCourseTitle(title: string | undefined): string {
   return raw.replace(/^\s*\[\s*코스\s*\d+\s*\]\s*/, "") || raw;
 }
 
-function toRecommendationRun(raw: unknown): RecommendationRun {
+export function toRecommendationRun(
+  raw: unknown,
+  /** v1 은 description 칸에 이전 장소에서의 이동 시간(분)이 문자열로 들어온다(BE 버그).
+      v2 는 진짜 장소 설명이 와서 이동 시간으로 해석하지 않는다. */
+  options: { travelInDescription?: boolean } = {},
+): RecommendationRun {
+  const { travelInDescription = true } = options;
   const r = (raw ?? {}) as {
     metadata?: BeRecommendationMetadata;
     details?: BeRecommendationDetail[];
@@ -156,7 +162,10 @@ function toRecommendationRun(raw: unknown): RecommendationRun {
     endAt: scheduledTime,
     totalTravelMinutes: d.total_travel_time,
     components: (d.items ?? []).map((item, j) => {
-      const travelMinutes = item.description ? Number(item.description) : NaN;
+      const travelMinutes =
+        travelInDescription && item.description
+          ? Number(item.description)
+          : NaN;
       return {
         // BE 순번은 0부터 오므로 그대로 쓰지 않고 목록 순서대로 1부터 매긴다
         sequence: j + 1,
@@ -200,7 +209,10 @@ export const BACKEND_ROUTES: BackendRoute[] = [
   { key: "GET /advertisements", response: toAdvertisements },
   // BE 는 cursor 를 필수 파라미터로 받는다(빈 값이면 첫 페이지)
   { key: "GET /places", search: "cursor=", response: toPlaces },
-  { key: "POST /user/recommendation", response: toRecommendationRun },
+  {
+    key: "POST /user/recommendation",
+    response: (raw) => toRecommendationRun(raw),
+  },
   { key: "POST /user/youtube-analyze", response: toSyncResult },
 ];
 

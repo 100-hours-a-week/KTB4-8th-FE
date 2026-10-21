@@ -752,7 +752,13 @@
 
 .home__sync {
   margin: var(--s-5) var(--s-5) 0;
-  padding: var(--s-5);
+  /* 위쪽은 문구 묶음(배지 · 제목 · 설명)을 살짝 아래로 내리려고 6px 더 둔다 */
+  padding: calc(var(--s-5) + var(--sync-shift, 6px)) var(--s-5) var(--s-5);
+  /* 상태가 바뀌어도(시작하기 · 분석 중 · 완료 · 실패) 카드 높이가 같아서 아래 내용이 흔들리지 않는다.
+     버튼 · 진행바는 카드 맨 아래에 붙는다. 문구가 길어져 줄이 늘면 그만큼만 커진다. */
+  display: flex;
+  flex-direction: column;
+  min-height: 186px;
   border-radius: var(--r-xl);
   position: relative;
   overflow: hidden;
@@ -782,15 +788,63 @@
 .home__sync-close:hover {
   background: rgba(255, 255, 255, 0.22);
 }
+/* 배지가 있는 카드는 배지를 카드 위 테두리와 제목의 한가운데에 둔다(위 간격 = 아래 간격) */
+.home__sync--badged {
+  padding-top: calc(var(--sync-badge-gap, 14px) + var(--sync-shift, 6px));
+}
 .home__sync-badge {
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font: var(--t-xs);
   font-weight: 700;
   color: var(--brand-300);
-  margin-bottom: 8px;
+  margin-bottom: var(--sync-badge-gap, 14px);
   position: relative;
+}
+/* 분석 중 도넛 스피너는 배지 글자 크기와 비슷하게 */
+.home__sync-badge .spinner,
+.ptr .spinner {
+  /* 끊긴 원 대신, 꼬리는 투명하게 흐려지고 머리(위쪽 끝)는 진한 링.
+     --ring 은 링 두께(머리 끝 동그라미 크기도 같다) */
+  --ring: 2.5px;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border: 0;
+  background: conic-gradient(from 0deg, transparent 0%, currentColor 100%);
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--ring)),
+    #000 calc(100% - var(--ring))
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--ring)),
+    #000 calc(100% - var(--ring))
+  );
+  position: relative;
+  animation-duration: 0.85s;
+}
+/* 머리 끝을 둥글게 */
+.home__sync-badge .spinner::after,
+.ptr .spinner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--ring);
+  height: var(--ring);
+  margin-left: calc(var(--ring) / -2);
+  border-radius: 50%;
+  background: currentColor;
+}
+/* 당겨서 새로고침의 흰 원 안에서는 더 크게 */
+.ptr .spinner {
+  --ring: 3.5px;
+  width: 26px;
+  height: 26px;
 }
 .home__sync-badge--error {
   color: #ff8a8a;
@@ -805,12 +859,14 @@
   opacity: 0.75;
   margin-top: var(--s-2);
   position: relative;
+  /* 버튼 · 진행바와의 최소 간격 — 카드가 남는 높이를 가지면 이 간격 위에서 늘어난다 */
+  margin-bottom: var(--s-4);
 }
 .home__sync-bar {
   height: 6px;
   border-radius: var(--r-full);
   background: rgba(255, 255, 255, 0.16);
-  margin-top: var(--s-4);
+  margin-top: auto;
   overflow: hidden;
   position: relative;
 }
@@ -821,8 +877,21 @@
   background: var(--grad-sunset) border-box;
   transition: width 0.5s var(--e-out);
 }
+.home__sync-eta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--s-3);
+  font: var(--t-xs);
+  opacity: 0.7;
+  position: relative;
+  /* 진행바 · 남은 시간 묶음을 카드 바닥에서 살짝 위로 올린다 */
+  margin-bottom: 6px;
+}
 .home__sync .btn {
-  margin-top: var(--s-4);
+  margin-top: auto;
+  /* 카드 안 버튼은 기본(52px)보다 살짝 작게 */
+  min-height: 46px;
   position: relative;
 }
 
