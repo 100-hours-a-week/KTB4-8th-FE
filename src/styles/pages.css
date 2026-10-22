@@ -775,6 +775,8 @@
 }
 .home__sync-close {
   position: absolute;
+  /* 제목 · 설명 · 배지가 position: relative 라서, z-index 가 없으면 이 버튼 위를 덮어 눌러지지 않는다 */
+  z-index: 3;
   top: 12px;
   right: 12px;
   border: 0;
@@ -784,6 +786,12 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
+}
+/* 버튼(약 27px)보다 넓게 눌리도록 보이지 않는 터치 영역을 둔다 */
+.home__sync-close::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
 }
 .home__sync-close:hover {
   background: rgba(255, 255, 255, 0.22);
@@ -852,6 +860,8 @@
 .home__sync-title {
   font: var(--t-h2);
   position: relative;
+  /* 긴 제목이 오른쪽 위 닫기 버튼 밑으로 들어가지 않게 한다 */
+  padding-right: 34px;
   letter-spacing: var(--tr-h2);
 }
 .home__sync-msg {
@@ -965,6 +975,18 @@
   transform: translateY(-3px);
   box-shadow: var(--sh-2);
 }
+.placecard__photo {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-3);
+}
+.placecard__photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .placecard__name {
   font: var(--t-h3);
   margin-top: var(--s-3);
@@ -1026,6 +1048,117 @@
 
 .adsection {
   padding: 0 var(--s-5);
+}
+/* 홈 이벤트 구역의 제목 탭 — "지금 열린 이벤트" / "오픈 예정 이벤트". 고른 쪽만 진하게 */
+.evtabs {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.evtabs__tab {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--t-h2);
+  letter-spacing: var(--tr-h2);
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+.evtabs__tab[aria-selected="true"] {
+  color: var(--ink);
+}
+/* 홈 이벤트 카드 격자 — 대표 이미지가 위에, 제목 · 날짜 · 태그가 아래에 온다 */
+.evgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-4) var(--s-3);
+}
+.adcard + .evgrid {
+  margin-top: var(--s-4);
+}
+.evcard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.evcard__img {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: var(--surface-3);
+}
+/* 뒤에 깔리는 흐린 사진 — 앞 사진이 안 덮는 가장자리만 보인다 */
+.evcard__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(18px) saturate(1.1);
+  transform: scale(1.25);
+  opacity: 0.85;
+}
+.evcard__photo {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.evcard__glyph {
+  font-size: 44px;
+}
+/* 이미지 위 왼쪽 위 상태 배지 — 사진 색과 상관없이 읽히게 흰 바탕 */
+.evcard__badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  font: var(--t-xs);
+  font-weight: 700;
+  line-height: 1.4;
+  box-shadow: 0 1px 4px rgba(23, 22, 27, 0.18);
+}
+.evcard__badge.event-status--today,
+.evcard__badge.event-status--closing {
+  color: var(--danger);
+}
+.evcard__badge.event-status--normal {
+  color: var(--brand-700);
+}
+.evcard__badge.event-status--upcoming {
+  color: #2a4182;
+}
+.evcard__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
+  font-size: 14px;
+  color: var(--ink);
+}
+.evcard__date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.evcard__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 /* 카드끼리만 띄운다 — section__head 는 자체 padding-bottom 으로 이미 간격이 있어
    여기서 형제 결합자로 카드-카드 사이에만 여백을 준다(제목-첫 카드 사이는 그대로 둔다) */
@@ -2054,6 +2187,36 @@
   color: var(--ink-4);
   margin-top: 6px;
 }
+/* 항목 맨 아래 줄: 왼쪽 설명, 오른쪽 끝 D-N 배지 */
+.listitem__sub--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dday {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font: var(--t-xs);
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.dday--ok {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+.dday--soon {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+/* 당일은 더 강하게 — 꽉 찬 빨강 */
+.dday--today {
+  background: var(--danger);
+  color: #fff;
+  letter-spacing: 0.02em;
+}
 .listitem__ico {
   width: 46px;
   height: 46px;
@@ -2367,6 +2530,10 @@ button.me__row:hover {
   flex-wrap: wrap;
   margin-top: var(--s-4);
 }
+/* 예시 데이터 안내 바로 아래에서 시작할 때는 안내의 아래 여백만 둔다 */
+.banner + .pdetail__tags {
+  margin-top: 0;
+}
 .pdetail__name {
   font: var(--t-h2);
   letter-spacing: var(--tr-h2);
@@ -2378,7 +2545,22 @@ button.me__row:hover {
   margin-top: 6px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  /* 좁은 화면에서 장소 이름이 길면 다음 줄로 내려간다 */
+  flex-wrap: wrap;
+  gap: 2px 5px;
+}
+/* 이벤트가 열리는 장소 이름 — 지역(구) · 화살표 오른쪽 */
+.wl__venue {
+  /* 평소엔 지역(구)과 같은 색, 마우스를 올리거나 누르면 진한 색 — 누르면 네이버 지도로 간다 */
+  color: inherit;
+  font-weight: 600;
+  word-break: keep-all;
+  text-decoration: none;
+  transition: color var(--d-fast) var(--e-io);
+}
+.wl__venue:hover,
+.wl__venue:active {
+  color: var(--ink-2);
 }
 .pdetail__desc {
   font: var(--t-sm);
@@ -2411,6 +2593,380 @@ button.me__row:hover {
 }
 .pdetail__actions .btn {
   flex: 1;
+  min-width: 0;
+  /* 폭이 좁은 모바일에서도 "보관함에서 삭제"가 한 줄로 나오도록 글자와 안쪽 여백을 줄인다(아이콘 크기는 그대로) */
+  gap: 6px;
+  padding: 0 var(--s-3);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* 보관한 장소 상세(BE v2) */
+.wl__tags {
+  margin-top: 0;
+}
+/* 이벤트 진행 상태 배지 — 분류 칩(연한 배경)보다 진하게 */
+.wl__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font: var(--t-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.wl__status--ongoing {
+  background: var(--brand-600);
+  color: #fff;
+}
+.wl__status--ended {
+  background: var(--ink-3);
+  color: #fff;
+}
+/* 아직 열리기 전 — "OPEN D-N" */
+.wl__status--upcoming {
+  background: #2a4182;
+  color: #fff;
+}
+.wl__chev {
+  display: inline-flex;
+  padding: 2px 0 2px 2px;
+  border: 0;
+  background: none;
+  color: var(--ink-3);
+}
+.wl__addr {
+  margin-top: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--brand-100);
+  border-radius: var(--r-md);
+  background: var(--brand-50);
+}
+.wl__addr-row {
+  display: flex;
+  /* 주소가 길어 줄바꿈되면 태그 · 복사 버튼이 첫 줄에 맞춰진다 */
+  align-items: flex-start;
+  gap: 10px;
+  padding: 5px 0;
+  font: var(--t-sm);
+  color: var(--ink);
+}
+.wl__addr-tag {
+  flex: none;
+  /* 도로명 · 지번 · 우편번호 줄의 값이 같은 선에서 시작하도록 폭을 맞춘다 */
+  min-width: 50px;
+  text-align: center;
+  padding: 1px 6px;
+  border: 1px solid var(--brand-100);
+  border-radius: 4px;
+  background: #fff;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.wl__addr-val {
+  flex: 1;
+  min-width: 0;
+  /* "40-999" 같은 번지가 하이픈에서 끊기지 않게 띄어쓰기에서만 줄바꿈한다 */
+  word-break: keep-all;
+}
+.wl__copy {
+  flex: none;
+  /* "복사됨 ✓" 으로 바뀌어도 주소 줄이 다시 줄바꿈되지 않도록 폭을 고정한다 */
+  min-width: 60px;
+  text-align: right;
+  border: 0;
+  background: none;
+  font: var(--t-sm);
+  font-weight: 700;
+  color: var(--brand-600);
+}
+.wl__addr--ghost {
+  visibility: hidden;
+  pointer-events: none;
+}
+.wl__copy.is-copied {
+  color: var(--brand-700);
+}
+.wl__period {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--s-3);
+  font: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+.wl__period svg {
+  color: var(--ink-3);
+}
+.wl__period .dday {
+  margin-left: 2px;
+}
+.wl__hours {
+  margin-top: var(--s-4);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--line-2);
+}
+.wl__hours-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.wl__hours-ico {
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+}
+.wl__hours-status {
+  padding: 1px 9px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  font: var(--t-xs);
+  font-weight: 700;
+  line-height: 1.5;
+}
+.wl__hours-status--open {
+  color: var(--brand-600);
+}
+.wl__hours-status--break {
+  color: var(--warn);
+}
+.wl__hours-status--closed,
+.wl__hours-status--off {
+  color: var(--ink-3);
+}
+.wl__hours-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.wl__hours-time .wl__yt-chev {
+  margin-left: 0;
+}
+.wl__hours-last {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+  font: var(--t-body);
+  color: var(--ink);
+}
+.wl__hours-lastchip {
+  padding: 1px 9px;
+  border: 1.5px solid var(--warn);
+  border-radius: 999px;
+  color: var(--warn);
+  font: var(--t-xs);
+  font-weight: 800;
+  line-height: 1.5;
+}
+/* 요일별 영업시간 — 요일 · 시간 · 라스트오더를 세 칸으로 맞춘다 */
+.wl__hours-list {
+  list-style: none;
+  margin: var(--s-3) 0 0;
+  padding: 0 0 0 26px;
+}
+.wl__hours-list li {
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  gap: 8px;
+  padding: 7px 0;
+  font: var(--t-body);
+  color: var(--ink-2);
+}
+.wl__hours-list small {
+  display: block;
+  font: var(--t-sm);
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.wl__hours-note {
+  margin: var(--s-2) 0 0 26px;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.wl__hours-list li.is-today {
+  font-weight: 800;
+  color: var(--ink);
+}
+.wl__yt {
+  margin-top: var(--s-5);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line-2);
+}
+.wl__yt-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.wl__yt-name {
+  font: var(--t-h3);
+  letter-spacing: var(--tr-h3);
+}
+.wl__yt-count {
+  font: var(--t-sm);
+  color: var(--ink-3);
+}
+.wl__yt-chev {
+  margin-left: auto;
+  display: flex;
+  color: var(--ink-3);
+  transition: transform var(--d-fast) var(--e-io);
+}
+.wl__yt-chev.is-open {
+  transform: rotate(180deg);
+}
+/* 공식 링크 구역 — YouTube 구역과 같은 머리(이름 · 개수 · 화살표)에, 펼치면 칩으로 나온다 */
+.wl__links {
+  margin-top: var(--s-4);
+}
+.wl__links-ico {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--ink-2);
+}
+.wl__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: var(--s-3);
+}
+.wl__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--t-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+.wl__chip svg {
+  color: var(--ink-2);
+}
+.wl__chip:active {
+  background: var(--surface-2);
+}
+.wl__yt-list {
+  margin-top: 6px;
+}
+.wl__yt-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  color: var(--ink-4);
+  text-decoration: none;
+}
+.wl__yt-list li + li .wl__yt-row {
+  border-top: 1px solid var(--line-2);
+}
+/* 삭제 · 비공개라 열 수 없는 영상 — 링크가 아니고 흐리게 */
+.wl__yt-row--off {
+  cursor: default;
+}
+.wl__yt-row--off .wl__yt-title {
+  color: var(--ink-3);
+}
+.wl__yt-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+  color: var(--ink-3);
+}
+.wl__yt-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.wl__yt-title {
+  font: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+.wl__yt-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.pdetail__saved {
+  margin: 0 0 var(--s-3);
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+/* 보관한 장소 상세는 저장일과 버튼 위의 구분선을 두지 않는다 */
+.sheet:has(.wl__foot) .sheet__foot {
+  border-top: 0;
+}
+/* 상세 시트의 본문 스크롤바(Sheet autoHideScroll) — 기본 굵은 막대와 왼쪽 경계선 대신 트랙 없이 가는 둥근 막대만 보인다 */
+.sheet--thin-scroll .sheet__body::-webkit-scrollbar {
+  width: 8px;
+}
+.sheet--thin-scroll .sheet__body::-webkit-scrollbar-track {
+  background: transparent;
+  border: 0;
+}
+.sheet--thin-scroll .sheet__body::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+/* 움직이는 동안(.is-scrolling, 스크립트가 붙였다 뗀다)에만 막대가 보인다 */
+.sheet--thin-scroll .sheet__body.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--ink-4);
+  background-clip: padding-box;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .sheet--thin-scroll .sheet__body {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .sheet--thin-scroll .sheet__body.is-scrolling {
+    scrollbar-color: var(--ink-4) transparent;
+  }
+}
+/* 코스 상세 제목 아래 위치(지도 아이콘 + 법정동) */
+.cdetail__area {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  /* 제목과 아래 통계 상자 사이의 한가운데에 오도록 아래로 내린다(레이아웃 높이는 그대로) */
+  position: relative;
+  top: 12px;
+}
+/* 예시 안내가 있을 때는 법정동이 제목 아래와 안내 상자 윗면 사이의 한가운데(위아래 약 9px)에 오도록 6px 만 내린다 */
+.sheet:has(.banner--info) .cdetail__area {
+  top: 6px;
+}
+.pdetail__actions a.btn {
+  text-decoration: none;
 }
 
 .plist__row {
@@ -2707,4 +3263,268 @@ button.me__row:hover {
 .cand__meta,
 .stat__val {
   font-variant-numeric: tabular-nums;
+}
+
+/* 이벤트 탭 필터 — 왼쪽 진행 상태 칩, 오른쪽 "카테고리 · 지역" 버튼 */
+.evf__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: var(--s-5);
+}
+.evf__row--end {
+  justify-content: flex-end;
+}
+.evf__chips {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.evf__chip,
+.evf__btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-3);
+  font: var(--t-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.evf__chip[aria-pressed="true"],
+.evf__btn.is-on {
+  border-color: var(--brand);
+  background: var(--brand-50);
+  color: var(--brand-600);
+}
+.evf__btn {
+  gap: 5px;
+  min-width: 0;
+  padding: 0 10px 0 11px;
+  color: var(--ink-2);
+}
+.evf__btn.is-on {
+  color: var(--brand-600);
+}
+.evf__btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.evf__btn svg {
+  flex: none;
+}
+/* 카테고리 · 지역 시트 */
+.evf__sec {
+  margin: var(--s-2) 0 var(--s-2);
+  font: var(--t-xs);
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.evf__opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--s-4);
+}
+.evf__opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font: var(--t-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.evf__opt small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-4);
+}
+.evf__opt[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: var(--brand-50);
+  color: var(--brand-600);
+  font-weight: 700;
+}
+.evf__opt[aria-pressed="true"] small {
+  color: var(--brand-600);
+}
+/* 시·도 아래에 그 안의 구·군을 연한 상자로 묶는다 */
+.evf__sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 var(--s-4);
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.evf__act {
+  display: flex;
+  gap: 8px;
+}
+.evf__act .btn {
+  flex: 1;
+  min-height: 48px;
+}
+.evf__act .btn--ghost {
+  flex: 0 0 38%;
+}
+/* 대회 일정표 — 모바일 폭에 맞춰 라운드 / 일정 / 장소·구분을 두 줄로 보여 준다 */
+.wl__sched {
+  margin-top: var(--s-5);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line-2);
+}
+.wl__img {
+  margin-top: var(--s-5);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line-2);
+}
+.wl__img img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-2);
+}
+.wl__img-hint {
+  margin-top: 6px;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.wl__sched-title {
+  font: var(--t-sm);
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--s-2);
+}
+.wl__sched-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* 상반기 · 하반기 탭 — 작게 두고, 오른쪽에 그 기간을 보여 준다 */
+.wl__sched-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--s-2);
+}
+.wl__sched-tabs {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--surface-3);
+}
+/* 활성 탭 뒤에서 좌우로 미끄러지는 알약 */
+.wl__sched-thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(23, 22, 27, 0.12);
+  pointer-events: none;
+}
+.wl__sched-thumb.is-ready {
+  transition:
+    transform 0.28s var(--e-out),
+    width 0.28s var(--e-out);
+}
+.wl__sched-tab {
+  position: relative;
+  z-index: 1;
+  min-height: 26px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-3);
+  font: var(--t-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s var(--e-out);
+}
+.wl__sched-tab[aria-selected="true"] {
+  color: var(--brand-600);
+}
+@media (prefers-reduced-motion: reduce) {
+  .wl__sched-thumb.is-ready {
+    transition: none;
+  }
+}
+.wl__sched-range {
+  margin: 0;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.wl__sched-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+}
+.wl__sched-row + .wl__sched-row {
+  border-top: 1px solid var(--line-2);
+}
+.wl__sched-row.is-current {
+  border-radius: 12px;
+  background: var(--brand-50);
+  border-top-color: transparent;
+}
+.wl__sched-row.is-current + .wl__sched-row {
+  border-top-color: transparent;
+}
+.wl__sched-tag {
+  flex: none;
+  min-width: 44px;
+  padding: 3px 0;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font: var(--t-xs);
+  font-weight: 700;
+  text-align: center;
+}
+.is-current .wl__sched-tag {
+  background: var(--brand-600);
+  color: #fff;
+}
+.wl__sched-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.wl__sched-name {
+  font: var(--t-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+.wl__sched-meta {
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+/* 아직 열리지 않은 이벤트 행의 "오픈전" 배지 */
+.dday--upcoming {
+  background: var(--info-bg);
+  color: #2a4182;
+}
+/* 종료된 이벤트 행의 회색 배지 */
+.dday--ended {
+  background: var(--ink-3);
+  color: #fff;
 }

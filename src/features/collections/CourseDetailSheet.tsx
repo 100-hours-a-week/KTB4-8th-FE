@@ -10,6 +10,7 @@ import {
   Skeleton,
 } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
+import { isSampleCourseId } from "@/lib/api/local-collection";
 import { confirm } from "@/components/ui/Confirm";
 import { fmtDot, fmtDuration } from "@/lib/format";
 import { useCourseDetail, useDeleteCollectionItem } from "./queries";
@@ -29,6 +30,7 @@ export function CourseDetailSheet({
 }: CourseDetailSheetProps) {
   const { data: course, isLoading, isError, error } = useCourseDetail(courseId);
   const deleteItem = useDeleteCollectionItem();
+  const savedAt = course?.createdAt ? fmtDot(new Date(course.createdAt)) : "";
 
   useEffect(() => {
     if (isError) toast.fromError(error);
@@ -53,26 +55,31 @@ export function CourseDetailSheet({
 
   return (
     <Sheet
-      center
+      topAlign
+      autoHideScroll
       title={course?.name ?? "코스 정보"}
       sub={
-        course
-          ? course.createdAt
-            ? `${course.area} · ${fmtDot(new Date(course.createdAt))} 저장`
-            : course.area
-          : undefined
+        course?.area ? (
+          <span className="cdetail__area">
+            <Icon name="pin" size={14} />
+            <span>{course.area}</span>
+          </span>
+        ) : undefined
       }
       onClose={onClose}
       foot={
         course && (
-          <button
-            className="btn btn--soft btn--block"
-            type="button"
-            onClick={() => void handleDelete()}
-          >
-            <Icon name="trash" size={18} />
-            <span>보관함에서 삭제</span>
-          </button>
+          <div className="wl__foot">
+            {savedAt && <p className="pdetail__saved">최초 저장일 {savedAt}</p>}
+            <button
+              className="btn btn--soft btn--block"
+              type="button"
+              onClick={() => void handleDelete()}
+            >
+              <Icon name="trash" size={18} />
+              <span>보관함에서 삭제</span>
+            </button>
+          </div>
         )
       }
     >
@@ -91,7 +98,8 @@ export function CourseDetailSheet({
       )}
       {course && (
         <>
-          <DummyDataNotice />
+          {/* 예시로 넣어 둔 코스에만 안내한다. 코스 추천으로 보관한 코스는 실제 정보다. */}
+          {isSampleCourseId(courseId) && <DummyDataNotice bottomGap={15} />}
           <div className="stats">
             <div className="stat">
               <p className="stat__key">추천 순위</p>

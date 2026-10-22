@@ -503,51 +503,68 @@
   transform: scale(0.985);
 }
 
-/* 썸네일 — MVP는 더미 데이터라 카테고리별 그라데이션 자리 표시자를 그린다 */
+/* 썸네일 — MVP는 더미 데이터라 카테고리별 배경색 위에 이모지를 올려 자리를 대신한다.
+   배경은 카테고리마다 다른 부드러운(파스텔) 그라데이션이다. */
 .thumb {
   position: relative;
   background: var(--surface-3);
   border-radius: var(--r-md);
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.92);
   overflow: hidden;
   isolation: isolate;
+  box-shadow: inset 0 0 0 1px rgba(23, 22, 27, 0.05);
 }
 .thumb::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: var(--grad-brand) border-box;
+  background: linear-gradient(145deg, var(--brand-50), var(--brand-100));
 }
 .thumb[data-cat="CAFE"]::after {
-  background: linear-gradient(140deg, #c9a06a, #8a6234);
+  background: linear-gradient(145deg, #f7eadb, #ebd3b7);
+}
+.thumb[data-cat="DESSERT"]::after {
+  background: linear-gradient(145deg, #fce8ef, #f8d0de);
 }
 .thumb[data-cat="RESTAURANT"]::after {
-  background: linear-gradient(140deg, #e89a5c, #c25a33);
+  background: linear-gradient(145deg, #ffead3, #ffd4ac);
+}
+.thumb[data-cat="BAR"]::after {
+  background: linear-gradient(145deg, #fff3cf, #fbe298);
 }
 .thumb[data-cat="POPUP"]::after {
-  background: linear-gradient(140deg, #7fa8f0, #3d63c4);
+  background: linear-gradient(145deg, #e3e8ff, #cad2fa);
+}
+.thumb[data-cat="SELECTSHOP"]::after {
+  background: linear-gradient(145deg, #f0e4fa, #ddc9f3);
 }
 .thumb[data-cat="EXHIBITION"]::after {
-  background: linear-gradient(140deg, #5fc8be, #1e7c86);
+  background: linear-gradient(145deg, #dbf3ef, #bee8e1);
+}
+.thumb[data-cat="PERFORMANCE"]::after {
+  background: linear-gradient(145deg, #ffded7, #fcc5ba);
+}
+.thumb[data-cat="WALK"]::after {
+  background: linear-gradient(145deg, #def4da, #c4e8bd);
+}
+.thumb[data-cat="SPORTS"]::after {
+  background: linear-gradient(145deg, #d9f1fb, #b9e3f5);
+}
+.thumb[data-cat="FESTIVAL"]::after {
+  background: linear-gradient(145deg, #fadcf0, #f2c0e3);
 }
 .thumb[data-cat="ETC"]::after {
-  background: linear-gradient(140deg, #8fb77a, #46704a);
+  background: linear-gradient(145deg, #eef3ea, #dce7d6);
 }
 .thumb__glyph {
   font-size: 26px;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+  filter: drop-shadow(0 1px 2px rgba(23, 22, 27, 0.14));
 }
+/* 연한 배경에는 아래쪽을 어둡게 깔던 막이 필요 없다 */
 .thumb__veil {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0) 45%,
-    rgba(0, 0, 0, 0.34) 100%
-  );
+  display: none;
 }
 .thumb--wide {
   aspect-ratio: 4 / 3;
@@ -838,6 +855,12 @@
   margin-top: var(--s-3);
   line-height: 1.6;
 }
+.modal__sub {
+  display: block;
+  margin-top: 6px;
+  font-size: 11.5px;
+  opacity: 0.8;
+}
 .modal__actions {
   display: flex;
   gap: var(--s-2);
@@ -905,6 +928,13 @@
   align-items: center;
   gap: var(--s-2);
   padding: var(--s-3) var(--s-4);
+}
+/* 닫기(×) 같은 버튼은 제목이 몇 줄이든 맨 위에 두고, 제목 첫 줄은 버튼(36px)의 세로 중앙에 맞춘다 */
+.sheet__head--top {
+  align-items: flex-start;
+}
+.sheet__head--top .sheet__titles {
+  padding-top: calc((36px - 18px * 1.35) / 2);
 }
 .sheet__lead {
   flex: none;

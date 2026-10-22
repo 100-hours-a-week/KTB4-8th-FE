@@ -4,13 +4,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
-import {
-  DummyDataNotice,
-  Empty,
-  Skeleton,
-  Spinner,
-  Thumb,
-} from "@/components/ui/Primitives";
+import { Empty, Skeleton, Spinner } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { api } from "@/lib/api/client";
 import { CATEGORY_LABEL } from "@/lib/constants";
@@ -90,6 +84,7 @@ export function PlaceDetailSheet({
   return (
     <Sheet
       title="장소 정보"
+      autoHideScroll
       compact
       tall
       expandable
@@ -150,10 +145,6 @@ export function PlaceDetailSheet({
       )}
       {place && (
         <>
-          <DummyDataNotice />
-          <div className="pdetail__hero">
-            <Thumb category={place.category} />
-          </div>
           <div className="pdetail__tags">
             <span className="chip chip--tag chip--brand">
               {CATEGORY_LABEL[place.category]}

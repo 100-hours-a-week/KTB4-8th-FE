@@ -57,7 +57,10 @@ export function usePullToRefresh(
       const inOverlay =
         target instanceof Element &&
         !!target.closest(".phone__overlays, [role='dialog']");
-      if (busy || inOverlay || window.scrollY > 0) return;
+      // 닫기 같은 작은 버튼은 누르다 살짝 미끄러져도 당기기로 바뀌지 않게 한다(터치에서는 클릭이 취소된다)
+      const ignored =
+        target instanceof Element && !!target.closest("[data-ptr-ignore]");
+      if (busy || inOverlay || ignored || window.scrollY > 0) return;
       tracking = true;
       pulling = false;
       startX = x;

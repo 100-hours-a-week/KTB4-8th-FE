@@ -105,6 +105,8 @@ export interface Place {
   saved?: boolean;
   /** 명세에 없음 — 카드·상세의 지역 라벨용 (백엔드 확인 요청) */
   region?: string | null;
+  /** 명세에 없음 — 보관함 목록 아이콘에 올릴 항목별 이모지(없으면 분류 이모지) */
+  emoji?: string | null;
 }
 
 export interface EventItem {
@@ -119,6 +121,8 @@ export interface EventItem {
   saved?: boolean;
   /** 명세에 없음 — 지역 라벨용 */
   region?: string | null;
+  /** 명세에 없음 — 보관함 목록 아이콘에 올릴 항목별 이모지(없으면 분류 이모지) */
+  emoji?: string | null;
 }
 
 export interface Advertisement {

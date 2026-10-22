@@ -101,6 +101,23 @@ export function getEventStatusBadge(
   };
 }
 
+export type DdayLevel = "ok" | "soon" | "today";
+
+/** 보관함 목록의 D-N 배지 — 마감까지 남은 날. D-10 이상은 ok(초록), D-9~D-1 은 soon(빨강), 당일은 today(강한 빨강).
+    마감일이 없거나 이미 지났으면 null */
+export function getDdayBadge(
+  endAt?: string | null,
+  now = new Date(),
+): { label: string; level: DdayLevel } | null {
+  if (!endAt) return null;
+  const days = Math.round(
+    (calendarDay(new Date(endAt)) - calendarDay(now)) / 86400000,
+  );
+  if (Number.isNaN(days) || days < 0) return null;
+  if (days === 0) return { label: "D-DAY", level: "today" };
+  return { label: `D-${days}`, level: days <= 9 ? "soon" : "ok" };
+}
+
 /** 기존 텍스트 사용처를 위한 호환 함수 */
 export function fmtDday(endAt?: string | null) {
   return getEventStatusBadge(null, endAt)?.label ?? "";

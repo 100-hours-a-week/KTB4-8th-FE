@@ -15,12 +15,12 @@ export const CATEGORY_LABEL: Record<Category, string> = {
 export const CATEGORY_EMOJI: Record<Category, string> = {
   CAFE: "☕",
   DESSERT: "🍰",
-  RESTAURANT: "🍜",
-  BAR: "🍻",
-  POPUP: "🛍️",
-  SELECTSHOP: "🧦",
+  RESTAURANT: "🍽️",
+  BAR: "🍷",
+  POPUP: "🎟️",
+  SELECTSHOP: "🛍️",
   EXHIBITION: "🖼️",
-  PERFORMANCE: "🎭",
+  PERFORMANCE: "🎤",
   WALK: "🌿",
 };
 
@@ -72,6 +72,10 @@ export const NICKNAME_DISALLOWED = /[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]/g;
 /** BE 에 아직 없는 기능(보관함 · 좋아요 동기화)을 브라우저 저장소 더미로 채운다.
     BE 가 준비돼 그 API 를 직접 쓰려면 NEXT_PUBLIC_LOCAL_DUMMY=off 로 끈다. */
 export const LOCAL_DUMMY = process.env.NEXT_PUBLIC_LOCAL_DUMMY !== "off";
+
+/** 보관함의 장소를 BE v2(/api/v2/member/outing-wishlist) 실제 데이터로 보여준다.
+    아직 장소만 연결돼 있고, 이벤트 · 코스는 위의 로컬 더미를 그대로 쓴다. BE 가 준비되면 on 으로 켠다. */
+export const WISHLIST_V2 = process.env.NEXT_PUBLIC_WISHLIST_V2 === "on";
 
 /** 좋아요 영상 분석 진행률(몇 개 중 몇 개 · 남은 시간)을 가짜로 보여 준다. BE 에 진행률 조회 API 가 없어서다.
     API 가 생기면 off 로 끄고 실제 값을 쓴다. */

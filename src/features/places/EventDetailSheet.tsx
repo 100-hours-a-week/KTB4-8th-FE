@@ -9,12 +9,11 @@ import {
   Empty,
   Skeleton,
   Spinner,
-  Thumb,
 } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { api } from "@/lib/api/client";
 import { CATEGORY_LABEL } from "@/lib/constants";
-import { fmtPeriod, getEventStatusBadge } from "@/lib/format";
+import { describePeriod, eventStatus } from "@/features/wishlist/format";
 import {
   useDeleteCollectionItem,
   useSaveCollectionItem,
@@ -23,7 +22,7 @@ import { placeKeys, useEvent } from "./queries";
 import type { CollectionItem } from "@/types/api";
 
 /* 이벤트 상세 팝업 — 프로토타입 js/pages/home.js 의 openEventSheet() 를 그대로 옮겼다.
-   장소 상세와 같은 16:9 사진 시트 규격(sheet--tall)이고, 마감 D-N 칩만 추가로 붙는다. */
+   보관한 이벤트 상세(WishlistDetailSheet)와 같은 배치다 — 분류 칩 옆 진행 상태 배지, 기간 줄의 D-N. */
 
 export interface EventDetailSheetProps {
   eventId: string;
@@ -80,49 +79,53 @@ export function EventDetailSheet({ eventId, onClose }: EventDetailSheetProps) {
     }
   }
 
-  const status = event ? getEventStatusBadge(event.startAt, event.endAt) : null;
+  const status = event ? eventStatus(event.startAt, event.endAt) : null;
+  const period = event ? describePeriod(event.startAt, event.endAt) : null;
 
   return (
     <Sheet
       title="이벤트 정보"
+      autoHideScroll
       compact
       tall
       expandable
       onClose={onClose}
       foot={
         event && (
-          <div className="pdetail__actions">
-            <button
-              className="btn btn--ghost"
-              type="button"
-              onClick={() => toast.info("준비 중인 기능입니다.")}
-            >
-              <Icon name="map" size={18} />
-              <span>지도에서 보기</span>
-            </button>
-            <button
-              className={`btn${saved ? " btn--soft" : ""}`}
-              type="button"
-              disabled={saving}
-              onClick={() => void handleToggle()}
-            >
-              {saving ? (
-                <>
-                  <Spinner />
-                  <span>{saved ? "삭제하는 중" : "담는 중"}</span>
-                </>
-              ) : saved ? (
-                <>
-                  <Icon name="trash" size={18} />
-                  <span>보관함에서 삭제</span>
-                </>
-              ) : (
-                <>
-                  <Icon name="bookmark" size={18} />
-                  <span>보관함에 담기</span>
-                </>
-              )}
-            </button>
+          <div className="wl__foot">
+            <div className="pdetail__actions">
+              <button
+                className="btn btn--ghost"
+                type="button"
+                onClick={() => toast.info("준비 중인 기능입니다.")}
+              >
+                <Icon name="map" size={18} />
+                <span>지도에서 보기</span>
+              </button>
+              <button
+                className={`btn${saved ? " btn--soft" : ""}`}
+                type="button"
+                disabled={saving}
+                onClick={() => void handleToggle()}
+              >
+                {saving ? (
+                  <>
+                    <Spinner />
+                    <span>{saved ? "삭제하는 중" : "담는 중"}</span>
+                  </>
+                ) : saved ? (
+                  <>
+                    <Icon name="trash" size={18} />
+                    <span>보관함에서 삭제</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name="bookmark" size={18} />
+                    <span>보관함에 담기</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )
       }
@@ -143,16 +146,13 @@ export function EventDetailSheet({ eventId, onClose }: EventDetailSheetProps) {
       {event && (
         <>
           <DummyDataNotice />
-          <div className="pdetail__hero">
-            <Thumb category={event.category} />
-          </div>
-          <div className="pdetail__tags">
+          <div className="pdetail__tags wl__tags">
             <span className="chip chip--tag chip--brand">
               {CATEGORY_LABEL[event.category]}
             </span>
             {status && (
-              <span className={`event-status event-status--${status.tone}`}>
-                {status.label}
+              <span className={`wl__status wl__status--${status}`}>
+                {status === "ongoing" ? "진행중" : "종료"}
               </span>
             )}
           </div>
@@ -164,20 +164,17 @@ export function EventDetailSheet({ eventId, onClose }: EventDetailSheetProps) {
           {event.description && (
             <p className="pdetail__desc">{event.description}</p>
           )}
-          <div className="pdetail__rows">
-            <div className="pdetail__row">
-              <span className="pdetail__row-key">기간</span>
-              <span className="pdetail__row-val">
-                {fmtPeriod(event.startAt, event.endAt)}
-              </span>
+          {period && (
+            <div className="wl__period">
+              <Icon name="calendar" size={16} />
+              <span>{period.text}</span>
+              {period.dday && (
+                <span className={`dday dday--${period.dday.level}`}>
+                  {period.dday.label}
+                </span>
+              )}
             </div>
-            <div className="pdetail__row">
-              <span className="pdetail__row-key">카테고리</span>
-              <span className="pdetail__row-val">
-                {CATEGORY_LABEL[event.category]}
-              </span>
-            </div>
-          </div>
+          )}
         </>
       )}
     </Sheet>

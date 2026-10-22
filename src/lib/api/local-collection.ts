@@ -15,6 +15,8 @@ interface CatalogPlace {
   name: string;
   category: Category;
   region: string;
+  /** 목록 아이콘에 올릴 이모지 — 항목 특성에 맞춘 것(없으면 분류 이모지) */
+  emoji?: string;
   description: string;
   googlePlaceId: string | null;
   imageUrl: string | null;
@@ -28,6 +30,7 @@ interface CatalogEvent {
   category: Category;
   placeId: string;
   region: string;
+  emoji?: string;
   description: string;
   startAt: string;
   endAt: string;
@@ -71,6 +74,7 @@ const PLACES: CatalogPlace[] = [
     name: "어라운드 성수",
     category: "CAFE",
     region: "서울 성동구",
+    emoji: "☕",
     description: "성수동 골목 안쪽, 층고 높은 로스터리 카페",
     googlePlaceId: "ChIJ_around_seongsu",
     imageUrl: null,
@@ -97,6 +101,7 @@ const PLACES: CatalogPlace[] = [
     name: "보안여관 전시",
     category: "EXHIBITION",
     region: "서울 종로구",
+    emoji: "🏛️",
     description: "1940년대 여관을 고쳐 만든 복합 문화 공간",
     googlePlaceId: "ChIJ_boan",
     imageUrl: null,
@@ -108,6 +113,7 @@ const PLACES: CatalogPlace[] = [
     name: "성수연방",
     category: "POPUP",
     region: "서울 성동구",
+    emoji: "🏬",
     description: "팝업·편집샵이 모인 복합 문화 공장",
     googlePlaceId: "ChIJ_yeonbang",
     imageUrl: null,
@@ -119,6 +125,7 @@ const PLACES: CatalogPlace[] = [
     name: "대림창고",
     category: "CAFE",
     region: "서울 성동구",
+    emoji: "🏭",
     description: "정미소를 고친 대형 카페 겸 전시장",
     googlePlaceId: "ChIJ_daerim",
     imageUrl: null,
@@ -130,6 +137,7 @@ const PLACES: CatalogPlace[] = [
     name: "카페 온화",
     category: "CAFE",
     region: "서울 성동구",
+    emoji: "☕",
     description: "조용한 창가 자리가 있는 디저트 카페",
     googlePlaceId: "ChIJ_onhwa",
     imageUrl: null,
@@ -153,33 +161,12 @@ const PLACES: CatalogPlace[] = [
 
 const EVENTS: CatalogEvent[] = [
   {
-    id: "801",
-    name: "성수 팝업 위크",
-    category: "POPUP",
-    placeId: "704",
-    region: "서울 성동구",
-    description: "12개 브랜드가 참여하는 주말 팝업 페스티벌",
-    startAt: "2026-09-18T11:00:00+09:00",
-    endAt: "2026-10-28T20:00:00+09:00",
-    imageUrl: null,
-  },
-  {
-    id: "802",
-    name: "보안여관 기획전 〈밤의 기록〉",
-    category: "EXHIBITION",
-    placeId: "be-place-2",
-    region: "서울 종로구",
-    description: "사진·설치 작업 20여 점을 모은 기획 전시",
-    startAt: "2026-09-05T11:00:00+09:00",
-    endAt: "2026-10-12T19:00:00+09:00",
-    imageUrl: null,
-  },
-  {
     id: "803",
     name: "서울 디저트 페어",
     category: "POPUP",
     placeId: "702",
     region: "서울 강남구",
+    emoji: "🧁",
     description: "인기 디저트 브랜드를 한자리에서 만나는 기간 한정 페어",
     startAt: "2026-09-24T11:00:00+09:00",
     endAt: "2026-10-05T20:00:00+09:00",
@@ -191,6 +178,7 @@ const EVENTS: CatalogEvent[] = [
     category: "EXHIBITION",
     placeId: "be-place-2",
     region: "서울 종로구",
+    emoji: "🍁",
     description: "빛과 사운드로 가을의 풍경을 재해석한 미디어 전시",
     startAt: "2026-09-20T10:00:00+09:00",
     endAt: "2026-10-15T19:00:00+09:00",
@@ -202,132 +190,10 @@ const EVENTS: CatalogEvent[] = [
 
 let memory: Store | null = null;
 
-function makeComponent(
-  sequence: number,
-  placeId: string,
-  arrival: Date,
-  stay: number,
-  travel: number,
-  reason: string,
-): CandidateComponent {
-  const p = PLACES.find((x) => x.id === placeId)!;
-  return {
-    sequence,
-    guideId: p.id,
-    type: "PLACE",
-    name: p.name,
-    category: p.category,
-    estimatedArrivalAt: toIso(arrival),
-    estimatedStayMinutes: stay,
-    travelMinutes: travel,
-    reason,
-    latitude: p.latitude,
-    longitude: p.longitude,
-  };
-}
-
-function at(daysFromNow: number, hour: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromNow);
-  d.setHours(hour, 0, 0, 0);
-  return d;
-}
-
 function seedStore(): Store {
-  const now = Date.now();
-  const ago = (hours: number) => toIso(new Date(now - hours * 3_600_000));
-
-  const cafe = [
-    makeComponent(
-      1,
-      "be-place-0",
-      at(3, 13),
-      60,
-      0,
-      "좋아요한 영상에 자주 나온 로스터리예요.",
-    ),
-    makeComponent(
-      2,
-      "705",
-      at(3, 14),
-      60,
-      12,
-      "정미소를 고친 넓은 공간이라 쉬어 가기 좋아요.",
-    ),
-    makeComponent(
-      3,
-      "704",
-      at(3, 15),
-      90,
-      8,
-      "팝업·편집샵을 함께 둘러볼 수 있어요.",
-    ),
-  ];
-  const culture = [
-    makeComponent(
-      1,
-      "be-place-2",
-      at(4, 14),
-      90,
-      0,
-      "전시를 보고 하루를 시작하기 좋아요.",
-    ),
-    makeComponent(
-      2,
-      "702",
-      at(4, 16),
-      80,
-      25,
-      "전시 뒤 저녁을 먹기 좋은 을지로 노포예요.",
-    ),
-  ];
-
   return {
-    items: [
-      {
-        id: "L-seed-1",
-        itemType: "PLACE",
-        itemId: "be-place-0",
-        createdAt: ago(2),
-      },
-      {
-        id: "L-seed-2",
-        itemType: "PLACE",
-        itemId: "be-place-2",
-        createdAt: ago(30),
-      },
-      { id: "L-seed-3", itemType: "PLACE", itemId: "705", createdAt: ago(80) },
-      { id: "L-seed-4", itemType: "EVENT", itemId: "802", createdAt: ago(5) },
-      { id: "L-seed-5", itemType: "EVENT", itemId: "801", createdAt: ago(50) },
-    ],
-    courses: [
-      {
-        id: "L-course-1",
-        name: "성수 감성 카페 투어",
-        area: "성동구 성수동",
-        rank: 1,
-        componentCount: cafe.length,
-        estimatedDurationMinutes: 230,
-        totalTravelMinutes: 20,
-        components: cafe,
-        startAt: cafe[0].estimatedArrivalAt!,
-        endAt: toIso(at(3, 18)),
-        createdAt: ago(10),
-      },
-      {
-        id: "L-course-2",
-        name: "종로 · 을지로 문화 산책",
-        area: "종로구",
-        rank: 2,
-        componentCount: culture.length,
-        estimatedDurationMinutes: 195,
-        totalTravelMinutes: 25,
-        components: culture,
-        startAt: culture[0].estimatedArrivalAt!,
-        endAt: toIso(at(4, 19)),
-        createdAt: ago(40),
-      },
-    ],
+    items: [],
+    courses: [],
   };
 }
 
@@ -359,12 +225,44 @@ function migrateLegacyIds(store: Store): Store {
     : { ...store, items };
 }
 
+/** 예전에 시드로 들어갔던 예시 코스(L-course-N)를 이미 저장된 브라우저에서도 지운다.
+    코스 추천으로 직접 보관한 코스는 id 가 달라서 그대로 남는다. 백업: ~/.keepgo-dev/backup/sample-courses.local-collection.ts.bak */
+function dropSampleCourses(store: Store): Store {
+  const courses = store.courses.filter((c) => !isSampleCourseId(c.id));
+  return courses.length === store.courses.length
+    ? store
+    : { ...store, courses };
+}
+
+/** 예전에 시드로 들어갔던 예시 이벤트(801 성수 팝업 위크 · 802 보안여관 기획전)를 이미 저장된 브라우저에서도 지운다.
+    백업: ~/.keepgo-dev/backup/sample-events.local-collection.ts.bak */
+const DROPPED_EVENT_IDS = new Set(["801", "802"]);
+
+function dropSampleEvents(store: Store): Store {
+  const items = store.items.filter(
+    (it) => !(it.itemType === "EVENT" && DROPPED_EVENT_IDS.has(it.itemId)),
+  );
+  return items.length === store.items.length ? store : { ...store, items };
+}
+
+/** 예전에 시드로 들어갔던 예시 장소 3건(L-seed-1~3: 어라운드 성수 · 보안여관 전시 · 대림창고)을 이미 저장된 브라우저에서도 지운다.
+    지금은 홈 "요즘 뜨는 곳"의 실제 장소(FE 더미)를 담는 방식이라 시드가 필요 없다.
+    백업: ~/.keepgo-dev/backup/sample-places.local-collection.ts.bak */
+function dropSampleSeedPlaces(store: Store): Store {
+  const items = store.items.filter((it) => !it.id.startsWith("L-seed-"));
+  return items.length === store.items.length ? store : { ...store, items };
+}
+
 function load(): Store {
   if (memory) return memory;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      memory = migrateLegacyIds(JSON.parse(raw) as Store);
+      memory = dropSampleSeedPlaces(
+        dropSampleEvents(
+          dropSampleCourses(migrateLegacyIds(JSON.parse(raw) as Store)),
+        ),
+      );
       save();
       return memory;
     }
@@ -383,6 +281,9 @@ function save() {
     /* 무시 */
   }
 }
+
+/** 처음부터 들어 있는 예시 코스(L-course-N)인지. 코스 추천으로 직접 보관한 코스는 false 다. */
+export const isSampleCourseId = (id: string) => id.startsWith("L-course-");
 
 const newId = () =>
   `L${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
