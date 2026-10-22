@@ -6,7 +6,10 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
 import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
-import { isApiError } from "@/lib/api/client";
+import { describe, isApiError } from "@/lib/api/client";
+import { CHAT_V2 } from "@/lib/constants";
+import { hasNoSavedGuides } from "@/features/sync/queries";
+import { RecNotice, type RecNoticeModel } from "./RecNotice";
 import { CATEGORY_BY_LABEL } from "@/lib/api/backend";
 import {
   currentPosition,
@@ -235,6 +238,8 @@ export function CoursePopup() {
   const pathname = usePathname();
 
   const [draft, setDraft] = useState("");
+  // 추천이 실패했을 때 조건 카드 위에 남기는 안내(닫거나 다시 요청하면 사라진다)
+  const [recNotice, setRecNotice] = useState<RecNoticeModel | null>(null);
   const [view, setView] = useState<ViewState>(null);
   const [stepIndex, setStepIndex] = useState(0);
   // 조건 카드를 접어 둔 대화의 식별값. 새 대화(reset 이 새 식별값을 발급)가 시작되면
@@ -391,8 +396,20 @@ export function CoursePopup() {
       toast.warn("출발지를 먼저 지정해 주세요.");
       return;
     }
+    setRecNotice(null);
     useCourseStore.setState({ phase: "creating" });
     try {
+      // v2 추천은 BE 가 보관함의 장소 · 이벤트 중에서만 후보를 고른다 — 보관함이 비어 있으면 요청해도 503 만 돌아오므로 먼저 알려 준다
+      if (CHAT_V2 && (await hasNoSavedGuides()) === true) {
+        useCourseStore.setState({ phase: "idle" });
+        setRecNotice({
+          title: "보관함에 담은 장소가 없어요",
+          text: "코스는 보관함에 담긴 장소 · 이벤트로 만들어요. 좋아요 영상을 불러오거나 장소를 담은 뒤 다시 시도해 주세요.",
+          actionLabel: "좋아요 영상 불러오기",
+          onAction: () => handleGoHome({ startSync: true }),
+        });
+        return;
+      }
       await updateSlot.mutateAsync(
         buildSlotUpdateBody(state.slots, state.origin),
       );
@@ -406,8 +423,30 @@ export function CoursePopup() {
       const retryable = !(
         isApiError(err) && err.code === "RECOMMENDATION_LIMIT_EXCEEDED"
       );
-      toast.fromError(err, {
-        onRetry: retryable ? () => void requestRecommendation() : undefined,
+      const d = describe(err);
+      // 로그인 만료 · 조용히 넘길 오류는 기존 처리(토스트)를 그대로 쓴다
+      if (d.effect === "RELOGIN" || d.silent) {
+        toast.fromError(err);
+        return;
+      }
+      setRecNotice({
+        title:
+          d.status >= 500
+            ? "추천을 만들지 못했어요"
+            : d.status === 400
+              ? "추천에 필요한 조건이 부족해요"
+              : d.status === 409
+                ? "이미 코스를 만들고 있어요"
+                : "추천을 시작하지 못했어요",
+        text:
+          d.status >= 500
+            ? "서버에서 처리하지 못했어요. 보관함에 담긴 장소가 적거나 일시적인 문제일 수 있어요. 잠시 뒤 다시 시도해 주세요."
+            : d.text,
+        code: d.status
+          ? `${d.status} · ${d.code}${d.traceId ? ` · ${d.traceId}` : ""}`
+          : undefined,
+        actionLabel: retryable ? "다시 시도" : undefined,
+        onAction: retryable ? () => void requestRecommendation() : undefined,
       });
     }
   }
@@ -541,6 +580,7 @@ export function CoursePopup() {
       danger: true,
     });
     if (!ok) return;
+    setRecNotice(null);
     try {
       await clearChat.mutateAsync();
     } catch {
@@ -653,6 +693,7 @@ export function CoursePopup() {
       danger: true,
     });
     if (!ok) return;
+    setRecNotice(null);
     patchSlots(emptySlots());
     toast.info("조건을 초기화했어요.");
   }
@@ -767,6 +808,12 @@ export function CoursePopup() {
               )}
             </div>
 
+            {recNotice && !generating && (
+              <RecNotice
+                notice={recNotice}
+                onClose={() => setRecNotice(null)}
+              />
+            )}
             <CondCard
               slots={slots}
               origin={origin}
