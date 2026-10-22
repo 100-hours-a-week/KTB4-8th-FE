@@ -4,6 +4,10 @@ import { Icon } from "@/components/ui/Icon";
 import { Thumb } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { fmtPeriod, getEventStatusBadge } from "@/lib/format";
+import {
+  DEFAULT_EVENT_EMOJI,
+  resolveItemEmoji,
+} from "@/features/wishlist/itemEmoji";
 import { useEvent } from "./queries";
 import type { Advertisement } from "@/types/api";
 
@@ -19,6 +23,14 @@ export interface AdCardProps {
 export function AdCard({ ad, onOpenEvent }: AdCardProps) {
   const event = useEvent(ad.guideId);
   const e = event.data;
+  // 제목 · 소개의 키워드로 이모지를 고르고, 없으면 — 이벤트를 아직 못 불러왔을 때는 이벤트 기본 이모지(🎫),
+  // 불러왔을 때는 그 이벤트의 분류 이모지를 쓴다.
+  const glyph =
+    resolveItemEmoji({
+      emoji: e?.emoji,
+      name: ad.title,
+      description: ad.summary,
+    }) ?? (e ? null : DEFAULT_EVENT_EMOJI);
 
   const period = e
     ? fmtPeriod(e.startAt, e.endAt)
@@ -38,7 +50,7 @@ export function AdCard({ ad, onOpenEvent }: AdCardProps) {
       type="button"
       onClick={handleClick}
     >
-      <Thumb category={e?.category ?? "POPUP"} />
+      <Thumb category={e?.category ?? "POPUP"} glyph={glyph} />
       <div className="adcard__body">
         <div className="adcard__head">
           <span className="adcard__title">{ad.title}</span>

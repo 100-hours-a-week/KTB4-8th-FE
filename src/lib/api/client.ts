@@ -300,6 +300,8 @@ export const apiV2 = {
     signal?: AbortSignal,
   ) => send<T>("GET", path, { query, signal, base: API_BASE_V2 }),
   del: <T>(path: string) => send<T>("DELETE", path, { base: API_BASE_V2 }),
+  post: <T>(path: string, body?: unknown) =>
+    send<T>("POST", path, { body, base: API_BASE_V2 }),
 };
 
 export const api = {

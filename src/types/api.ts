@@ -105,6 +105,8 @@ export interface Place {
   saved?: boolean;
   /** 명세에 없음 — 카드·상세의 지역 라벨용 (백엔드 확인 요청) */
   region?: string | null;
+  /** 명세에 없음 — 보관함 목록 아이콘에 올릴 항목별 이모지(없으면 분류 이모지) */
+  emoji?: string | null;
 }
 
 export interface EventItem {
@@ -119,6 +121,8 @@ export interface EventItem {
   saved?: boolean;
   /** 명세에 없음 — 지역 라벨용 */
   region?: string | null;
+  /** 명세에 없음 — 보관함 목록 아이콘에 올릴 항목별 이모지(없으면 분류 이모지) */
+  emoji?: string | null;
 }
 
 export interface Advertisement {
@@ -259,6 +263,10 @@ export interface ChatSlot {
   region?: string | null;
   /** "yyyy-MM-dd" */
   date?: string | null;
+  /** 채팅으로 정해진 시각 "HH:mm"(오전/오후를 말하지 않은 1~9시는 오후로 보정한 값). 시각을 모르면(00:00) null */
+  time?: string | null;
+  /** time 을 오전 · 오후 · 저녁으로 바꾼 값 */
+  timeOfDay?: TimeOfDay | null;
   availableMinutes?: AvailableMinutes | null;
   /** 한국어 라벨 배열(예: ["카페"]). AI 쪽 스키마가 문자열→배열로 바뀐 적이 있어서,
       BE 가 문자열 하나만 내려주는 동안에도 FE 는 항상 배열로 다룬다. */

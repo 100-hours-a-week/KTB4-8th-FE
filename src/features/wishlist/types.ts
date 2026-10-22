@@ -1,0 +1,140 @@
+/* BE v2 보관함(/api/v2/member/outing-wishlist) 응답 — FE-BE (v2) 명세와 BE develop 의 응답 DTO 기준.
+   BE 전체가 SNAKE_CASE 라 필드 이름도 그대로 받는다. */
+
+export interface WishlistPlaceSummary {
+  place_id: number;
+  name: string;
+  /** "카페" 또는 "카페,디저트"처럼 오는 분류 문자열 */
+  category: string;
+  description: string | null;
+  /** 시·군·구까지의 주소(예: "서울 성동구") */
+  address_sg: string;
+  extra?: WishlistExtra | null;
+}
+
+export interface WishlistPlaceList {
+  next_cursor: string | null;
+  places: WishlistPlaceSummary[];
+}
+
+export interface WishlistPlaceDetail {
+  place_id: number;
+  name: string;
+  category: string;
+  description: string | null;
+  address_sg: string;
+  address_road: string | null;
+  coordinate: { lat: number; lng: number } | null;
+  /** 이 장소가 나온 유튜브 영상 링크. 제목·채널 같은 영상 정보는 BE 가 아직 내려주지 않는다. */
+  videos_featured_link: string[] | null;
+  /** yyyy-MM-dd */
+  save_date: string | null;
+  /** 네이버 지도 장소 ID. BE 가 아직 내려주지 않으면 없다. */
+  naver_place_id?: string | null;
+  extra?: WishlistExtra | null;
+}
+
+export interface WishlistEventSummary {
+  event_id: number;
+  name: string;
+  category: string;
+  description: string | null;
+  /** yyyy-MM-dd */
+  start_date: string | null;
+  end_date: string | null;
+  /** place.name 은 지금 BE 가 null 로 내려준다 */
+  place: { name: string | null; address_sg: string } | null;
+  extra?: WishlistExtra | null;
+}
+
+export interface WishlistEventList {
+  next_cursor: string | null;
+  events: WishlistEventSummary[];
+}
+
+export interface WishlistEventDetail {
+  event_id: number;
+  name: string;
+  category: string;
+  description: string | null;
+  videos_featured_link: string[] | null;
+  save_date: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  place: {
+    name: string | null;
+    address_sg: string;
+    address_road: string | null;
+    coordinate: { lat: number; lng: number } | null;
+  } | null;
+  naver_place_id?: string | null;
+  extra?: WishlistExtra | null;
+}
+
+/* ── 표시용 추가 값(extra) ─────────────────────────────────
+   공식 링크 · 일정표 · 이모지 · 지도 검색어는 BE 명세에 아직 없다. 로컬 BE 가 응답에 `extra` 로 실어 주면 그대로 쓰고,
+   실제(개발) 서버는 보내지 않으므로 모두 없는 것으로 보고 해당 구역을 그리지 않는다. */
+export interface WishlistExtra {
+  /** 보관함 목록 아이콘에 올릴, 이 항목의 특성에 맞춘 이모지 */
+  emoji?: string;
+  /** 공식 홈페이지 · 인스타그램 링크 — 있는 것만 "공식 링크" 구역에 칩으로 보여 준다 */
+  links?: ExtraLink[];
+  /** 도로명 주소 뒤에 붙는 건물 · 층 · 상호 — "…한강대로23길 55 용산 아이파크몰 4층 더팝업" 처럼 이어서 보여 준다 */
+  address_detail?: string;
+  /** BE 가 준 도로명 주소 대신 쓸 값(빈 문자열이면 주소를 펼치는 화살표를 숨긴다) */
+  address_road?: string;
+  /** 지도에서 보기를 장소 ID 없이 검색으로 열 때 쓰는 검색어(이벤트명보다 장소명이 정확할 때) */
+  map_query?: string;
+  /** 대회 · 축제처럼 일정이 여러 개인 이벤트의 일정표(공연 라인업, 매주 프로그램 등) */
+  schedule?: { title: string; rows: ExtraScheduleRow[] };
+  /** 요일별 영업시간 — 장소 상세의 "영업 중 · 11:00 - 22:00" 줄 */
+  hours?: BusinessHours;
+  /** 행사장 안내도 같은 안내 이미지 — 제목 아래에 크게 보여 주고, 누르면 원본을 연다 */
+  images?: ExtraImage[];
+}
+
+export interface BusinessHoursDay {
+  day: "월" | "화" | "수" | "목" | "금" | "토" | "일";
+  /** "11:00" */
+  open: string;
+  /** "22:00" */
+  close: string;
+  /** 라스트오더 "21:30" */
+  last?: string;
+  /** 브레이크타임 — 이 시간에는 영업하지 않는다 */
+  break?: { start: string; end: string };
+  /** 쉬는 날 */
+  closed?: boolean;
+}
+
+export interface BusinessHours {
+  week: BusinessHoursDay[];
+  /** 요일 표 아래에 덧붙이는 안내 — 예: "점심 라스트오더 14:30" */
+  note?: string;
+}
+
+export interface ExtraImage {
+  title: string;
+  /** 이미지 주소 — 앱 안의 /events/… 파일이거나 https 주소 */
+  src: string;
+}
+
+export interface ExtraLink {
+  type: "official" | "instagram";
+  url: string;
+}
+
+export interface ExtraScheduleRow {
+  /** 왼쪽 알약에 보이는 짧은 글자 — "R7·8", "8주", "10.23" */
+  tag: string;
+  /** 굵은 글씨 — 프로그램 이름 */
+  title: string;
+  /** 연한 글씨 — 날짜 · 시간 · 장소 */
+  meta: string;
+  /** 묶음(탭) 이름 — "하반기 · 9.6 ~ 10.25". 묶음의 첫 행에만 적고 다음 묶음이 나올 때까지 이어진다 */
+  group?: string;
+  /** yyyy-MM-dd — 있으면 오늘이 그 주(월~일, 날짜는 일요일)일 때 초록으로 강조한다 */
+  date?: string;
+  /** 날짜와 상관없이 이 이벤트에 해당하는 일정이라 늘 강조(대회 최종전 등) */
+  current?: boolean;
+}

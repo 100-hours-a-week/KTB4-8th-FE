@@ -40,9 +40,10 @@ export const collectionKeys = {
 };
 
 /** GET /user/collections/me/items?type= — 보관함 목록(전체 · 장소 · 이벤트 · 코스) */
-export function useCollectionItems(type: ItemFilter) {
+export function useCollectionItems(type: ItemFilter, enabled = true) {
   return useQuery({
     queryKey: collectionKeys.items(type),
+    enabled,
     queryFn: async () =>
       (await api.get<CollectionItem[]>("/user/collections/me/items", { type }))
         .data,

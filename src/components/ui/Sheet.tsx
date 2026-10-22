@@ -22,9 +22,11 @@ import { useOverlayStore } from "./overlay-store";
 
 export interface SheetProps {
   title: string;
-  sub?: string;
+  sub?: ReactNode;
   /** 제목 가운데 정렬 */
   center?: boolean;
+  /** 제목이 여러 줄이거나 부제가 있어도 닫기(×)를 맨 위(첫 줄 높이)에 고정한다 */
+  topAlign?: boolean;
   /** 화면을 거의 덮는 팝업 (코스 추천) */
   full?: boolean;
   /** 화면 절반 높이 */
@@ -41,6 +43,8 @@ export interface SheetProps {
   /** 헤더 닫기 버튼 표시 여부. 드래그 닫기 동작과는 별개다. */
   showClose?: boolean;
   foot?: ReactNode;
+  /** 본문 스크롤바를 가는 막대로 바꾸고, 스크롤하는 동안에만 보이게 한다 */
+  autoHideScroll?: boolean;
   /** 배경을 눌러 닫을 수 있는지 */
   dismissible?: boolean;
   onClose: () => void;
@@ -72,6 +76,7 @@ export function Sheet({
   title,
   sub,
   center,
+  topAlign,
   full,
   compact,
   tall,
@@ -81,6 +86,7 @@ export function Sheet({
   actions,
   showClose = true,
   foot,
+  autoHideScroll,
   dismissible = true,
   onClose,
   children,
@@ -91,6 +97,28 @@ export function Sheet({
   const panelRef = useRef<HTMLElement | null>(null);
   const scrimRef = useRef<HTMLDivElement | null>(null);
   const closingRef = useRef(false);
+
+  /* 스크롤바는 움직이는 동안에만 보인다 — 스크롤 이벤트가 있으면 .is-scrolling 을 달고 잠시 뒤 뗀다 */
+  useEffect(() => {
+    if (!autoHideScroll || !host) return;
+    const body = panelRef.current?.querySelector<HTMLElement>(".sheet__body");
+    if (!body) return;
+    let timer: number | undefined;
+    const onScroll = () => {
+      body.classList.add("is-scrolling");
+      window.clearTimeout(timer);
+      timer = window.setTimeout(
+        () => body.classList.remove("is-scrolling"),
+        700,
+      );
+    };
+    body.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      body.removeEventListener("scroll", onScroll);
+      body.classList.remove("is-scrolling");
+    };
+  }, [autoHideScroll, host]);
   const pushSheet = useOverlayStore((s) => s.pushSheet);
   const popSheet = useOverlayStore((s) => s.popSheet);
 
@@ -250,6 +278,7 @@ export function Sheet({
     compact ? "sheet--compact" : "",
     tall ? "sheet--tall" : "",
     expanded ? "sheet--expanded" : "",
+    autoHideScroll ? "sheet--thin-scroll" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -271,7 +300,9 @@ export function Sheet({
           ref={panelRef}
         >
           <div className="sheet__grip" />
-          <div className={`sheet__head${center ? " sheet__head--center" : ""}`}>
+          <div
+            className={`sheet__head${center ? " sheet__head--center" : ""}${topAlign ? " sheet__head--top" : ""}`}
+          >
             <div className="sheet__lead">
               {back && (
                 <button

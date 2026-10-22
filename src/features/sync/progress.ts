@@ -22,6 +22,8 @@ export interface SyncProgress {
   /** 0~99 — 실제 요청이 끝나기 전에는 100 을 보여주지 않는다 */
   percent: number;
   remainingSeconds: number;
+  /** 가짜 진행이 끝까지 찼는데(약 30초) 실제 요청은 아직 안 끝난 상태 — "더 걸려요" 문구로 바꾼다 */
+  capped: boolean;
 }
 
 /** 시작한 지 elapsedMs 가 지난 시점의 진행률 */
@@ -37,8 +39,23 @@ export function progressAt(elapsedMs: number): SyncProgress {
     places: Math.floor(analyzed * PLACES_PER_VIDEO),
     percent: Math.floor((analyzed / TOTAL_VIDEOS) * 100),
     remainingSeconds: Math.ceil((TOTAL_VIDEOS - analyzed) / VIDEOS_PER_SECOND),
+    capped: analyzed >= TOTAL_VIDEOS - 1,
   };
 }
+
+/** 실제 요청이 끝난 순간 — 진행바를 100% 로 채운다(곧바로 결과 카드로 바뀐다) */
+export function completedProgress(current: SyncProgress): SyncProgress {
+  return {
+    ...current,
+    analyzed: current.total,
+    percent: 100,
+    remainingSeconds: 0,
+    capped: false,
+  };
+}
+
+/** 100% 를 보여 주는 시간 */
+export const FINISH_HOLD_MS = 600;
 
 /** 가짜 진행이 끝났을 때 BE 가 개수를 안 알려주면 쓰는 결과(120개 → 87곳) */
 export const DUMMY_SYNC_RESULT: SyncResult = {
@@ -64,23 +81,29 @@ export function useSyncProgress(startedAt: number | null): SyncProgress | null {
   return startedAt == null ? null : progressAt(now - startedAt);
 }
 
-export type SyncDemoMode = "done" | "fail";
+/** 실제 요청이 아주 빨리 끝나도(영상이 적거나 없을 때) 진행 화면을 이만큼은 보여 준다 */
+export const MIN_PROGRESS_MS = 5_000;
 
-/** URL 의 ?syncDemo= 값 — BE 없이 진행 화면을 확인할 때 쓴다(done: 끝까지, fail: 중간에 실패) */
+export type SyncDemoMode = "done" | "fail" | "empty";
+
+/** URL 의 ?syncDemo= 값 — BE 없이 화면을 확인할 때 쓴다(done: 끝까지, fail: 중간에 실패, empty: 영상 없음) */
 export function parseSyncDemo(value: string | null): SyncDemoMode | null {
-  return value === "done" || value === "fail" ? value : null;
+  return value === "done" || value === "fail" || value === "empty"
+    ? value
+    : null;
 }
 
-/** BE 를 부르지 않고 가짜로 진행시킨다. done 은 다 끝난 뒤 성공, fail 은 60% 쯤에서 실패 */
+/** BE 를 부르지 않고 가짜로 진행시킨다. done 은 다 끝난 뒤 성공, fail 은 60% 쯤에서 실패, empty 는 8초 뒤 "찾은 장소 없음" */
 export function simulateSync(mode: SyncDemoMode): Promise<SyncResult> {
   const total = (TOTAL_VIDEOS / VIDEOS_PER_SECOND) * 1000;
   return new Promise((resolve, reject) => {
     window.setTimeout(
-      () =>
-        mode === "fail"
-          ? reject(new Error("SYNC_DEMO_FAILED"))
-          : resolve(DUMMY_SYNC_RESULT),
-      mode === "fail" ? total * 0.6 : total,
+      () => {
+        if (mode === "fail") reject(new Error("SYNC_DEMO_FAILED"));
+        else if (mode === "empty") resolve({ videoCount: 0, placeCount: 0 });
+        else resolve(DUMMY_SYNC_RESULT);
+      },
+      mode === "fail" ? total * 0.6 : mode === "empty" ? 8_000 : total,
     );
   });
 }

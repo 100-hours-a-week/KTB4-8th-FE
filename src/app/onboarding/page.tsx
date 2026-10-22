@@ -27,7 +27,7 @@ interface Slide {
 const ROUTE_STOPS: [string, string][] = [
   ["카페 온화", "☕️ 카페 · 출발지에서 12분"],
   ["대림창고", "🖼️ 전시 · 도보 7분"],
-  ["성수연방", "🛍️ 팝업 · 도보 5분"],
+  ["성수연방", "🎟️ 팝업 · 도보 5분"],
 ];
 
 const SLIDES: Slide[] = [
@@ -72,7 +72,7 @@ const SLIDES: Slide[] = [
             animation: "kg-float 4.8s var(--e-io) .9s infinite",
           }}
         >
-          🛍️ 팝업
+          🎟️ 팝업
         </span>
         <span
           className="art-chip"

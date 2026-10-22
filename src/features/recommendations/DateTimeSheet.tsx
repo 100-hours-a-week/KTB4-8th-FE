@@ -71,6 +71,8 @@ export function DateTimeSheet({ onClose }: DateTimeSheetProps) {
     patchSlots({
       date: `${day.getFullYear()}-${p(day.getMonth() + 1)}-${p(day.getDate())}`,
       timeOfDay: tod,
+      // 시간대를 그대로 두고 날짜만 바꾼 경우에만 채팅으로 받은 정확한 시각을 유지한다
+      time: tod === slots.timeOfDay ? (slots.time ?? null) : null,
     });
     onClose();
   }
