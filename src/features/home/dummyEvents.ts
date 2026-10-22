@@ -20,7 +20,7 @@ export interface HomeDummyEvent {
   /** yyyy-MM-dd */
   start_date: string;
   end_date: string;
-  /** 목록 카드의 대표 이미지 주소 — 공식 페이지(또는 네이버 지도)의 이미지 주소를 그대로 가리킨다(내려받아 저장하지 않는다). 직접 받은 이미지는 public/events/ 에 두고 /events/… 로 적는다. 없으면 이모지 타일 */
+  /** 목록 카드의 대표 이미지 주소 — 공식 페이지(또는 네이버 지도)의 이미지 주소를 그대로 가리킨다(내려받아 저장하지 않는다). 직접 받은 이미지는 public/event-images/ 에 두고 /event-images/… 로 적는다(/events/ 는 인프라(ALB)가 가로채 503 이 나서 쓰지 않는다). 없으면 이모지 타일 */
   image_url?: string;
   video_ids: string[];
   /** 이모지 · 공식 링크 · 일정표 · 지도 검색어 · 건물 주소 */
@@ -95,7 +95,7 @@ export const HOME_DUMMY_EVENTS: HomeDummyEvent[] = [
     place_name: "노들섬",
     start_date: "2026-10-24",
     end_date: "2026-10-24",
-    image_url: "/events/seoulmusicfestival-poster.jpg",
+    image_url: "/event-images/seoulmusicfestival-poster.jpg",
     video_ids: [],
     extra: {
       emoji: "🎶",
@@ -172,7 +172,9 @@ export const HOME_DUMMY_EVENTS: HomeDummyEvent[] = [
           },
         ],
       },
-      images: [{ title: "행사장 안내도", src: "/events/smf-sitemap.jpg" }],
+      images: [
+        { title: "행사장 안내도", src: "/event-images/smf-sitemap.jpg" },
+      ],
     },
   },
   {
@@ -187,7 +189,7 @@ export const HOME_DUMMY_EVENTS: HomeDummyEvent[] = [
     place_name: "에버랜드 스피드웨이",
     start_date: "2026-10-24",
     end_date: "2026-10-25",
-    image_url: "/events/superrace-poster.jpg",
+    image_url: "/event-images/superrace-golden-moments.jpg",
     video_ids: [],
     extra: {
       emoji: "🏎️",
@@ -248,7 +250,7 @@ export const HOME_DUMMY_EVENTS: HomeDummyEvent[] = [
     place_name: "반포한강공원 · 잠수교",
     start_date: "2026-04-26",
     end_date: "2026-10-25",
-    image_url: "/events/ddooddoo-poster.jpg",
+    image_url: "/event-images/ddooddoo-poster.jpg",
     video_ids: [],
     extra: {
       emoji: "🌉",
