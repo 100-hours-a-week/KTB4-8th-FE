@@ -24,6 +24,7 @@ import {
 import { nearestRegion, searchRegions } from "@/lib/address/regionDb";
 import { fmtDate, uid } from "@/lib/format";
 import {
+  hasOriginCoordinates,
   isLegacyDefaultOrigin,
   missingRequired,
   emptySlots,
@@ -197,8 +198,8 @@ function buildSlotUpdateBody(slots: Slots, origin: Origin): UpdateSlotBody {
   }
   return {
     location: {
-      lat: origin.latitude ?? 0,
-      lng: origin.longitude ?? 0,
+      lat: origin.latitude as number,
+      lng: origin.longitude as number,
     },
     requested_location_name: slots.region ?? origin.label,
     requested_date_time: toLocalDateTime(start),
@@ -386,7 +387,7 @@ export function CoursePopup() {
     const state = useCourseStore.getState();
     if (state.phase !== "idle") return;
     // 출발지가 없으면 BE 에 보낼 좌표가 없다 — 조용히 아무 일도 하지 않지 않고 알려 준다
-    if (!state.origin) {
+    if (!hasOriginCoordinates(state.origin)) {
       toast.warn("출발지를 먼저 지정해 주세요.");
       return;
     }

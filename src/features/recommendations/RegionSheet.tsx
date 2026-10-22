@@ -11,6 +11,7 @@ import {
 } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
+import { toast } from "@/components/ui/Toast";
 import { SubwayLineBadge } from "@/components/ui/SubwayLineBadge";
 import {
   addressConfig,
@@ -285,6 +286,11 @@ export function RegionSheet({ kind, onClose }: RegionSheetProps) {
   /** 고른 위치를 조건에 반영한다(시트는 닫지 않는다) */
   function commit(hit: AddressHit) {
     if (kind === "origin") {
+      // 좌표가 없는 결과(지역 DB 의 일부 항목)는 BE 가 역지오코딩을 못 해 추천이 실패한다 — 출발지로 쓰지 않는다
+      if (hit.latitude == null || hit.longitude == null) {
+        toast.warn("이 위치는 좌표를 찾지 못했어요. 다른 위치를 골라 주세요.");
+        return;
+      }
       setStore({
         origin: {
           label: hit.label,

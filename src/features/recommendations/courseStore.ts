@@ -154,9 +154,30 @@ export const useCourseStore = create<CourseState>()(
   ),
 );
 
+/** 출발지에 BE 로 보낼 좌표가 있는지 — 좌표 없이 보내면 BE 가 0,0 으로 역지오코딩을 하다 500 이 날 수 있다 */
+export function hasOriginCoordinates(
+  origin?: Origin | null,
+): origin is Origin & {
+  latitude: number;
+  longitude: number;
+} {
+  return (
+    !!origin &&
+    typeof origin.latitude === "number" &&
+    typeof origin.longitude === "number" &&
+    Number.isFinite(origin.latitude) &&
+    Number.isFinite(origin.longitude)
+  );
+}
+
 /** 추천을 요청할 수 있는 조건이 모였는지 — 지역 · 날짜 · 시간대가 필수이고, 출발지(좌표)도 정해져 있어야 한다 */
 export function isReady(slots: Slots, origin?: Origin | null) {
-  return !!(slots.region && slots.date && slots.timeOfDay && origin);
+  return !!(
+    slots.region &&
+    slots.date &&
+    slots.timeOfDay &&
+    hasOriginCoordinates(origin)
+  );
 }
 
 /** 아직 못 채운 필수 조건 이름들 — 추천 버튼이 꺼져 있는 이유를 알려 줄 때 쓴다 */
@@ -165,6 +186,6 @@ export function missingRequired(slots: Slots, origin?: Origin | null) {
   if (!slots.region) missing.push("지역");
   if (!slots.date) missing.push("날짜");
   else if (!slots.timeOfDay) missing.push("시간대");
-  if (!origin) missing.push("출발지");
+  if (!hasOriginCoordinates(origin)) missing.push("출발지");
   return missing;
 }
