@@ -182,7 +182,7 @@ export interface UpdateSlotBody {
 export function useUpdateSlot() {
   return useMutation({
     mutationFn: async (body: UpdateSlotBody) =>
-      (await api.patch<void>("/user/chat-messages/slot", body)).data,
+      (await api.patch<void>("/user/chat-messages/slot", body))?.data,
   });
 }
 
