@@ -26,7 +26,7 @@ import {
   describePeriod,
   eventStatus,
   splitCategories,
-  thumbCategory,
+  primaryCategory,
 } from "@/features/wishlist/format";
 import { EventFilterSheet } from "@/features/wishlist/EventFilterSheet";
 import { resolveItemEmoji } from "@/features/wishlist/itemEmoji";
@@ -729,7 +729,7 @@ function WishlistRow({
   emoji?: string | null;
   onOpen: () => void;
 }) {
-  const cat = thumbCategory(category);
+  const cat = primaryCategory(category);
   const meta = [splitCategories(category).join(" · "), addressSg]
     .filter(Boolean)
     .join(" · ");

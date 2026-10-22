@@ -555,6 +555,9 @@
 .thumb[data-cat="FESTIVAL"]::after {
   background: linear-gradient(145deg, #fadcf0, #f2c0e3);
 }
+.thumb[data-cat="SPOT"]::after {
+  background: linear-gradient(145deg, #ffe4e4, #fecaca);
+}
 .thumb[data-cat="ETC"]::after {
   background: linear-gradient(145deg, #eef3ea, #dce7d6);
 }

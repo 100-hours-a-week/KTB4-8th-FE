@@ -5,7 +5,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Thumb } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { splitRegion } from "@/features/wishlist/eventFilter";
-import { splitCategories, thumbCategory } from "@/features/wishlist/format";
+import { splitCategories, primaryCategory } from "@/features/wishlist/format";
 import { resolveItemEmoji } from "@/features/wishlist/itemEmoji";
 import type { HomeDummyPlace } from "./dummyPlaces";
 import { useSavedHomeItems } from "./savedHomeItems";
@@ -80,7 +80,7 @@ export function HomePlaceCard({
       ) : (
         <Thumb
           className="thumb--wide"
-          category={thumbCategory(place.category) ?? "ETC"}
+          category={primaryCategory(place.category) ?? "ETC"}
           glyph={resolveItemEmoji({
             emoji: place.extra.emoji,
             name: place.name,

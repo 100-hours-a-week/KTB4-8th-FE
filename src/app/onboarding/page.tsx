@@ -8,7 +8,7 @@ import { usePrefsStore } from "@/features/onboarding/prefsStore";
 import {
   CATEGORY_EMOJI,
   CATEGORY_LABEL,
-  CATEGORY_ORDER,
+  ONBOARDING_CATEGORIES,
 } from "@/lib/constants";
 import type { Category } from "@/types/api";
 
@@ -158,7 +158,7 @@ const SLIDES: Slide[] = [
 ];
 
 /** 관심 카테고리 — 실제 Category enum 이 프로토타입의 라벨과 1:1 로 맞아 재매핑이 필요 없다 */
-const PICKS = CATEGORY_ORDER.map((category) => ({
+const PICKS = ONBOARDING_CATEGORIES.map((category) => ({
   category,
   label: CATEGORY_LABEL[category],
   emoji: CATEGORY_EMOJI[category],
@@ -327,16 +327,20 @@ export default function OnboardingPage() {
             건너뛰기
           </button>
         </div>
-        <div className="onb__body" style={{ textAlign: "left" }}>
-          <h1 className="onb__title">
-            어떤 곳을
-            <br />
-            찾고 계세요?
-          </h1>
-          <p className="onb__desc" style={{ marginTop: 10 }}>
-            {MIN_PICK}개 이상 골라주시면
-            <br />첫 코스 추천이 더 정확해져요.
-          </p>
+        <div
+          className="onb__body onb__body--pick"
+          style={{ textAlign: "left" }}
+        >
+          <h1 className="onb__title">어떤 곳을 찾고 계세요?</h1>
+          <div className="onb__descrow">
+            <p className="onb__desc">
+              {MIN_PICK}개 이상 골라주시면
+              <br />첫 코스 추천이 더 정확해져요.
+            </p>
+            <p className="onb__count onb__count--inline">
+              <b>{selected.length}</b> / {MIN_PICK}개 이상
+            </p>
+          </div>
           <div className="pickgrid">
             {PICKS.map((p) => (
               <button
@@ -355,10 +359,7 @@ export default function OnboardingPage() {
             ))}
           </div>
         </div>
-        <div className="onb__foot">
-          <p className="onb__count">
-            <b>{selected.length}</b> / {MIN_PICK}개 이상
-          </p>
+        <div className="onb__foot onb__foot--pick">
           <button
             className="btn btn--block"
             type="button"

@@ -49,7 +49,11 @@ export const CATEGORY_BY_LABEL: Record<string, Category> = {
   셀렉트샵: "SELECTSHOP",
   전시: "EXHIBITION",
   공연: "PERFORMANCE",
+  축제: "FESTIVAL",
+  "레저·스포츠": "SPORTS",
   산책: "WALK",
+  명소: "SPOT",
+  기타: "ETC",
 };
 
 function toAdvertisements(raw: unknown): Advertisement[] {

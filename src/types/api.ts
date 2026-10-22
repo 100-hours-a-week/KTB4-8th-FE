@@ -10,7 +10,11 @@ export type Category =
   | "SELECTSHOP"
   | "EXHIBITION"
   | "PERFORMANCE"
-  | "WALK";
+  | "FESTIVAL"
+  | "SPORTS"
+  | "WALK"
+  | "SPOT"
+  | "ETC";
 
 export type ItemType = "PLACE" | "EVENT" | "COURSE";
 

@@ -97,22 +97,12 @@ const CATEGORY_BY_LABEL: Record<string, Category> = {
   셀렉트샵: "SELECTSHOP",
 };
 
-/** 분류가 여러 개면 맨 앞의 것을 대표로 쓴다. 온보딩의 카테고리에 없는 분류면 null(기본 아이콘). */
+/** 분류가 여러 개면 맨 앞의 것을 대표로 쓴다. 정해진 카테고리에 없는 분류면 null(기본 아이콘). */
 export function primaryCategory(
   category: string | null | undefined,
 ): Category | null {
   const first = splitCategories(category)[0];
   return (first && CATEGORY_BY_LABEL[first]) || null;
-}
-
-/** 목록 썸네일의 분류. 온보딩 분류에 없는 레저·스포츠는 전용 아이콘을 쓰고, 그 밖의 분류는 null(기본 아이콘). */
-export function thumbCategory(
-  category: string | null | undefined,
-): Category | "SPORTS" | "FESTIVAL" | null {
-  const first = splitCategories(category)[0];
-  if (first === "레저·스포츠") return "SPORTS";
-  if (first === "축제") return "FESTIVAL";
-  return primaryCategory(category);
 }
 
 /** "2026-10-16" ~ "2026-10-22" → { text: "2026.10.16 ~ 2026.10.22", dday: D-N 배지(마감 전일 때만) }. 날짜가 하나라도 없으면 null */

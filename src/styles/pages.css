@@ -479,6 +479,32 @@
   font-weight: 700;
 }
 
+/* 관심사 선택 단계 — 카테고리가 12개라 한 화면에 들어가도록 여백을 줄였다.
+   제목은 한 줄, 개수는 안내 문구 오른쪽 끝, 남는 높이는 제목 위로 보낸다. */
+.onb__body--pick {
+  justify-content: flex-end;
+  padding-top: 8px;
+  padding-bottom: 0;
+}
+.onb__descrow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-top: 10px;
+}
+.onb__descrow .onb__desc {
+  margin-top: 0;
+}
+.onb__count--inline {
+  margin: 0;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+.onb__foot--pick {
+  padding-top: 24px;
+}
+
 /* 온보딩 아트 조각 */
 .art-phone {
   width: 108px;

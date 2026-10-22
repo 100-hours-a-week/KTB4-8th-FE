@@ -9,7 +9,11 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   SELECTSHOP: "편집샵",
   EXHIBITION: "전시",
   PERFORMANCE: "공연",
+  FESTIVAL: "축제",
+  SPORTS: "레저·스포츠",
   WALK: "산책",
+  SPOT: "명소",
+  ETC: "기타",
 };
 
 export const CATEGORY_EMOJI: Record<Category, string> = {
@@ -21,10 +25,14 @@ export const CATEGORY_EMOJI: Record<Category, string> = {
   SELECTSHOP: "🛍️",
   EXHIBITION: "🖼️",
   PERFORMANCE: "🎤",
+  FESTIVAL: "🎉",
+  SPORTS: "🏟️",
   WALK: "🌿",
+  SPOT: "📍",
+  ETC: "✨",
 };
 
-/** 온보딩 · 조건 편집에서 고르는 순서 */
+/** 코스 추천 조건 · 보관함 필터에서 고르는 순서 */
 export const CATEGORY_ORDER: Category[] = [
   "CAFE",
   "DESSERT",
@@ -34,8 +42,17 @@ export const CATEGORY_ORDER: Category[] = [
   "SELECTSHOP",
   "EXHIBITION",
   "PERFORMANCE",
+  "FESTIVAL",
+  "SPORTS",
   "WALK",
+  "SPOT",
+  "ETC",
 ];
+
+/** 온보딩에서 고르는 관심 카테고리 — 기타는 관심사로 고를 대상이 아니라 뺀다 */
+export const ONBOARDING_CATEGORIES: Category[] = CATEGORY_ORDER.filter(
+  (c) => c !== "ETC",
+);
 
 export const TIME_OF_DAY_LABEL: Record<TimeOfDay, string> = {
   MORNING: "오전",
