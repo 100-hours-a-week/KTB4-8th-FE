@@ -3,9 +3,8 @@
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Thumb } from "@/components/ui/Primitives";
-import { toast } from "@/components/ui/Toast";
 import { splitRegion } from "@/features/wishlist/eventFilter";
-import { splitCategories, thumbCategory } from "@/features/wishlist/format";
+import { splitCategories, primaryCategory } from "@/features/wishlist/format";
 import { resolveItemEmoji } from "@/features/wishlist/itemEmoji";
 import type { HomeDummyPlace } from "./dummyPlaces";
 import { useSavedHomeItems } from "./savedHomeItems";
@@ -37,8 +36,8 @@ export function HomePlaceCard({
       aria-label="보관함에 담기"
       onClick={(e) => {
         e.stopPropagation();
-        if (toggle(place.id)) toast.ok("보관함에 담았어요.", "저장 완료");
-        else toast.info("보관함에서 삭제했어요.");
+        // 책갈피 모양이 바뀌어서 담김 · 해제가 보이므로 토스트는 띄우지 않는다(아이콘을 가린다)
+        toggle(place.id);
       }}
     >
       <Icon name={isSaved ? "bookmarkFill" : "bookmark"} size={15} />
@@ -80,7 +79,7 @@ export function HomePlaceCard({
       ) : (
         <Thumb
           className="thumb--wide"
-          category={thumbCategory(place.category) ?? "ETC"}
+          category={primaryCategory(place.category) ?? "ETC"}
           glyph={resolveItemEmoji({
             emoji: place.extra.emoji,
             name: place.name,

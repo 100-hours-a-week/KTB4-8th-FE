@@ -20,10 +20,11 @@ const GLYPH: Record<string, string> = {
   SELECTSHOP: "🛍️",
   EXHIBITION: "🖼️",
   PERFORMANCE: "🎤",
-  WALK: "🌿",
-  SPORTS: "🏟️",
   FESTIVAL: "🎉",
-  ETC: "📍",
+  SPORTS: "🏟️",
+  WALK: "🌿",
+  SPOT: "📍",
+  ETC: "✨",
 };
 
 /** 이미지 자리 — MVP는 더미 데이터라 카테고리별 그라데이션으로 대신 그린다 */

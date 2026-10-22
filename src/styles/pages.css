@@ -479,6 +479,32 @@
   font-weight: 700;
 }
 
+/* 관심사 선택 단계 — 카테고리가 12개라 한 화면에 들어가도록 여백을 줄였다.
+   제목은 한 줄, 개수는 안내 문구 오른쪽 끝, 남는 높이는 제목 위로 보낸다. */
+.onb__body--pick {
+  justify-content: flex-end;
+  padding-top: 8px;
+  padding-bottom: 0;
+}
+.onb__descrow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-top: 10px;
+}
+.onb__descrow .onb__desc {
+  margin-top: 0;
+}
+.onb__count--inline {
+  margin: 0;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+.onb__foot--pick {
+  padding-top: 24px;
+}
+
 /* 온보딩 아트 조각 */
 .art-phone {
   width: 108px;
@@ -3537,4 +3563,173 @@ button.me__row:hover {
 .dday--ended {
   background: var(--ink-3);
   color: #fff;
+}
+
+/* 마이페이지 영상 다시 불러오기 진행 막대 — 탭바 위에 뜨는 얇은 반투명 블러 유리 */
+.rsbar {
+  position: fixed;
+  /* 좌우 0 + 자동 여백으로 가운데 맞춘다(transform 은 등장 애니메이션이 쓰므로 쓰지 않는다) */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom));
+  z-index: 90;
+  width: calc(100% - 24px);
+  max-width: calc(var(--phone-w) - 24px);
+  padding: 11px 13px 12px;
+  border-radius: 16px;
+  color: #fff;
+  background: rgba(23, 22, 27, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 28px rgba(23, 22, 27, 0.28);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  animation: kg-rise 0.2s var(--e-out) both;
+}
+.rsbar__row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.rsbar__text {
+  flex: 1;
+  min-width: 0;
+}
+.rsbar__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.rsbar__eta {
+  flex: none;
+  font-size: 11.5px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.rsbar__sub {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  opacity: 0.78;
+}
+.rsbar__sub--tight {
+  margin-top: 1px;
+}
+.rsbar__bar {
+  height: 4px;
+  margin-top: 9px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+}
+.rsbar__bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #74d3a9, #16a46b);
+  transition: width 0.4s var(--e-out);
+}
+.rsbar__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: #74d3a9;
+}
+.rsbar__ico--failed {
+  color: #ff9b9b;
+}
+.rsbar__ico--slow,
+.rsbar__ico--empty {
+  color: rgba(255, 255, 255, 0.85);
+}
+/* 버튼은 초록 없이 단순하게 — 반투명 흰 바탕 */
+.rsbar__btn {
+  flex: none;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: 700 12px var(--font);
+  white-space: nowrap;
+}
+.rsbar__btn:active {
+  background: rgba(255, 255, 255, 0.26);
+}
+.rsbar__x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.rsbar .spinner {
+  width: 16px;
+  height: 16px;
+}
+
+/* 코스 추천 실패 안내 — 조건 카드 위에 닫을 때까지 남는다 */
+.recnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 var(--s-4) var(--s-2);
+  padding: 11px 12px;
+  border-radius: 14px;
+  background: var(--danger-bg);
+  border: 1px solid rgba(224, 59, 59, 0.2);
+  color: var(--ink);
+}
+.recnote__ico {
+  flex: none;
+  margin-top: 1px;
+  color: var(--danger);
+}
+.recnote__body {
+  flex: 1;
+  min-width: 0;
+}
+.recnote__title {
+  font: var(--t-sm);
+  font-weight: 700;
+}
+.recnote__text {
+  margin-top: 2px;
+  font: var(--t-xs);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.recnote__code {
+  margin-top: 4px;
+  font: var(--t-xs);
+  font-family: var(--font-mono);
+  color: var(--ink-3);
+}
+.recnote__btn {
+  margin-top: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(224, 59, 59, 0.35);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--danger);
+  font: 700 12px var(--font);
+}
+.recnote__x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(23, 22, 27, 0.06);
+  color: var(--ink-3);
 }

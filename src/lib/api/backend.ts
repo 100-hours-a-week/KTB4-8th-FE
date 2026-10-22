@@ -49,7 +49,11 @@ export const CATEGORY_BY_LABEL: Record<string, Category> = {
   셀렉트샵: "SELECTSHOP",
   전시: "EXHIBITION",
   공연: "PERFORMANCE",
+  축제: "FESTIVAL",
+  "레저·스포츠": "SPORTS",
   산책: "WALK",
+  명소: "SPOT",
+  기타: "ETC",
 };
 
 function toAdvertisements(raw: unknown): Advertisement[] {
@@ -113,11 +117,16 @@ interface BeRecommendationItem {
   description?: string;
   lat?: number | null;
   lng?: number | null;
+  /** 이동 · 체류 시간(분) — AI 가 주는 값을 BE 가 전달하기 시작하면 온다(그 전에는 없다) */
+  travel_minutes?: number;
+  stay_minutes?: number;
 }
 
 interface BeRecommendationDetail {
   title?: string;
   total_travel_time?: number;
+  /** 이동 + 체류를 합한 총 소요시간(분) — BE 가 AI 의 total_duration_minutes 를 전달하기 시작하면 온다 */
+  total_duration_minutes?: number;
   items?: BeRecommendationItem[];
 }
 
@@ -130,12 +139,19 @@ interface BeRecommendationMetadata {
     필드명도 FE 가 쓰던 candidates/emptyReason 이 아니라 metadata/snippets/details 다
     (게다가 BE 전체가 SNAKE_CASE 라 total_travel_time 처럼 받는다).
     snippets 는 details 와 같은 순서 · 같은 정보를 요약한 것뿐이라 details 만 쓴다.
-    BE 응답엔 후보별 candidateId · 코스 전체 소요시간 · 장소별 도착시각/머무름시간이 아예
-    없다 — 억지로 숫자를 만들어내지 않고 없는 채로 둔다(화면이 있을 때만 보여준다). */
+    BE 가 total_duration_minutes · stay_minutes 를 내려주기 전에는 코스 전체 소요시간 · 장소별 머무름시간이
+    없다 — 억지로 숫자를 만들어내지 않고 없는 채로 둔다(값이 있을 때만 보여준다). */
 /** AI 가 코스 이름 앞에 붙이기도 하는 "[코스 1]" 같은 순번 표시를 뗀다(순위는 화면에 따로 나온다). */
 function cleanCourseTitle(title: string | undefined): string {
   const raw = title ?? "";
   return raw.replace(/^\s*\[\s*코스\s*\d+\s*\]\s*/, "") || raw;
+}
+
+/** 0 이상의 숫자만 받는다 — 없거나 이상한 값이면 "값 없음"으로 둔다 */
+function numberOrUndefined(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined;
 }
 
 export function toRecommendationRun(
@@ -161,11 +177,14 @@ export function toRecommendationRun(
     startAt: scheduledTime,
     endAt: scheduledTime,
     totalTravelMinutes: d.total_travel_time,
+    estimatedDurationMinutes: numberOrUndefined(d.total_duration_minutes),
     components: (d.items ?? []).map((item, j) => {
       const travelMinutes =
-        travelInDescription && item.description
-          ? Number(item.description)
-          : NaN;
+        typeof item.travel_minutes === "number"
+          ? item.travel_minutes
+          : travelInDescription && item.description
+            ? Number(item.description)
+            : NaN;
       return {
         // BE 순번은 0부터 오므로 그대로 쓰지 않고 목록 순서대로 1부터 매긴다
         sequence: j + 1,
@@ -176,6 +195,7 @@ export function toRecommendationRun(
         travelMinutes: Number.isFinite(travelMinutes)
           ? travelMinutes
           : undefined,
+        estimatedStayMinutes: numberOrUndefined(item.stay_minutes),
         latitude: item.lat ?? null,
         longitude: item.lng ?? null,
       };

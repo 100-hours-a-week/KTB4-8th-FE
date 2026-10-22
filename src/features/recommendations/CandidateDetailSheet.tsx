@@ -90,11 +90,18 @@ export function CandidateDetailSheet({
           <p className="stat__val">{candidate.rank}순위</p>
         </div>
         <div className="stat">
-          <p className="stat__key">총 이동시간</p>
+          {/* BE 가 총 소요시간(이동 + 머무름)을 주면 그것을, 아직 안 주면 이동시간만 보여 준다
+              (이동시간을 "소요시간"이라 부르면 뜻이 달라져서 라벨도 함께 바꾼다) */}
+          <p className="stat__key">
+            {candidate.estimatedDurationMinutes != null
+              ? "총 소요시간"
+              : "총 이동시간"}
+          </p>
           <p className="stat__val">
-            {candidate.totalTravelMinutes != null
-              ? fmtDuration(candidate.totalTravelMinutes)
-              : "-"}
+            {fmtDuration(
+              candidate.estimatedDurationMinutes ??
+                candidate.totalTravelMinutes,
+            )}
           </p>
         </div>
       </div>

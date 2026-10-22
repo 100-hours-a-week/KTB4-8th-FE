@@ -46,6 +46,18 @@ export function fmtDuration(min: number | null | undefined) {
   return m ? `${h}시간 ${m}분` : `${h}시간`;
 }
 
+/** 코스의 시간 지표 — BE 가 총 소요시간(이동 + 머무름)을 주면 그것을, 아직 안 주면 이동시간만 보여 준다.
+    이동시간을 "소요시간"이라 부르면 뜻이 달라져서 이름표(kind)도 함께 바꾼다. */
+export function courseTime(c: {
+  estimatedDurationMinutes?: number | null;
+  totalTravelMinutes?: number | null;
+}): { kind: "소요" | "이동"; text: string } {
+  if (c.estimatedDurationMinutes != null) {
+    return { kind: "소요", text: fmtDuration(c.estimatedDurationMinutes) };
+  }
+  return { kind: "이동", text: fmtDuration(c.totalTravelMinutes ?? 0) };
+}
+
 export function addDays(d: Date, n: number) {
   const x = new Date(d);
   x.setDate(x.getDate() + n);

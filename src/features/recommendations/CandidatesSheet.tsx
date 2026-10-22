@@ -4,7 +4,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
 import { Empty } from "@/components/ui/Primitives";
 import { CATEGORY_EMOJI, TIME_OF_DAY_LABEL } from "@/lib/constants";
-import { fmtDate } from "@/lib/format";
+import { courseTime, fmtDate } from "@/lib/format";
 import type { Slots } from "./courseStore";
 import type {
   AvailableMinutes,
@@ -176,8 +176,8 @@ export function CandidatesSheet({
               <span className="cand__body">
                 <span className="cand__name">{c.name}</span>
                 <span className="cand__meta">
-                  장소 {c.components.length}곳 · 총 {c.totalTravelMinutes ?? 0}
-                  분 이동
+                  장소 {c.components.length}곳 · 총 {courseTime(c).text}{" "}
+                  {courseTime(c).kind}
                 </span>
                 <span className="cand__tags">
                   {c.components.map((comp) => (

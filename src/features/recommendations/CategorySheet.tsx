@@ -11,8 +11,7 @@ import { useCourseStore } from "./courseStore";
 import type { Category } from "@/types/api";
 
 /* 카테고리 다중 선택 바텀시트 — 프로토타입의 sheetCategory() 를 옮겼다.
-   프로토타입은 CAFE/POPUP/EXHIBITION/RESTAURANT/ETC 5개만 보여줬지만, v1 의 Category 타입에는
-   ETC 가 없고 대신 9개 카테고리가 모두 정의돼 있어 CATEGORY_ORDER 전체를 보여준다. */
+   정의된 카테고리 전체(CATEGORY_ORDER)를 보여준다. */
 
 interface CategorySheetProps {
   onClose: () => void;

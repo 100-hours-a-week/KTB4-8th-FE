@@ -555,6 +555,9 @@
 .thumb[data-cat="FESTIVAL"]::after {
   background: linear-gradient(145deg, #fadcf0, #f2c0e3);
 }
+.thumb[data-cat="SPOT"]::after {
+  background: linear-gradient(145deg, #ffe4e4, #fecaca);
+}
 .thumb[data-cat="ETC"]::after {
   background: linear-gradient(145deg, #eef3ea, #dce7d6);
 }
@@ -734,10 +737,14 @@
 
 /* ══ 토스트 — 시트 · 모달 위에 항상 보이도록 가장 높은 층에 둔다 ═══ */
 .toasts {
-  position: absolute;
+  /* 화면(보이는 영역) 기준으로 고정한다 — absolute 였을 때는 긴 페이지에서 문서 맨 아래를 기준으로 잡혀 스크롤 위치마다 토스트 위치가 달라졌다.
+     기본은 하단 탭바 바로 위, 코스 추천 창이 열려 있을 때만 화면 위(.toasts--top). 탭바처럼 폭은 앱 폭에 맞춘다. */
+  position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(var(--tabbar-h) + 16px);
+  margin: 0 auto;
+  max-width: var(--phone-w);
+  bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -747,7 +754,8 @@
   z-index: 120;
 }
 .toasts--top {
-  top: 14px;
+  /* 화면 맨 위 — 코스 추천 창의 채팅을 가리지 않게 제목 줄 위쪽에 붙인다 */
+  top: calc(14px + env(safe-area-inset-top));
   bottom: auto;
 }
 /* 로그인 화면 전용 — 구글 로그인 버튼과도, 위쪽 흐름 아이콘(영상저장 · AI 자동정리 · 코스추천)과도
