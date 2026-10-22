@@ -27,6 +27,8 @@ export interface Slots {
   regionAddress?: string | null;
   date: string | null;
   timeOfDay: TimeOfDay | null;
+  /** 채팅으로 정해진 정확한 시각 "HH:mm" — 있으면 BE 에 시간대 대표 시각 대신 이 시각을 보낸다. 시간대를 직접 고르면 지워진다 */
+  time?: string | null;
   availableMinutes: AvailableMinutes | null;
   categories: Category[];
 }
@@ -74,13 +76,15 @@ function newConversationId() {
   return `course-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-/** 현재 위치를 알 수 없을 때(권한 거부·시간 초과·한국 밖) 쓰는 기본 출발지 — 실제 현재 위치가 아니다 */
-export const defaultOrigin = (): Origin => ({
-  label: "강남구 테헤란로",
-  latitude: 37.5,
-  longitude: 127.0364,
-  current: false,
-});
+/** 예전에 현재 위치를 못 찾을 때 임시로 깔아 두던 기본 출발지(강남구 테헤란로). 지금은 쓰지 않는다 —
+    출발지가 정해지지 않았는데 정해진 것처럼 보이면 안 돼서, 위치를 못 찾으면 "미지정"으로 둔다.
+    이미 브라우저(세션)에 저장돼 있을 수 있어서, 같은 값이면 미지정으로 되돌리는 데만 쓴다. */
+export const isLegacyDefaultOrigin = (o: Origin | null): boolean =>
+  !!o &&
+  !o.current &&
+  o.label === "강남구 테헤란로" &&
+  o.latitude === 37.5 &&
+  o.longitude === 127.0364;
 
 export const emptySlots = (): Slots => ({
   region: null,
@@ -88,6 +92,7 @@ export const emptySlots = (): Slots => ({
   regionAddress: null,
   date: null,
   timeOfDay: null,
+  time: null,
   availableMinutes: null,
   categories: [],
 });
@@ -149,7 +154,17 @@ export const useCourseStore = create<CourseState>()(
   ),
 );
 
-/** 추천을 요청할 수 있는 조건이 모였는지 — 지역 · 날짜 · 시간대가 필수 */
-export function isReady(slots: Slots) {
-  return !!(slots.region && slots.date && slots.timeOfDay);
+/** 추천을 요청할 수 있는 조건이 모였는지 — 지역 · 날짜 · 시간대가 필수이고, 출발지(좌표)도 정해져 있어야 한다 */
+export function isReady(slots: Slots, origin?: Origin | null) {
+  return !!(slots.region && slots.date && slots.timeOfDay && origin);
+}
+
+/** 아직 못 채운 필수 조건 이름들 — 추천 버튼이 꺼져 있는 이유를 알려 줄 때 쓴다 */
+export function missingRequired(slots: Slots, origin?: Origin | null) {
+  const missing: string[] = [];
+  if (!slots.region) missing.push("지역");
+  if (!slots.date) missing.push("날짜");
+  else if (!slots.timeOfDay) missing.push("시간대");
+  if (!origin) missing.push("출발지");
+  return missing;
 }

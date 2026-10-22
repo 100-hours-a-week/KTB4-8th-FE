@@ -5,6 +5,7 @@ import { API_BASE, api, headers, toApiError } from "@/lib/api/client";
 import { CHAT_V2 } from "@/lib/constants";
 import { sleep } from "@/lib/format";
 import { sendChatMessageV2 } from "./chatV2";
+import { parseSlotDatetime } from "./slotTime";
 import { cancelRecommendationV2, requestRecommendationV2 } from "./recommendV2";
 import type {
   AvailableMinutes,
@@ -58,11 +59,15 @@ type BeGetReplyResponse =
       slot?: BeChatSlot | null;
     };
 
+/** datetime → 화면용 date · time · timeOfDay */
+function pickDateTime(value: string | null | undefined) {
+  const { date, time, timeOfDay } = parseSlotDatetime(value);
+  return { date, time, timeOfDay };
+}
+
 const VALID_AVAILABLE_MINUTES = new Set<number>([180, 360, 540]);
 
-/** BE 전체가 snake_case 라서 받는 모양 그대로 옮긴다. "시간대"(오전/오후/저녁) 는
-    AI/BE 어디에도 없어서 날짜(date)까지만 옮긴다 — CoursePopup 이 시간대는 항상
-    사용자가 직접 고르게 한다. */
+/** BE 전체가 snake_case 라서 받는 모양 그대로 옮긴다. datetime 은 날짜 · 시각 · 시간대로 풀어 준다(slotTime.ts). */
 function toChatSlot(
   beSlot: BeChatSlot | null | undefined,
 ): ChatSlot | undefined {
@@ -79,7 +84,7 @@ function toChatSlot(
         ? { latitude: beSlot.origin.lat, longitude: beSlot.origin.lng }
         : null,
     region: beSlot.region ?? null,
-    date: beSlot.datetime ? beSlot.datetime.slice(0, 10) : null,
+    ...pickDateTime(beSlot.datetime),
     availableMinutes,
     category:
       beSlot.category == null

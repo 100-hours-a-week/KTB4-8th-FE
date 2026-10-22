@@ -24,7 +24,8 @@ import {
 import { nearestRegion, searchRegions } from "@/lib/address/regionDb";
 import { fmtDate, uid } from "@/lib/format";
 import {
-  defaultOrigin,
+  isLegacyDefaultOrigin,
+  missingRequired,
   emptySlots,
   isReady,
   useCourseStore,
@@ -42,6 +43,7 @@ import {
   type UpdateSlotBody,
 } from "./queries";
 import { isRecommendationStopped } from "./recommendV2";
+import { timeOfDayOfHour } from "./slotTime";
 import { RegionSheet } from "./RegionSheet";
 import { DateTimeSheet } from "./DateTimeSheet";
 import { AvailableSheet } from "./AvailableSheet";
@@ -186,7 +188,13 @@ function toLocalDateTime(date: Date): string {
     (@NotNull/@NotBlank) 아직 안 고른 값도 기본값으로 채워 보낸다. */
 function buildSlotUpdateBody(slots: Slots, origin: Origin): UpdateSlotBody {
   const start = new Date(`${slots.date}T00:00:00+09:00`);
-  start.setHours(TIME_START[slots.timeOfDay ?? "AFTERNOON"] ?? 13, 0, 0, 0);
+  // 채팅으로 정확한 시각을 받았고 시간대와 맞으면 그 시각을, 아니면 시간대의 대표 시각을 보낸다
+  const exact = slots.time?.match(/^(\d{2}):(\d{2})$/);
+  if (exact && slots.timeOfDay === timeOfDayOfHour(Number(exact[1]))) {
+    start.setHours(Number(exact[1]), Number(exact[2]), 0, 0);
+  } else {
+    start.setHours(TIME_START[slots.timeOfDay ?? "AFTERNOON"] ?? 13, 0, 0, 0);
+  }
   return {
     location: {
       lat: origin.latitude ?? 0,
@@ -294,20 +302,24 @@ export function CoursePopup() {
     wasOpenRef.current = open;
   }, [clearChat, open, reset]);
 
-  /* 출발지 — 비어 있으면 기본값을 먼저 깔고, 브라우저 위치로 현재 위치를 찾으면 바꾼다.
-     권한 거부 · 시간 초과 · 한국 밖이면 기본값을 그대로 둔다. 그 사이 사용자가 출발지를
-     직접 고쳤다면(스토어의 출발지가 방금 깐 기본값 객체가 아니면) 덮어쓰지 않는다. */
+  /* 출발지 — 비어 있으면 브라우저 위치로 현재 위치를 찾아 채운다.
+     권한 거부 · 시간 초과 · 한국 밖이면 "미지정"으로 둔다(예전처럼 임시 기본 출발지를 깔지 않는다 —
+     정해진 것처럼 보이면 안 된다). 그 사이 사용자가 출발지를 직접 골랐다면 덮어쓰지 않는다.
+     예전 세션에 저장돼 있던 기본 출발지(강남구 테헤란로)도 미지정으로 되돌린다. */
   useEffect(() => {
-    if (!open || origin) return;
-    const fallback = defaultOrigin();
-    useCourseStore.setState({ origin: fallback });
+    if (!open) return;
+    if (isLegacyDefaultOrigin(origin)) {
+      useCourseStore.setState({ origin: null });
+      return;
+    }
+    if (origin) return;
     void (async () => {
       try {
         if ((await permissionState()) === "denied") return;
         const pos = await currentPosition();
         const hit = await reverseGeocode(pos.latitude, pos.longitude);
         useCourseStore.setState((s) =>
-          s.origin === fallback
+          s.origin === null
             ? {
                 origin: {
                   label: hit.label,
@@ -319,7 +331,7 @@ export function CoursePopup() {
             : s,
         );
       } catch {
-        /* 기본 출발지를 그대로 쓴다 */
+        /* 위치를 못 찾으면 출발지는 미지정으로 둔다 */
       }
     })();
   }, [open, origin]);
@@ -372,7 +384,12 @@ export function CoursePopup() {
      현재 조건을 반영해 둔 다음 추천을 요청한다. */
   async function requestRecommendation() {
     const state = useCourseStore.getState();
-    if (state.phase !== "idle" || !state.origin) return;
+    if (state.phase !== "idle") return;
+    // 출발지가 없으면 BE 에 보낼 좌표가 없다 — 조용히 아무 일도 하지 않지 않고 알려 준다
+    if (!state.origin) {
+      toast.warn("출발지를 먼저 지정해 주세요.");
+      return;
+    }
     useCourseStore.setState({ phase: "creating" });
     try {
       await updateSlot.mutateAsync(
@@ -409,8 +426,8 @@ export function CoursePopup() {
   }
 
   /* 채팅 응답의 조건 추출 결과를 조건 카드에 반영한다. null 인 필드는 아직 못 뽑아낸
-     것뿐이라 기존 값을 그대로 둔다(덮어쓰지 않음). "시간대"는 AI/BE 에 개념 자체가
-     없어서 여기서 안 건드린다 — 사용자가 "날짜 · 시간" 수정에서 항상 직접 고른다. */
+     것뿐이라 기존 값을 그대로 둔다(덮어쓰지 않음). 시간대는 채팅 응답의 시각(00:00 이 아닐 때)을
+     오전 · 오후 · 저녁으로 바꾼 값이 오면 채우고, 시각을 모르면 비워 둔 채 사용자가 고르게 한다. */
   function applyChatSlot(slot: ChatSlot | undefined) {
     if (!slot) return;
     const patch: Partial<Slots> = {};
@@ -423,6 +440,10 @@ export function CoursePopup() {
       }
     }
     if (slot.date != null) patch.date = slot.date;
+    if (slot.timeOfDay != null) {
+      patch.timeOfDay = slot.timeOfDay;
+      patch.time = slot.time ?? null;
+    }
     if (slot.availableMinutes != null)
       patch.availableMinutes = slot.availableMinutes;
     if (slot.category != null) {
@@ -748,7 +769,7 @@ export function CoursePopup() {
             <CondCard
               slots={slots}
               origin={origin}
-              ready={isReady(slots) && phase === "idle"}
+              ready={isReady(slots, origin) && phase === "idle"}
               generating={generating}
               // 메시지를 한 번 보낸 뒤에는(AI가 하나도 못 뽑아냈거나 응답 자체가 실패해도)
               // 조건 카드를 띄워서 "수정" 버튼으로 직접 채울 수 있는 길을 열어둔다.
@@ -958,7 +979,7 @@ function CondCard({
     !!slots.availableMinutes ||
     slots.categories.length > 0;
   // 생성이 시작되면 더 이상 손댈 수 없는 조건 카드는 접어, 진행 상태에 화면을 내준다.
-  if ((!hasAny && !forceShow) || !origin || generating) return null;
+  if ((!hasAny && !forceShow) || generating) return null;
 
   if (collapsed) {
     return (
@@ -997,8 +1018,14 @@ function CondCard({
           <Icon name="pin" size={16} />
         </span>
         <span className="cond__origin-label">출발지</span>
-        <span className="cond__origin-value">{origin.label}</span>
-        {origin.current && (
+        {origin ? (
+          <span className="cond__origin-value">{origin.label}</span>
+        ) : (
+          <span className="cond__origin-value cond__origin-value--empty">
+            미지정
+          </span>
+        )}
+        {origin?.current && (
           <button
             className="cond__badge cond__badge--btn"
             type="button"
@@ -1008,7 +1035,7 @@ function CondCard({
           </button>
         )}
         <button className="cond__edit" type="button" onClick={onEditOrigin}>
-          수정 ›
+          {origin ? "수정 ›" : "지정하기 ›"}
         </button>
       </div>
       <div className="cond__legendrow">
@@ -1068,6 +1095,12 @@ function CondCard({
         <Icon name="sparkle" size={18} />
         <span>이 조건으로 추천받기</span>
       </button>
+      {!ready && missingRequired(slots, origin).length > 0 && (
+        <p className="cond__hint">
+          추천받으려면 먼저 정해 주세요:{" "}
+          {missingRequired(slots, origin).join(", ")}
+        </p>
+      )}
     </div>
   );
 }

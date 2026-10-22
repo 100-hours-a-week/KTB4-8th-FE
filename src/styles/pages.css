@@ -1519,6 +1519,16 @@
   font: var(--t-sm);
   font-weight: 700;
 }
+.cond__origin-value--empty {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.cond__hint {
+  margin: 8px 2px 0;
+  font: var(--t-xs);
+  color: var(--ink-3);
+  text-align: center;
+}
 .cond__badge {
   font: var(--t-xs);
   font-weight: 600;

@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/client";
 import { readSse } from "@/lib/api/sse";
 import type { AvailableMinutes, ChatReply, ChatSlot } from "@/types/api";
+import { parseSlotDatetime } from "./slotTime";
 
 /* 채팅 전송 v2 — POST /api/v2/member/chat-messages.
    v1(202 + Location 폴링)과 달리 같은 연결에서 SSE 로 답을 받는다.
@@ -29,7 +30,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 interface BeChatSlotV2 {
   coordinate?: { lat: number | null; lng: number | null } | null;
   location_name_requested?: string | null;
-  /** "yyyy-MM-dd HH:mm:ss" — 날짜 부분만 쓴다 */
+  /** "yyyy-MM-dd HH:mm:ss" — 00:00:00 은 "시각 모름" */
   time_requested_datetime?: string | null;
   /** 시간 단위 정수(3 · 6 · 9) */
   time_available_hours?: number | null;
@@ -39,6 +40,12 @@ interface BeChatSlotV2 {
 interface BeChatSuccessV2 {
   chat: { content: string; is_by_bot: boolean };
   slot?: BeChatSlotV2 | null;
+}
+
+/** datetime → 화면용 date · time · timeOfDay */
+function pickDateTime(value: string | null | undefined) {
+  const { date, time, timeOfDay } = parseSlotDatetime(value);
+  return { date, time, timeOfDay };
 }
 
 const VALID_AVAILABLE_MINUTES = new Set<number>([180, 360, 540]);
@@ -59,9 +66,7 @@ export function toChatSlotV2(
         ? { latitude: lat, longitude: lng }
         : null,
     region: slot.location_name_requested ?? null,
-    date: slot.time_requested_datetime
-      ? slot.time_requested_datetime.slice(0, 10)
-      : null,
+    ...pickDateTime(slot.time_requested_datetime),
     availableMinutes:
       minutes != null && VALID_AVAILABLE_MINUTES.has(minutes)
         ? (minutes as AvailableMinutes)
