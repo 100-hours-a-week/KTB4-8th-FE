@@ -15,10 +15,8 @@ import {
   useSyncYoutubeNow,
 } from "@/features/sync/queries";
 import {
-  completedProgress,
-  FINISH_HOLD_MS,
+  FINISH_TOTAL_MS,
   MIN_PROGRESS_MS,
-  formatRemaining,
   parseSyncDemo,
   simulateSync,
   useSyncProgress,
@@ -45,8 +43,8 @@ import { PlaceListSheet } from "@/features/places/PlaceListSheet";
 
    동기화 카드: BE 의 POST /user/youtube-analyze 는 끝날 때까지 기다리는 동기 처리이고,
    진행률 · 결과 건수를 알려주는 조회 API 가 없다. 그래서 SYNC_PROGRESS_DUMMY 가 켜져 있으면
-   시작한 시각에서 계산한 **가짜** 진행률(몇 개 중 몇 개 · 남은 시간)을 보여 주고, 실제 요청이
-   끝나면 완료로 바꾼다. 끄면(off) 예전처럼 "불러오는 중 / 불러옴" 두 상태만 구분한다. */
+   시작한 시각에서 계산한 **가짜** 진행률로 진행바만 채우고(숫자 · 남은 시간 문구는 BE API 가 생길 때까지 보여 주지 않는다),
+   실제 요청이 끝나면 완료로 바꾼다. 끄면(off) 예전처럼 "불러오는 중 / 불러옴" 두 상태만 구분한다. */
 
 type SyncState = "idle" | "pending" | "done" | "empty" | "slow" | "failed";
 
@@ -67,11 +65,11 @@ function buildSyncCard(
 ): SyncCardModel {
   if (state === "pending" && progress) {
     return {
-      badge: `AI 분석 중 ${progress.percent}%`,
+      badge: "AI 분석 중",
       title: "좋아요 영상을 정리하고 있어요.",
       msg: progress.capped
         ? "영상이 많아 시간이 더 걸리고 있어요. 조금만 기다려 주세요."
-        : `${progress.total}개 중 ${progress.analyzed}개 분석 완료 · 장소 ${progress.places}곳 발견`,
+        : "영상 속 장소와 이벤트를 찾고 있어요.",
       closable: false,
     };
   }
@@ -84,16 +82,10 @@ function buildSyncCard(
     };
   }
   if (state === "done") {
-    // 서버가 개수를 알려 줬을 때만 숫자를 보여준다(없으면 개수 없는 문구)
-    const counted =
-      result?.videoCount != null && result.placeCount != null ? result : null;
+    // 개수(영상 · 장소 수)는 BE 에 진행률 · 결과 조회 API 가 생기면 보여 준다 — 그 전에는 숫자 없는 문구만 쓴다
     return {
-      title: counted
-        ? `장소 ${counted.placeCount}곳을 정리했어요.`
-        : "좋아요 영상을 불러왔어요.",
-      msg: counted
-        ? `좋아요 영상 ${counted.videoCount}개에서 찾은 장소와 이벤트로 코스를 만들어 드릴게요.`
-        : "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
+      title: "좋아요 영상을 정리했어요.",
+      msg: "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
       action: "course",
       actionLabel: "코스 추천받기",
     };
@@ -209,7 +201,7 @@ export default function HomePage() {
   const demoRef = useRef<SyncDemoMode | null>(null);
   const startedAtRef = useRef(0);
   // 실제 요청이 끝난 직후 잠깐 진행바를 100% 로 채워 보여 주는 동안 true
-  const [syncFinishing, setSyncFinishing] = useState(false);
+  const [syncFinishAt, setSyncFinishAt] = useState<number | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const initDoneRef = useRef(false);
 
@@ -259,8 +251,8 @@ export default function HomePage() {
         : none === true;
       // 진행 화면이 있었다면 100% 까지 채우고 잠깐 보여 준 뒤 결과 카드로 바꾼다
       if (SYNC_PROGRESS_DUMMY) {
-        setSyncFinishing(true);
-        await sleep(FINISH_HOLD_MS);
+        setSyncFinishAt(Date.now());
+        await sleep(FINISH_TOTAL_MS);
       }
       setSyncResult(result);
       setSyncState(empty ? "empty" : "done");
@@ -276,7 +268,7 @@ export default function HomePage() {
       }
     } finally {
       setSyncStartedAt(null);
-      setSyncFinishing(false);
+      setSyncFinishAt(null);
     }
   }, [syncNow]);
 
@@ -323,11 +315,10 @@ export default function HomePage() {
     });
   }, []);
 
-  const running = useSyncProgress(
+  const progress = useSyncProgress(
     syncState === "pending" ? syncStartedAt : null,
+    syncFinishAt,
   );
-  const progress =
-    running && syncFinishing ? completedProgress(running) : running;
   const sync = buildSyncCard(syncState, syncResult, progress);
 
   function closeOverlay() {
@@ -393,7 +384,7 @@ export default function HomePage() {
                   <span>
                     {progress.capped
                       ? "조금만 더 기다려 주세요"
-                      : formatRemaining(progress.remainingSeconds)}
+                      : "영상 수에 따라 시간이 걸려요"}
                   </span>
                 </p>
               </>
