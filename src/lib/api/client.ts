@@ -233,6 +233,8 @@ async function send<T>(
 
   if (res.ok) {
     if (route) return { data: route.response(body) as T };
+    // 본문이 JSON 이 아니거나 비어 있는 성공 응답(예: PATCH slot 이 지역 이름을 글자로만 돌려준다) — 호출한 쪽이 .data 를 읽다 터지지 않게 빈 값으로 돌려준다
+    if (body == null) return { data: undefined as unknown as T } as Envelope<T>;
     // v2 는 { data } envelope 없이 본문을 그대로 돌려준다
     if (opts.base) return { data: body as T };
     return body as Envelope<T>;
