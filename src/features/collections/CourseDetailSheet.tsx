@@ -131,6 +131,8 @@ export function CourseDetailSheet({
                     {categoryLabel(comp.category)} ·{" "}
                     {i === 0 ? "출발지에서 " : "이전 장소에서 "}
                     {comp.travelMinutes ?? 0}분 이동
+                    {comp.estimatedStayMinutes != null &&
+                      ` · ${comp.estimatedStayMinutes}분 머무름`}
                   </span>
                 </span>
               </div>

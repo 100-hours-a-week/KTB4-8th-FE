@@ -7,7 +7,13 @@ import { Icon } from "@/components/ui/Icon";
 import { Empty, Skeleton, Thumb } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { CATEGORY_LABEL, WISHLIST_V2 } from "@/lib/constants";
-import { fmtDot, fmtPeriod, getDdayBadge, type DdayLevel } from "@/lib/format";
+import {
+  courseTime,
+  fmtDot,
+  fmtPeriod,
+  getDdayBadge,
+  type DdayLevel,
+} from "@/lib/format";
 import { useCourseStore } from "@/features/recommendations/courseStore";
 import { PlaceDetailSheet } from "@/features/places/PlaceDetailSheet";
 import { EventDetailSheet } from "@/features/places/EventDetailSheet";
@@ -567,9 +573,9 @@ function CollectionRow({
           <p className="listitem__name">{course?.name ?? ""}</p>
           <p className="listitem__meta">{names}</p>
           <p className="listitem__sub">
-            {course?.rank ?? "-"}순위 · 총 이동{" "}
-            {course?.totalTravelMinutes ?? 0}분 ·{" "}
-            {fmtDot(new Date(row.savedAt))} 저장
+            {course?.rank ?? "-"}순위 · 총 {courseTime(course ?? {}).kind}{" "}
+            {courseTime(course ?? {}).text} · {fmtDot(new Date(row.savedAt))}{" "}
+            저장
           </p>
         </div>
         <span style={{ color: "var(--ink-4)" }}>

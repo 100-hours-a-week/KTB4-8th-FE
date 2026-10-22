@@ -25,7 +25,7 @@ import {
   TIME_OF_DAY_LABEL,
 } from "@/lib/constants";
 import { nearestRegion, searchRegions } from "@/lib/address/regionDb";
-import { fmtDate, uid } from "@/lib/format";
+import { courseTime, fmtDate, uid } from "@/lib/format";
 import {
   hasOriginCoordinates,
   isLegacyDefaultOrigin,
@@ -1262,7 +1262,7 @@ function DoneView({
           {c.components.map((x) => x.name).join(" → ")}
         </p>
         <p className="listitem__sub">
-          {c.rank}순위 · 총 이동 {c.totalTravelMinutes ?? 0}분
+          {c.rank}순위 · 총 {courseTime(c).kind} {courseTime(c).text}
         </p>
       </div>
       <div
