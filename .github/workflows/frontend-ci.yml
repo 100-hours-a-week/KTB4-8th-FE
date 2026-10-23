@@ -148,8 +148,9 @@ jobs:
           SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
           # 센트리에서 개발·운영 에러를 나눠 보려고 브랜치로 환경을 정한다 (main 은 production, 그 외는 dev)
           SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'dev' }}
-          CHAT_V2: ${{ github.ref_name == 'develop' && 'on' || '' }}
-          WISHLIST_V2: ${{ github.ref_name == 'develop' && 'on' || '' }}
+          # V2 운영(ECS)은 main 이미지를 쓰므로 main 에서도 v2 채팅·보관함을 켠다. feat/v1(V1)만 끈 상태로 둔다
+          CHAT_V2: ${{ (github.ref_name == 'develop' || github.ref_name == 'main') && 'on' || '' }}
+          WISHLIST_V2: ${{ (github.ref_name == 'develop' || github.ref_name == 'main') && 'on' || '' }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
           # 소스맵 업로드용 비밀 값 — build-arg 가 아니라 secret 으로만 넘겨 이미지에 남기지 않는다
