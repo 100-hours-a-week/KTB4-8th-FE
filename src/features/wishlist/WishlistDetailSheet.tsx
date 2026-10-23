@@ -118,6 +118,8 @@ export function WishlistDetailSheet({
   const isError = !preset && query.isError;
   const error = query.error;
   const [addressOpen, setAddressOpen] = useState(false);
+  // 복사한 주소 줄 — 이 시트를 닫을 때까지 "복사됨 ✓"으로 남긴다(주소를 접었다 펴도 유지)
+  const [copiedTag, setCopiedTag] = useState<string | null>(null);
   const [videosOpen, setVideosOpen] = useState(false);
   const [linksOpen, setLinksOpen] = useState(false);
   const linksRef = useRef<HTMLDivElement>(null);
@@ -387,7 +389,12 @@ export function WishlistDetailSheet({
             )}
           </div>
           {addressOpen && place.address_road && (
-            <AddressBox rows={addressRows(place)} onCopy={copy} />
+            <AddressBox
+              rows={addressRows(place)}
+              onCopy={copy}
+              copiedTag={copiedTag}
+              onCopied={setCopiedTag}
+            />
           )}
 
           {place.description && (
@@ -617,22 +624,20 @@ function addressRows(place: {
 function AddressBox({
   rows,
   onCopy,
+  copiedTag = null,
+  onCopied,
   ghost,
 }: {
   rows: AddressRow[];
   onCopy?: (text: string) => Promise<boolean>;
+  /** 복사한 줄 — 그 줄 버튼만 "복사됨 ✓" 으로 바뀌고, 시트를 닫을 때까지 그대로 남는다 */
+  copiedTag?: string | null;
+  onCopied?: (tag: string) => void;
   ghost?: boolean;
 }) {
-  // 어느 줄을 복사했는지 — 그 줄 버튼만 "복사됨 ✓" 으로 바뀐다
-  const [copiedTag, setCopiedTag] = useState<string | null>(null);
-  const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-
   async function handleCopy(row: AddressRow) {
     if (!(await onCopy?.(row.text))) return;
-    setCopiedTag(row.tag);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopiedTag(null), 1500);
+    onCopied?.(row.tag);
   }
 
   return (
@@ -651,7 +656,16 @@ function AddressBox({
             aria-live="polite"
             onClick={() => void handleCopy(row)}
           >
-            {copiedTag === row.tag ? "복사됨 ✓" : "복사"}
+            {copiedTag === row.tag ? (
+              <>
+                복사됨
+                <span className="wl__copy-check">
+                  <Icon name="check" size={14} strokeWidth={2.8} />
+                </span>
+              </>
+            ) : (
+              "복사"
+            )}
           </button>
         </div>
       ))}

@@ -10,6 +10,7 @@ import { CATEGORY_LABEL, WISHLIST_V2 } from "@/lib/constants";
 import {
   courseTime,
   fmtDot,
+  fmtDuration,
   fmtPeriod,
   getDdayBadge,
   type DdayLevel,
@@ -19,10 +20,12 @@ import { PlaceDetailSheet } from "@/features/places/PlaceDetailSheet";
 import { EventDetailSheet } from "@/features/places/EventDetailSheet";
 import { CourseDetailSheet } from "@/features/collections/CourseDetailSheet";
 import { WishlistDetailSheet } from "@/features/wishlist/WishlistDetailSheet";
+import { WishlistCourseSheet } from "@/features/wishlist/WishlistCourseSheet";
 import { HOME_DUMMY_EVENTS } from "@/features/home/dummyEvents";
 import { HOME_DUMMY_PLACES } from "@/features/home/dummyPlaces";
 import { useSavedHomeItems } from "@/features/home/savedHomeItems";
 import {
+  useWishlistCourses,
   useWishlistEvents,
   useWishlistPlaces,
 } from "@/features/wishlist/queries";
@@ -31,6 +34,7 @@ import {
   ddayOf,
   describePeriod,
   eventStatus,
+  fmtSaveDate,
   splitCategories,
   primaryCategory,
 } from "@/features/wishlist/format";
@@ -49,6 +53,7 @@ import {
   type StatusFilter,
 } from "@/features/wishlist/eventFilter";
 import type {
+  WishlistCourseSummary,
   WishlistEventSummary,
   WishlistExtra,
   WishlistPlaceSummary,
@@ -77,6 +82,7 @@ type Overlay = {
     | "course"
     | "wishlistPlace"
     | "wishlistEvent"
+    | "wishlistCourse"
     | "eventFilter"
     | "placeFilter"
     | "courseFilter"
@@ -117,33 +123,44 @@ function CollectionContent() {
     setTab(parseTab(tabParam));
   }
 
-  /* WISHLIST_V2 가 켜져 있으면 장소는 BE v2 보관함에서 가져온다(전체 · 장소 탭).
-     이벤트 · 코스는 BE 가 아직 없어 기존 방식(로컬 더미)을 그대로 쓴다. */
+  /* WISHLIST_V2 가 켜져 있으면 장소 · 이벤트 · 코스를 BE v2 보관함에서 가져온다.
+     (홈에서 담은 예시 장소 · 이벤트와, 이벤트의 기존 로컬 항목은 함께 보여 준다) */
   const showsPlaces = WISHLIST_V2 && (tab === "ALL" || tab === "PLACE");
   const placesOnly = WISHLIST_V2 && tab === "PLACE";
-  const items = useCollectionItems(tab, !placesOnly);
+  const showsCourses = WISHLIST_V2 && (tab === "ALL" || tab === "COURSE");
+  const coursesOnly = WISHLIST_V2 && tab === "COURSE";
+  const items = useCollectionItems(tab, !placesOnly && !coursesOnly);
   const wishlist = useWishlistPlaces(showsPlaces);
+  const wishlistCoursesQuery = useWishlistCourses(showsCourses);
   // 이벤트는 BE 보관함 이벤트를 위에, 기존 예시 이벤트를 그 아래에 함께 보여준다
   const showsEvents = WISHLIST_V2 && (tab === "ALL" || tab === "EVENT");
   const wishlistEventsQuery = useWishlistEvents(showsEvents);
 
+  const localOnly = !placesOnly && !coursesOnly;
   const isLoading =
-    (!placesOnly && items.isLoading) ||
+    (localOnly && items.isLoading) ||
     (showsPlaces && wishlist.isLoading) ||
-    (showsEvents && wishlistEventsQuery.isLoading);
+    (showsEvents && wishlistEventsQuery.isLoading) ||
+    (showsCourses && wishlistCoursesQuery.isLoading);
   const isError =
-    (!placesOnly && items.isError) ||
+    (localOnly && items.isError) ||
     (showsPlaces && wishlist.isError) ||
-    (showsEvents && wishlistEventsQuery.isError);
-  const error = items.error ?? wishlist.error ?? wishlistEventsQuery.error;
+    (showsEvents && wishlistEventsQuery.isError) ||
+    (showsCourses && wishlistCoursesQuery.isError);
+  const error =
+    items.error ??
+    wishlist.error ??
+    wishlistEventsQuery.error ??
+    wishlistCoursesQuery.error;
 
   useEffect(() => {
     if (isError)
       toast.fromError(error, {
         onRetry: () => {
-          if (!placesOnly) void items.refetch();
+          if (localOnly) void items.refetch();
           if (showsPlaces) void wishlist.refetch();
           if (showsEvents) void wishlistEventsQuery.refetch();
+          if (showsCourses) void wishlistCoursesQuery.refetch();
         },
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -154,6 +171,9 @@ function CollectionContent() {
     : [];
   const wishlistEvents: WishlistEventSummary[] = showsEvents
     ? (wishlistEventsQuery.data?.pages.flatMap((p) => p.events) ?? [])
+    : [];
+  const wishlistCourses: WishlistCourseSummary[] = showsCourses
+    ? (wishlistCoursesQuery.data?.pages.flatMap((p) => p.courses) ?? [])
     : [];
   // 홈에서 담은 이벤트(FE 더미) — 최근에 담은 것이 위. BE 보관함에 같은 이름이 있으면 BE 쪽만 보여 준다
   const homeSaved = useSavedHomeItems().saved;
@@ -174,12 +194,15 @@ function CollectionContent() {
   const wishlistCount =
     wishlistPlaces.length +
     wishlistEvents.length +
+    wishlistCourses.length +
     savedHomeEventList.length +
     savedHomePlaces.length;
+  // WISHLIST_V2 가 켜져 있으면 장소 · 코스는 BE 에서 오므로 브라우저 더미 항목은 숨긴다
   const otherRows = (items.data ?? []).filter(
-    (r) => !(WISHLIST_V2 && r.itemType === "PLACE"),
+    (r) =>
+      !(WISHLIST_V2 && (r.itemType === "PLACE" || r.itemType === "COURSE")),
   );
-  const rows = placesOnly ? [] : otherRows;
+  const rows = placesOnly || coursesOnly ? [] : otherRows;
 
   /* 이벤트 탭의 필터(진행 상태 · 카테고리 · 지역) — BE 항목 · 예시 이벤트를 같은 기준으로 거른다 */
   const filtering = tab === "EVENT";
@@ -224,9 +247,11 @@ function CollectionContent() {
     courseFacts((r.item as CollectionCourseItem | undefined)?.area);
   const isCourseRow = (r: CollectionItem) =>
     r.itemType === "COURSE" && !!r.item;
-  const courseRegions = regionOptions(
-    rows.filter(isCourseRow).map(rowCourseFacts),
-  );
+  const beCourseFacts = (c: WishlistCourseSummary) => courseFacts(c.address_sg);
+  const courseRegions = regionOptions([
+    ...rows.filter(isCourseRow).map(rowCourseFacts),
+    ...wishlistCourses.map(beCourseFacts),
+  ]);
   const passCourse = (facts: ReturnType<typeof courseFacts>) =>
     !courseFiltering || matchesEvent(facts, courseFilter);
   const shownHomePlaces = savedHomePlaces.filter((p) =>
@@ -234,6 +259,9 @@ function CollectionContent() {
   );
   const shownWishlistPlaces = wishlistPlaces.filter((p) =>
     passPlace(bePlaceFacts(p)),
+  );
+  const shownWishlistCourses = wishlistCourses.filter((c) =>
+    passCourse(beCourseFacts(c)),
   );
   const regions = regionOptions([
     ...savedHomeEventList.map(homeFacts),
@@ -255,6 +283,7 @@ function CollectionContent() {
     shownWishlistPlaces.length +
     shownHomeEvents.length +
     shownWishlistEvents.length +
+    shownWishlistCourses.length +
     shownRows.length;
   const hasAny = rows.length + wishlistCount > 0;
 
@@ -465,6 +494,29 @@ function CollectionContent() {
                 더 보기
               </button>
             )}
+            {shownWishlistCourses.map((c) => (
+              <WishlistCourseRow
+                key={`wlc-${c.course_id}`}
+                course={c}
+                onOpen={() =>
+                  setOverlay({
+                    name: "wishlistCourse",
+                    id: String(c.course_id),
+                  })
+                }
+              />
+            ))}
+            {showsCourses && wishlistCoursesQuery.hasNextPage && (
+              <button
+                className="btn btn--ghost btn--block"
+                type="button"
+                disabled={wishlistCoursesQuery.isFetchingNextPage}
+                onClick={() => void wishlistCoursesQuery.fetchNextPage()}
+                style={{ marginBottom: 8 }}
+              >
+                더 보기
+              </button>
+            )}
             {shownRows.map((row) => (
               <CollectionRow
                 key={row.id}
@@ -541,6 +593,20 @@ function CollectionContent() {
           onClose={() => setOverlay(null)}
         />
       )}
+      {overlay?.name === "wishlistCourse" && (
+        <WishlistCourseSheet
+          courseId={overlay.id}
+          area={
+            wishlistCourses.find((c) => String(c.course_id) === overlay.id)
+              ?.address_sg
+          }
+          saveDate={
+            wishlistCourses.find((c) => String(c.course_id) === overlay.id)
+              ?.save_date
+          }
+          onClose={() => setOverlay(null)}
+        />
+      )}
       {overlay?.name === "course" && (
         <CourseDetailSheet
           courseId={overlay.id}
@@ -548,6 +614,45 @@ function CollectionContent() {
         />
       )}
     </>
+  );
+}
+
+/** BE v2 보관함의 코스 한 행 — 구성 요소 이름을 "A → B → C" 로 보여 준다 */
+function WishlistCourseRow({
+  course,
+  onOpen,
+}: {
+  course: WishlistCourseSummary;
+  onOpen: () => void;
+}) {
+  const names = course.stops
+    .flatMap((s) => s.items)
+    .sort((a, b) => a.sequence - b.sequence)
+    .map((i) => i.name)
+    .join(" → ");
+  const saved = fmtSaveDate(course.save_date);
+  const sub = [
+    course.duration_hours != null
+      ? `총 소요 ${fmtDuration(course.duration_hours)}`
+      : "",
+    saved ? `${saved} 저장` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <button className="listitem press" type="button" onClick={onOpen}>
+      <span className="listitem__ico">
+        <Icon name="route" size={22} />
+      </span>
+      <div className="listitem__body">
+        <p className="listitem__name">{course.name}</p>
+        <p className="listitem__meta">{names}</p>
+        {sub && <p className="listitem__sub">{sub}</p>}
+      </div>
+      <span style={{ color: "var(--ink-4)" }}>
+        <Icon name="chevron" size={16} />
+      </span>
+    </button>
   );
 }
 

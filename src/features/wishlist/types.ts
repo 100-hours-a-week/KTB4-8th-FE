@@ -138,3 +138,57 @@ export interface ExtraScheduleRow {
   /** 날짜와 상관없이 이 이벤트에 해당하는 일정이라 늘 강조(대회 최종전 등) */
   current?: boolean;
 }
+
+/* ── 코스 (BE v2 /outing-wishlist/outing-courses) ───────────────────────── */
+
+/** 코스 목록의 구성 요소. 장소 · 이벤트가 순서대로 온다 */
+export interface WishlistCourseItem {
+  /** 0부터 시작하는 순서 */
+  sequence: number;
+  stop_id: number;
+  name: string;
+  /** "place" | "event" */
+  type: string;
+  /** "카페" 처럼 한글 분류 */
+  category: string;
+  /** yyyy-MM-dd — 이벤트일 때만 */
+  start_date?: string | null;
+  end_date?: string | null;
+}
+
+export interface WishlistCourseSummary {
+  /** 보관함에 담긴 항목의 ID — 상세 조회 · 삭제에 이 값을 쓴다(추천 코스의 ID 와 다르다) */
+  course_id: number;
+  name: string;
+  /** 추천을 받은 지역 이름("용산역" 등) */
+  address_sg: string | null;
+  /** 이름은 hours 지만 BE 가 총 소요시간(분)을 담아 준다 */
+  duration_hours: number | null;
+  /** yyyy-MM-dd */
+  save_date: string | null;
+  /** 지금 BE 는 구성 요소 전체를 한 묶음(stop) 안에 담아 준다 */
+  stops: { count: number; items: WishlistCourseItem[] }[];
+}
+
+export interface WishlistCourseList {
+  next_cursor: string | null;
+  courses: WishlistCourseSummary[];
+}
+
+export interface WishlistCourseDetailItem {
+  sequence: number;
+  stop_id: number;
+  name: string;
+  type: string;
+  category: string;
+  coordinate: { lat: number | null; lng: number | null } | null;
+  /** 지금 이용할 수 있는지(영업 중 · 진행 중) */
+  is_available: boolean | null;
+}
+
+export interface WishlistCourseDetail {
+  course_id: number;
+  name: string;
+  duration_hours: number | null;
+  stops: { count: number; items: WishlistCourseDetailItem[] }[];
+}

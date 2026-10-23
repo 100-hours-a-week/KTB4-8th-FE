@@ -123,9 +123,11 @@ interface BeRecommendationItem {
 }
 
 interface BeRecommendationDetail {
+  /** BE v2 가 저장한 추천 코스의 ID — 보관함에 담을 때 이 값을 보낸다 */
+  course_id?: number;
   title?: string;
   total_travel_time?: number;
-  /** 이동 + 체류를 합한 총 소요시간(분) — BE 가 AI 의 total_duration_minutes 를 전달하기 시작하면 온다 */
+  /** 이동 + 체류를 합한 총 소요시간(분) — 있으면 total_travel_time 보다 우선한다 */
   total_duration_minutes?: number;
   items?: BeRecommendationItem[];
 }
@@ -171,13 +173,20 @@ export function toRecommendationRun(
 
   const candidates: Candidate[] = details.map((d, i) => ({
     candidateId: `be-candidate-${i}`,
+    outingCourseId: numberOrUndefined(d.course_id),
     rank: i + 1,
     name: cleanCourseTitle(d.title),
     area,
     startAt: scheduledTime,
     endAt: scheduledTime,
-    totalTravelMinutes: d.total_travel_time,
-    estimatedDurationMinutes: numberOrUndefined(d.total_duration_minutes),
+    // v2 는 total_travel_time 에 이동시간이 아니라 코스 총 소요시간(분)이 온다(BE 확인). v1 은 이동시간 합계 그대로다.
+    // total_duration_minutes 가 따로 오면 그것을 우선한다.
+    totalTravelMinutes: travelInDescription ? d.total_travel_time : undefined,
+    estimatedDurationMinutes:
+      numberOrUndefined(d.total_duration_minutes) ??
+      (travelInDescription
+        ? undefined
+        : numberOrUndefined(d.total_travel_time)),
     components: (d.items ?? []).map((item, j) => {
       const travelMinutes =
         typeof item.travel_minutes === "number"
