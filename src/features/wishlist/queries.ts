@@ -6,7 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { apiV2 } from "@/lib/api/client";
+import { apiV2, isApiError } from "@/lib/api/client";
 import type {
   WishlistEventDetail,
   WishlistEventList,
@@ -22,6 +22,18 @@ export const wishlistKeys = {
   events: ["wishlist", "events"] as const,
   event: (eventId: string) => ["wishlist", "events", eventId] as const,
 };
+
+/** 보관함 항목 삭제 — 404(이미 없음)는 성공으로 본다.
+    삭제는 몇 번을 보내도 결과가 같아야 하고, 지금 BE 는 삭제에 성공해도 404 를 돌려주는 버그가 있다(204 여야 한다).
+    어느 쪽이든 목록을 다시 받으면 실제 상태가 보이므로, 404 로 오류를 띄우지 않는다. */
+async function deleteEntry(path: string) {
+  try {
+    await apiV2.del(path);
+  } catch (e) {
+    if (isApiError(e) && e.status === 404) return;
+    throw e;
+  }
+}
 
 /** GET /outing-wishlist/places?cursor= — 커서로 이어서 불러온다 */
 export function useWishlistPlaces(enabled = true) {
@@ -58,7 +70,9 @@ export function useDeleteWishlistPlace() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (placeId: string) => {
-      await apiV2.del(`/outing-wishlist/places/${encodeURIComponent(placeId)}`);
+      await deleteEntry(
+        `/outing-wishlist/places/${encodeURIComponent(placeId)}`,
+      );
     },
     // 지운 항목의 상세는 다시 불러오지 않고(404) 캐시에서 지우고, 목록만 새로 받는다
     onSuccess: (_, id) => {
@@ -106,7 +120,9 @@ export function useDeleteWishlistEvent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (eventId: string) => {
-      await apiV2.del(`/outing-wishlist/events/${encodeURIComponent(eventId)}`);
+      await deleteEntry(
+        `/outing-wishlist/events/${encodeURIComponent(eventId)}`,
+      );
     },
     // 지운 항목의 상세는 다시 불러오지 않고(404) 캐시에서 지우고, 목록만 새로 받는다
     onSuccess: (_, id) => {
