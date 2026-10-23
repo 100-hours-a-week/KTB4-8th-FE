@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+      - develop
+      - feat/v1
+  pull_request:
+    branches:
+      - develop
   workflow_dispatch:
 
 permissions:
@@ -38,6 +43,10 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
             echo "Frontend source and package-lock.json found"
           else
+            if [[ "$GITHUB_REF" == refs/heads/develop ]]; then
+              echo "V2 application source/package-lock.json is missing; refusing a successful empty CI" >&2
+              exit 1
+            fi
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "Frontend source or package-lock.json is not ready; build checks are skipped"
           fi
@@ -49,8 +58,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      NEXT_PUBLIC_API_BASE_URL: /api
-      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+      NEXT_PUBLIC_API_BASE_URL: /api/v1
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+      NEXT_PUBLIC_NAVER_MAP_CLIENT_ID: ${{ vars.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID }}
+      NEXT_PUBLIC_CLARITY_PROJECT_ID: ${{ vars.NEXT_PUBLIC_CLARITY_PROJECT_ID }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -97,10 +109,11 @@ jobs:
           test -f .next/standalone/server.js
           test -d .next/static
 
+  # Cloud central CD deploys successful develop images to keepgo-v2-frontend.
   publish:
-    name: Build and push frontend images
+    name: ${{ github.ref == 'refs/heads/develop' && 'Dev - Build and Push Image' || 'Build and push frontend images' }}
     needs: quality
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/v1' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
@@ -129,20 +142,49 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           WEB_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY }}
-          MAPS_API_KEY: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+          NAVER_MAP_CLIENT_ID: ${{ vars.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID }}
+          CLARITY_PROJECT_ID: ${{ vars.NEXT_PUBLIC_CLARITY_PROJECT_ID }}
+          SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          # 센트리에서 개발·운영 에러를 나눠 보려고 브랜치로 환경을 정한다 (main 은 production, 그 외는 dev)
+          SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'dev' }}
+          CHAT_V2: ${{ github.ref_name == 'develop' && 'on' || '' }}
+          WISHLIST_V2: ${{ github.ref_name == 'develop' && 'on' || '' }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+          # 소스맵 업로드용 비밀 값 — build-arg 가 아니라 secret 으로만 넘겨 이미지에 남기지 않는다
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
-          docker build \
-            --platform linux/amd64 \
-            --file Dockerfile \
-            --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="$MAPS_API_KEY" \
-            --tag "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA" \
-            .
+          # 토큰 시크릿이 등록돼 있을 때만 소스맵 업로드용 secret 을 넘긴다(없으면 업로드만 건너뛰고 빌드는 그대로 된다)
+          SECRET_ARGS=()
+          if [[ -n "$SENTRY_AUTH_TOKEN" ]]; then
+            SECRET_ARGS=(--secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN)
+          fi
 
           docker build \
             --platform linux/amd64 \
-            --file Dockerfile.nginx \
-            --tag "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA" \
+            --file Dockerfile \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+            --build-arg NEXT_PUBLIC_CHAT_V2="$CHAT_V2" \
+            --build-arg NEXT_PUBLIC_WISHLIST_V2="$WISHLIST_V2" \
+            --build-arg NEXT_PUBLIC_NAVER_MAP_CLIENT_ID="$NAVER_MAP_CLIENT_ID" \
+            --build-arg NEXT_PUBLIC_CLARITY_PROJECT_ID="$CLARITY_PROJECT_ID" \
+            --build-arg NEXT_PUBLIC_SENTRY_DSN="$SENTRY_DSN" \
+            --build-arg NEXT_PUBLIC_SENTRY_ENVIRONMENT="$SENTRY_ENVIRONMENT" \
+            --build-arg SENTRY_ORG="$SENTRY_ORG" \
+            --build-arg SENTRY_PROJECT="$SENTRY_PROJECT" \
+            --build-arg SENTRY_RELEASE="$GITHUB_SHA" \
+            "${SECRET_ARGS[@]}" \
+            --tag "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA" \
             .
+
+          if [[ "$GITHUB_REF" != refs/heads/develop ]]; then
+            docker build \
+              --platform linux/amd64 \
+              --file Dockerfile.nginx \
+              --tag "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA" \
+              .
+          fi
       - name: Push frontend and Nginx iamges
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -150,5 +192,6 @@ jobs:
           NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY }}
         run: |
           docker push "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA"
-          docker push "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA"
-      
+          if [[ "$GITHUB_REF" != refs/heads/develop ]]; then
+            docker push "$REGISTRY/$NGINX_REPOSITORY:$GITHUB_SHA"
+          fi

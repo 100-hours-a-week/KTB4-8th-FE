@@ -1,0 +1,67 @@
+"use client";
+
+import { useState } from "react";
+import { Sheet } from "@/components/ui/Sheet";
+import {
+  CATEGORY_EMOJI,
+  CATEGORY_LABEL,
+  CATEGORY_ORDER,
+} from "@/lib/constants";
+import { useCourseStore } from "./courseStore";
+import type { Category } from "@/types/api";
+
+/* 카테고리 다중 선택 바텀시트 — 프로토타입의 sheetCategory() 를 옮겼다.
+   정의된 카테고리 전체(CATEGORY_ORDER)를 보여준다. */
+
+interface CategorySheetProps {
+  onClose: () => void;
+}
+
+export function CategorySheet({ onClose }: CategorySheetProps) {
+  const slots = useCourseStore((s) => s.slots);
+  const patchSlots = useCourseStore((s) => s.patchSlots);
+  const [picks, setPicks] = useState<Category[]>(slots.categories);
+
+  function toggle(c: Category) {
+    setPicks((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
+    );
+  }
+
+  function handleSave() {
+    patchSlots({ categories: picks });
+    onClose();
+  }
+
+  return (
+    <Sheet
+      title="카테고리"
+      sub="복수 선택 가능 · 선택 안 하면 전체 카테고리 대상"
+      back
+      onClose={onClose}
+      foot={
+        <button className="btn btn--block" type="button" onClick={handleSave}>
+          저장
+        </button>
+      }
+    >
+      <div
+        className="pickgrid"
+        style={{ gridTemplateColumns: "repeat(2, 1fr)", marginTop: 4 }}
+      >
+        {CATEGORY_ORDER.map((c) => (
+          <button
+            key={c}
+            className="chip"
+            type="button"
+            aria-pressed={picks.includes(c)}
+            style={{ justifyContent: "center", minHeight: 48 }}
+            onClick={() => toggle(c)}
+          >
+            {CATEGORY_EMOJI[c]} {CATEGORY_LABEL[c]}
+          </button>
+        ))}
+      </div>
+    </Sheet>
+  );
+}

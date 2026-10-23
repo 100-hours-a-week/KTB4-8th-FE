@@ -1,0 +1,145 @@
+"use client";
+
+import { useEffect } from "react";
+import { Sheet } from "@/components/ui/Sheet";
+import { Icon } from "@/components/ui/Icon";
+import {
+  categoryLabel,
+  DummyDataNotice,
+  Empty,
+  Skeleton,
+} from "@/components/ui/Primitives";
+import { toast } from "@/components/ui/Toast";
+import { isSampleCourseId } from "@/lib/api/local-collection";
+import { confirm } from "@/components/ui/Confirm";
+import { fmtDot, fmtDuration } from "@/lib/format";
+import { useCourseDetail, useDeleteCollectionItem } from "./queries";
+
+/* 보관한 코스 상세 팝업 — 프로토타입 js/pages/collection.js 의 openCourse() 를 그대로 옮겼다.
+   코스 추천 흐름의 CandidateDetailSheet(지도 포함)와 달리, 이미 저장된 코스라 지도 없이
+   통계 · 이동 순서 · 삭제만 보여준다. */
+
+export interface CourseDetailSheetProps {
+  courseId: string;
+  onClose: () => void;
+}
+
+export function CourseDetailSheet({
+  courseId,
+  onClose,
+}: CourseDetailSheetProps) {
+  const { data: course, isLoading, isError, error } = useCourseDetail(courseId);
+  const deleteItem = useDeleteCollectionItem();
+  const savedAt = course?.createdAt ? fmtDot(new Date(course.createdAt)) : "";
+
+  useEffect(() => {
+    if (isError) toast.fromError(error);
+  }, [isError, error]);
+
+  async function handleDelete() {
+    const ok = await confirm({
+      title: "이 코스를 삭제할까요?",
+      message: "삭제한 코스는 복구할 수 없어요.",
+      ok: "삭제",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteItem.mutateAsync(courseId);
+      toast.ok("보관함에서 삭제했어요.");
+      onClose();
+    } catch (err) {
+      toast.fromError(err);
+    }
+  }
+
+  return (
+    <Sheet
+      topAlign
+      autoHideScroll
+      title={course?.name ?? "코스 정보"}
+      sub={
+        course?.area ? (
+          <span className="cdetail__area">
+            <Icon name="pin" size={14} />
+            <span>{course.area}</span>
+          </span>
+        ) : undefined
+      }
+      onClose={onClose}
+      foot={
+        course && (
+          <div className="wl__foot">
+            {savedAt && <p className="pdetail__saved">최초 저장일 {savedAt}</p>}
+            <button
+              className="btn btn--soft btn--block"
+              type="button"
+              onClick={() => void handleDelete()}
+            >
+              <Icon name="trash" size={18} />
+              <span>보관함에서 삭제</span>
+            </button>
+          </div>
+        )
+      }
+    >
+      {isLoading && (
+        <>
+          <Skeleton style={{ height: 60, borderRadius: 14 }} />
+          <Skeleton style={{ height: 60, marginTop: 8, borderRadius: 14 }} />
+        </>
+      )}
+      {isError && (
+        <Empty
+          icon="alert"
+          title="코스 정보를 불러오지 못했어요."
+          message="잠시 후 다시 시도해 주세요."
+        />
+      )}
+      {course && (
+        <>
+          {/* 예시로 넣어 둔 코스에만 안내한다. 코스 추천으로 보관한 코스는 실제 정보다. */}
+          {isSampleCourseId(courseId) && <DummyDataNotice bottomGap={15} />}
+          <div className="stats">
+            <div className="stat">
+              <p className="stat__key">추천 순위</p>
+              <p className="stat__val">{course.rank}순위</p>
+            </div>
+            {/* BE 추천 응답에는 소요시간(estimatedDurationMinutes)이 없고 이동시간(totalTravelMinutes)만
+                온다. 소요시간이 있으면 그것을, 없으면 추천 결과 화면과 같은 "총 이동시간"을 보여준다
+                (이동시간을 "소요시간"이라 부르면 뜻이 달라져서 라벨도 함께 바꾼다). */}
+            <div className="stat">
+              <p className="stat__key">
+                {course.estimatedDurationMinutes != null
+                  ? "총 소요시간"
+                  : "총 이동시간"}
+              </p>
+              <p className="stat__val">
+                {fmtDuration(
+                  course.estimatedDurationMinutes ?? course.totalTravelMinutes,
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="steps">
+            {course.components.map((comp, i) => (
+              <div className="step" key={comp.sequence}>
+                <span className="step__no">{comp.sequence}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className="step__name">{comp.name}</span>
+                  <span className="step__meta">
+                    {categoryLabel(comp.category)}
+                    {comp.travelMinutes != null &&
+                      ` · ${i === 0 ? "출발지에서" : "이전 장소에서"} ${comp.travelMinutes}분 이동`}
+                    {comp.estimatedStayMinutes != null &&
+                      ` · ${comp.estimatedStayMinutes}분 머무름`}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </Sheet>
+  );
+}
