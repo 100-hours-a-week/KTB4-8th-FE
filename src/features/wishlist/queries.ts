@@ -8,6 +8,8 @@ import {
 } from "@tanstack/react-query";
 import { apiV2, isApiError } from "@/lib/api/client";
 import type {
+  WishlistCourseDetail,
+  WishlistCourseList,
   WishlistEventDetail,
   WishlistEventList,
   WishlistPlaceDetail,
@@ -21,6 +23,8 @@ export const wishlistKeys = {
   place: (placeId: string) => ["wishlist", "places", placeId] as const,
   events: ["wishlist", "events"] as const,
   event: (eventId: string) => ["wishlist", "events", eventId] as const,
+  courses: ["wishlist", "courses"] as const,
+  course: (courseId: string) => ["wishlist", "courses", courseId] as const,
 };
 
 /** 보관함 항목 삭제 — 404(이미 없음)는 성공으로 본다.
@@ -132,5 +136,68 @@ export function useDeleteWishlistEvent() {
         exact: true,
       });
     },
+  });
+}
+
+/** GET /outing-wishlist/outing-courses?cursor= — 보관한 코스 목록 */
+export function useWishlistCourses(enabled = true) {
+  return useInfiniteQuery({
+    queryKey: wishlistKeys.courses,
+    enabled,
+    initialPageParam: "",
+    queryFn: async ({ pageParam }) =>
+      (
+        await apiV2.get<WishlistCourseList>("/outing-wishlist/outing-courses", {
+          cursor: pageParam,
+        })
+      ).data,
+    getNextPageParam: (last) => last.next_cursor || undefined,
+  });
+}
+
+/** GET /outing-wishlist/outing-courses/{courseId} — courseId 는 목록의 course_id */
+export function useWishlistCourse(courseId: string | null) {
+  return useQuery({
+    queryKey: wishlistKeys.course(courseId ?? ""),
+    queryFn: async () =>
+      (
+        await apiV2.get<WishlistCourseDetail>(
+          `/outing-wishlist/outing-courses/${encodeURIComponent(courseId ?? "")}`,
+        )
+      ).data,
+    enabled: !!courseId,
+  });
+}
+
+/** DELETE /outing-wishlist/outing-courses/{courseId} — 보관한 코스 제거 */
+export function useDeleteWishlistCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (courseId: string) => {
+      await deleteEntry(
+        `/outing-wishlist/outing-courses/${encodeURIComponent(courseId)}`,
+      );
+    },
+    onSuccess: (_, id) => {
+      qc.removeQueries({ queryKey: wishlistKeys.course(id) });
+      return qc.invalidateQueries({
+        queryKey: wishlistKeys.courses,
+        exact: true,
+      });
+    },
+  });
+}
+
+/** POST /outing-wishlist/outing-courses — 추천받은 코스를 보관함에 담는다.
+    outingCourseId 는 추천 응답의 코스 ID(details[].course_id)다. */
+export function useAddWishlistCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (outingCourseId: number) => {
+      await apiV2.post<void>("/outing-wishlist/outing-courses", {
+        outing_course_id: outingCourseId,
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: wishlistKeys.courses }),
   });
 }

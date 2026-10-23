@@ -213,6 +213,8 @@ export interface SyncResult {
 
 export interface Candidate {
   candidateId: string;
+  /** BE v2 가 추천 결과를 저장하며 붙인 코스 ID(details[].course_id) — 보관함 담기(POST outing-courses)에 쓴다 */
+  outingCourseId?: number;
   rank: number;
   name: string;
   area: string;

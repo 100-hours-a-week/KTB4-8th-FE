@@ -123,6 +123,8 @@ interface BeRecommendationItem {
 }
 
 interface BeRecommendationDetail {
+  /** BE v2 가 저장한 추천 코스의 ID — 보관함에 담을 때 이 값을 보낸다 */
+  course_id?: number;
   title?: string;
   total_travel_time?: number;
   /** 이동 + 체류를 합한 총 소요시간(분) — BE 가 AI 의 total_duration_minutes 를 전달하기 시작하면 온다 */
@@ -171,6 +173,7 @@ export function toRecommendationRun(
 
   const candidates: Candidate[] = details.map((d, i) => ({
     candidateId: `be-candidate-${i}`,
+    outingCourseId: numberOrUndefined(d.course_id),
     rank: i + 1,
     name: cleanCourseTitle(d.title),
     area,

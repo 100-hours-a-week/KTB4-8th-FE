@@ -90,8 +90,8 @@ export const NICKNAME_DISALLOWED = /[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]/g;
     BE 가 준비돼 그 API 를 직접 쓰려면 NEXT_PUBLIC_LOCAL_DUMMY=off 로 끈다. */
 export const LOCAL_DUMMY = process.env.NEXT_PUBLIC_LOCAL_DUMMY !== "off";
 
-/** 보관함의 장소를 BE v2(/api/v2/member/outing-wishlist) 실제 데이터로 보여준다.
-    아직 장소만 연결돼 있고, 이벤트 · 코스는 위의 로컬 더미를 그대로 쓴다. BE 가 준비되면 on 으로 켠다. */
+/** 보관함의 장소 · 이벤트 · 코스를 BE v2(/api/v2/member/outing-wishlist) 실제 데이터로 보여준다.
+    코스를 담는 것도 이때는 추천 결과의 코스 ID 로 BE 에 보낸다. 꺼져 있으면 브라우저 더미(LOCAL_DUMMY)를 쓴다. */
 export const WISHLIST_V2 = process.env.NEXT_PUBLIC_WISHLIST_V2 === "on";
 
 /** 좋아요 영상 분석 진행률(몇 개 중 몇 개 · 남은 시간)을 가짜로 보여 준다. BE 에 진행률 조회 API 가 없어서다.

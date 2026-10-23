@@ -6,8 +6,13 @@ import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
 import { Spinner } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
-import { CATEGORY_LABEL, TIME_OF_DAY_LABEL } from "@/lib/constants";
+import {
+  CATEGORY_LABEL,
+  TIME_OF_DAY_LABEL,
+  WISHLIST_V2,
+} from "@/lib/constants";
 import { fmtDate, fmtDuration, fmtHm } from "@/lib/format";
+import { useAddWishlistCourse } from "@/features/wishlist/queries";
 import { useAddCourseItem } from "./queries";
 import type { Slots } from "./courseStore";
 import type { Candidate } from "@/types/api";
@@ -36,6 +41,7 @@ export function CandidateDetailSheet({
 }: CandidateDetailSheetProps) {
   const [adding, setAdding] = useState(false);
   const addItem = useAddCourseItem();
+  const addWishlistCourse = useAddWishlistCourse();
 
   const dateLabel = slots.date
     ? fmtDate(new Date(`${slots.date}T00:00:00+09:00`))
@@ -45,8 +51,14 @@ export function CandidateDetailSheet({
   async function handleAdd() {
     setAdding(true);
     try {
-      const saved = await addItem.mutateAsync(candidate);
-      onAdded(candidate, saved.id);
+      if (WISHLIST_V2 && candidate.outingCourseId != null) {
+        // BE v2 가 추천 결과를 저장해 둔 코스를 내 보관함에 담는다
+        await addWishlistCourse.mutateAsync(candidate.outingCourseId);
+        onAdded(candidate, String(candidate.outingCourseId));
+      } else {
+        const saved = await addItem.mutateAsync(candidate);
+        onAdded(candidate, saved.id);
+      }
     } catch (err) {
       toast.fromError(err);
     } finally {
