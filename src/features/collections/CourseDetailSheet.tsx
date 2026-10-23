@@ -128,9 +128,9 @@ export function CourseDetailSheet({
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span className="step__name">{comp.name}</span>
                   <span className="step__meta">
-                    {categoryLabel(comp.category)} ·{" "}
-                    {i === 0 ? "출발지에서 " : "이전 장소에서 "}
-                    {comp.travelMinutes ?? 0}분 이동
+                    {categoryLabel(comp.category)}
+                    {comp.travelMinutes != null &&
+                      ` · ${i === 0 ? "출발지에서" : "이전 장소에서"} ${comp.travelMinutes}분 이동`}
                     {comp.estimatedStayMinutes != null &&
                       ` · ${comp.estimatedStayMinutes}분 머무름`}
                   </span>

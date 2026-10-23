@@ -51,7 +51,15 @@ export function CandidateDetailSheet({
   async function handleAdd() {
     setAdding(true);
     try {
-      if (WISHLIST_V2 && candidate.outingCourseId != null) {
+      if (WISHLIST_V2) {
+        // 보관함이 BE 코스만 보여 주므로, 코스 ID 가 없는 응답(구버전 BE)을 브라우저에 담으면 담았는데 안 보이게 된다 — 담지 않고 알린다
+        if (candidate.outingCourseId == null) {
+          toast.warn(
+            "이 코스는 지금 보관함에 담을 수 없어요.",
+            "담지 못했어요",
+          );
+          return;
+        }
         // BE v2 가 추천 결과를 저장해 둔 코스를 내 보관함에 담는다
         await addWishlistCourse.mutateAsync(candidate.outingCourseId);
         onAdded(candidate, String(candidate.outingCourseId));
@@ -124,9 +132,10 @@ export function CandidateDetailSheet({
             <span style={{ flex: 1, minWidth: 0 }}>
               <span className="step__name">{comp.name}</span>
               <span className="step__meta">
-                {CATEGORY_LABEL[comp.category]} ·{" "}
-                {i === 0 ? "출발지에서 " : "이전 장소에서 "}
-                {comp.travelMinutes ?? 0}분 이동
+                {CATEGORY_LABEL[comp.category]}
+                {/* 이동시간을 모르면(BE v2 는 장소별 이동시간을 안 준다) 0분으로 채우지 않고 문구를 뺀다 */}
+                {comp.travelMinutes != null &&
+                  ` · ${i === 0 ? "출발지에서" : "이전 장소에서"} ${comp.travelMinutes}분 이동`}
                 {comp.estimatedArrivalAt &&
                   ` · ${fmtHm(comp.estimatedArrivalAt)} 도착`}
                 {comp.estimatedStayMinutes != null &&
