@@ -32,7 +32,7 @@ import { SYNC_PROGRESS_DUMMY } from "@/lib/constants";
 import type { SyncResult } from "@/types/api";
 import { HomePlaceCard } from "@/features/home/HomePlaceCard";
 import { HOME_DUMMY_PLACES } from "@/features/home/dummyPlaces";
-import { HomeEventCard } from "@/features/home/HomeEventCard";
+import { EventCarousel } from "@/features/home/EventCarousel";
 import { splitHomeEvents } from "@/features/home/homeEvents";
 import { WishlistDetailSheet } from "@/features/wishlist/WishlistDetailSheet";
 import { PlaceListSheet } from "@/features/places/PlaceListSheet";
@@ -209,10 +209,9 @@ export default function HomePage() {
 
   const hscrollRef = useDragScroll();
 
-  // 홈 이벤트 더미(FE) — 진행 중 / 오픈 예정으로 나눠, 제목 문구를 눌러 바꿔 본다. 끝난 이벤트는 넣지 않는다.
+  // 홈 이벤트 더미(FE) — 지금 열린 이벤트 / 곧 열려요 두 섹션으로 나눈다. 끝난 이벤트는 넣지 않는다.
   const [now, setNow] = useState(() => new Date());
   const homeEvents = useMemo(() => splitHomeEvents(now), [now]);
-  const [eventTab, setEventTab] = useState<"ongoing" | "upcoming">("ongoing");
 
   // 당겨서 새로고침 — 인기 장소를 다시 불러온다. 시트나 코스 추천 팝업이 열려 있을 때는 끈다.
   const courseOpen = useCourseStore((s) => s.open);
@@ -448,61 +447,47 @@ export default function HomePage() {
           </div>
         </section>
 
-        {(homeEvents.ongoing.length > 0 || homeEvents.upcoming.length > 0) && (
+        {homeEvents.ongoing.length > 0 && (
           <section className="section adsection">
             <div
               className="section__head"
               style={{ paddingLeft: 0, paddingRight: 0 }}
             >
-              {homeEvents.upcoming.length > 0 ? (
-                <div className="evtabs" role="tablist">
-                  <button
-                    className="evtabs__tab"
-                    type="button"
-                    role="tab"
-                    aria-selected={eventTab === "ongoing"}
-                    onClick={() => setEventTab("ongoing")}
-                  >
-                    지금 열린 이벤트
-                  </button>
-                  <button
-                    className="evtabs__tab"
-                    type="button"
-                    role="tab"
-                    aria-selected={eventTab === "upcoming"}
-                    onClick={() => setEventTab("upcoming")}
-                  >
-                    오픈 예정 이벤트
-                  </button>
-                </div>
-              ) : (
-                <h2 className="section__title">지금 열린 이벤트</h2>
-              )}
+              <h2 className="section__title">지금 열린 이벤트</h2>
+              <button
+                className="section__more"
+                type="button"
+                onClick={() => router.push("/home/events?type=ongoing")}
+              >
+                전체보기
+              </button>
             </div>
-            {(eventTab === "ongoing" || homeEvents.upcoming.length === 0) && (
-              <>
-                <div className="evgrid">
-                  {homeEvents.ongoing.map((e) => (
-                    <HomeEventCard
-                      key={e.id}
-                      event={e}
-                      onOpen={(id) => setOverlay({ name: "homeEvent", id })}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-            {eventTab === "upcoming" && (
-              <div className="evgrid">
-                {homeEvents.upcoming.map((e) => (
-                  <HomeEventCard
-                    key={e.id}
-                    event={e}
-                    onOpen={(id) => setOverlay({ name: "homeEvent", id })}
-                  />
-                ))}
-              </div>
-            )}
+            <EventCarousel
+              events={homeEvents.ongoing}
+              onOpen={(id) => setOverlay({ name: "homeEvent", id })}
+            />
+          </section>
+        )}
+
+        {homeEvents.upcoming.length > 0 && (
+          <section className="section adsection">
+            <div
+              className="section__head"
+              style={{ paddingLeft: 0, paddingRight: 0 }}
+            >
+              <h2 className="section__title">곧 열려요</h2>
+              <button
+                className="section__more"
+                type="button"
+                onClick={() => router.push("/home/events?type=upcoming")}
+              >
+                전체보기
+              </button>
+            </div>
+            <EventCarousel
+              events={homeEvents.upcoming}
+              onOpen={(id) => setOverlay({ name: "homeEvent", id })}
+            />
           </section>
         )}
 

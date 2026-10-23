@@ -1093,6 +1093,43 @@
 .evtabs__tab[aria-selected="true"] {
   color: var(--ink);
 }
+/* 홈 이벤트 가로 넘김 — 한 장에 카드 2개, 스크롤 스냅으로 한 장씩 넘어가고 점으로 위치를 알려 준다 */
+.evpager__track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.evpager__track::-webkit-scrollbar {
+  display: none;
+}
+.evpager__page {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  align-content: start;
+}
+.evpager__dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: var(--s-3);
+}
+.evpager__dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line);
+  transition:
+    width var(--d-base) var(--e-out),
+    background var(--d-base) var(--e-out);
+}
+.evpager__dot[aria-selected="true"] {
+  width: 18px;
+  background: var(--brand);
+}
 /* 홈 이벤트 카드 격자 — 대표 이미지가 위에, 제목 · 날짜 · 태그가 아래에 온다 */
 .evgrid {
   display: grid;

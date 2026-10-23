@@ -52,7 +52,11 @@ export function TabBar() {
                 openCourse(true);
                 return;
               }
-              if (pathname.startsWith(it.href)) {
+              // 홈의 하위 페이지(전체보기 등)에서는 홈 탭이 홈으로 돌아간다. 이미 홈이면 맨 위로 올린다
+              const here =
+                pathname === it.href ||
+                (!it.home && pathname.startsWith(it.href));
+              if (here) {
                 window.scrollTo({ top: 0, behavior: "smooth" });
                 return;
               }
