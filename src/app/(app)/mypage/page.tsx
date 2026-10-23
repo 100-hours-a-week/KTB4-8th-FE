@@ -7,8 +7,7 @@ import { Avatar } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { useAccounts, useLogout, useMe } from "@/features/auth/session";
-import { ResyncBar } from "@/features/sync/ResyncBar";
-import { useResync } from "@/features/sync/useResync";
+import { useSyncStore } from "@/features/sync/syncStore";
 import { useDisconnectGoogle } from "@/features/user/queries";
 
 /* 09 · 마이페이지 — 프로토타입 js/pages/mypage.js 를 그대로 옮겼다.
@@ -26,7 +25,7 @@ export default function MyPage() {
 
   const meQuery = useMe();
   const accountsQuery = useAccounts();
-  const resync = useResync();
+  const syncPending = useSyncStore((s) => s.status === "pending");
   const disconnectGoogle = useDisconnectGoogle();
   const logout = useLogout();
 
@@ -110,8 +109,8 @@ export default function MyPage() {
             <button
               className="me__row"
               type="button"
-              disabled={resync.state === "pending"}
-              onClick={() => void resync.start()}
+              disabled={syncPending}
+              onClick={() => void useSyncStore.getState().start()}
             >
               <span className="me__row-ico">
                 <Icon name="youtube" size={18} />
@@ -173,10 +172,6 @@ export default function MyPage() {
         </div>
         <div style={{ height: 20 }} />
       </div>
-      <ResyncBar
-        resync={resync}
-        onOpenCollection={() => router.push("/collection")}
-      />
     </>
   );
 }

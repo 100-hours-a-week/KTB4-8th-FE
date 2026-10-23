@@ -7,28 +7,20 @@ import { Icon, YouTubeMark } from "@/components/ui/Icon";
 import { sleep } from "@/lib/format";
 import { PullIndicator, usePullToRefresh } from "@/components/ui/PullToRefresh";
 import { Spinner } from "@/components/ui/Primitives";
-import { toast } from "@/components/ui/Toast";
 import { useCourseStore } from "@/features/recommendations/courseStore";
+import { hasNoSavedGuides } from "@/features/sync/queries";
 import {
-  hasNoSavedGuides,
-  isSyncStillRunning,
-  useSyncYoutubeNow,
-} from "@/features/sync/queries";
-import {
-  FINISH_TOTAL_MS,
-  MIN_PROGRESS_MS,
-  parseSyncDemo,
-  simulateSync,
   useSyncProgress,
   type SyncDemoMode,
   type SyncProgress,
 } from "@/features/sync/progress";
+import { dismissLastSync, loadLastSync } from "@/features/sync/lastResult";
+import { describeAddedObject } from "@/features/sync/newItems";
 import {
-  dismissLastSync,
-  loadLastSync,
-  saveLastSync,
-} from "@/features/sync/lastResult";
-import { SYNC_PROGRESS_DUMMY } from "@/lib/constants";
+  defaultSyncDemo,
+  useSyncStore,
+  type SyncStatus,
+} from "@/features/sync/syncStore";
 import type { SyncResult } from "@/types/api";
 import { HomePlaceCard } from "@/features/home/HomePlaceCard";
 import { HOME_DUMMY_PLACES } from "@/features/home/dummyPlaces";
@@ -46,7 +38,7 @@ import { PlaceListSheet } from "@/features/places/PlaceListSheet";
    시작한 시각에서 계산한 **가짜** 진행률로 진행바만 채우고(숫자 · 남은 시간 문구는 BE API 가 생길 때까지 보여 주지 않는다),
    실제 요청이 끝나면 완료로 바꾼다. 끄면(off) 예전처럼 "불러오는 중 / 불러옴" 두 상태만 구분한다. */
 
-type SyncState = "idle" | "pending" | "done" | "empty" | "slow" | "failed";
+type SyncState = SyncStatus;
 
 interface SyncCardModel {
   badge?: string;
@@ -54,7 +46,7 @@ interface SyncCardModel {
   msg: string;
   /** false 면 닫기(×) 버튼을 숨긴다 — 불러오는 중에는 닫을 수 없다 */
   closable?: boolean;
-  action?: "sync" | "course" | "collection" | null;
+  action?: "sync" | "course" | null;
   actionLabel?: string;
 }
 
@@ -82,10 +74,19 @@ function buildSyncCard(
     };
   }
   if (state === "done") {
+    // 새로 담긴 개수는 불러오기 전후 보관함을 견줘 센 값이다(못 셌으면 숫자 없는 문구)
+    const counted = result?.addedPlaces != null && result?.addedEvents != null;
+    const added = counted
+      ? describeAddedObject(result.addedPlaces ?? 0, result.addedEvents ?? 0)
+      : "";
     // 개수(영상 · 장소 수)는 BE 에 진행률 · 결과 조회 API 가 생기면 보여 준다 — 그 전에는 숫자 없는 문구만 쓴다
     return {
       title: "좋아요 영상을 정리했어요.",
-      msg: "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
+      msg: added
+        ? `${added} 보관함에 담았어요.`
+        : counted
+          ? "새로 담긴 장소와 이벤트는 없었어요."
+          : "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
       action: "course",
       actionLabel: "코스 추천받기",
     };
@@ -103,9 +104,7 @@ function buildSyncCard(
     return {
       badge: "분석 중",
       title: "영상이 많아 시간이 더 걸려요.",
-      msg: "분석은 계속되고 있어요. 잠시 뒤 보관함에서 확인해 주세요.",
-      action: "collection",
-      actionLabel: "보관함 보기",
+      msg: "분석은 계속되고 있어요. 잠시 뒤 보관함 탭에서 확인해 주세요.",
     };
   }
   if (state === "failed") {
@@ -194,18 +193,14 @@ export default function HomePage() {
   const openCourse = useCourseStore((s) => s.setOpen);
 
   const [dismissed, setDismissed] = useState(false);
-  const [syncState, setSyncState] = useState<SyncState>("idle");
-  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
-  // 가짜 진행률의 시작 시각 — 동기화가 진행 중일 때만 값이 있다
-  const [syncStartedAt, setSyncStartedAt] = useState<number | null>(null);
+  // 불러오기 상태는 앱 전체가 공유한다(syncStore) — 다른 탭에 다녀와도 진행 중이면 그대로 보인다
+  const syncState = useSyncStore((st) => st.status);
+  const syncResult = useSyncStore((st) => st.result);
+  const syncStartedAt = useSyncStore((st) => st.startedAt);
+  const syncFinishAt = useSyncStore((st) => st.finishAt);
   const demoRef = useRef<SyncDemoMode | null>(null);
-  const startedAtRef = useRef(0);
-  // 실제 요청이 끝난 직후 잠깐 진행바를 100% 로 채워 보여 주는 동안 true
-  const [syncFinishAt, setSyncFinishAt] = useState<number | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const initDoneRef = useRef(false);
-
-  const syncNow = useSyncYoutubeNow();
 
   const hscrollRef = useDragScroll();
 
@@ -225,51 +220,10 @@ export default function HomePage() {
   );
 
   const handleStartSync = useCallback(async () => {
-    setSyncState("pending");
-    setSyncResult(null);
     setDismissed(false);
-    setSyncStartedAt(SYNC_PROGRESS_DUMMY ? Date.now() : null);
-    try {
-      const startedAt = Date.now();
-      startedAtRef.current = startedAt;
-      // ?syncDemo= 로 들어왔으면 BE 를 부르지 않고 가짜로 진행시킨다
-      const result = demoRef.current
-        ? await simulateSync(demoRef.current)
-        : await syncNow.mutateAsync();
-      // BE 가 영상 · 장소 개수를 안 알려주면 "찾은 게 없는지"를 보관함으로 확인한다.
-      // 실제 요청이 아주 빨리 끝나도 가짜 진행 화면은 최소 시간만큼 보여 준다.
-      const counted = result.videoCount != null && result.placeCount != null;
-      const [none] = await Promise.all([
-        demoRef.current || counted ? null : hasNoSavedGuides(),
-        SYNC_PROGRESS_DUMMY
-          ? sleep(MIN_PROGRESS_MS - (Date.now() - startedAt))
-          : null,
-      ]);
-      const empty = counted
-        ? result.videoCount === 0 || result.placeCount === 0
-        : none === true;
-      // 진행 화면이 있었다면 100% 까지 채우고 잠깐 보여 준 뒤 결과 카드로 바꾼다
-      if (SYNC_PROGRESS_DUMMY) {
-        setSyncFinishAt(Date.now());
-        await sleep(FINISH_TOTAL_MS);
-      }
-      setSyncResult(result);
-      setSyncState(empty ? "empty" : "done");
-      saveLastSync(empty ? "empty" : "done", result);
-      if (!empty) toast.ok("좋아요 영상을 불러왔어요.", "완료");
-    } catch (err) {
-      // 게이트웨이 시간 제한으로 끊겼다면 BE 는 분석을 이어 가는 중이다 — 실패가 아니라 "더 걸리는 중"으로 안내한다
-      if (isSyncStillRunning(err, Date.now() - startedAtRef.current)) {
-        setSyncState("slow");
-      } else {
-        // 실패 안내는 카드(sync.failed)로만 보여준다 — 토스트는 따로 안 띄운다.
-        setSyncState("failed");
-      }
-    } finally {
-      setSyncStartedAt(null);
-      setSyncFinishAt(null);
-    }
-  }, [syncNow]);
+    // 이미 진행 중이면 요청을 보내지 않고 안내만 띄운다(스토어가 처리)
+    await useSyncStore.getState().start({ demo: demoRef.current });
+  }, []);
 
   // 최초 진입 1회 — startSync=1 쿼리(온보딩 · 코스 추천 팝업에서 옴)를 소비해 동기화를 시작한다
   useEffect(() => {
@@ -278,11 +232,7 @@ export default function HomePage() {
     const params = new URLSearchParams(window.location.search);
     // 개발용 토큰으로 로그인한 로컬 계정은 유튜브 연동이 없어 실제 동기화가 늘 실패한다.
     // 그래서 진행률 더미가 켜져 있으면 BE 를 부르지 않고 가짜로 끝까지 진행시킨다(?syncDemo=fail 로 실패도 볼 수 있다).
-    demoRef.current =
-      parseSyncDemo(params.get("syncDemo")) ??
-      (SYNC_PROGRESS_DUMMY && process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN
-        ? "done"
-        : null);
+    demoRef.current = defaultSyncDemo();
     if (params.get("startSync") === "1") {
       router.replace("/home");
       // eslint-disable-next-line react-hooks/set-state-in-effect -- URL 파라미터로 진입 시 동기화를 트리거하는 1회성 초기화
@@ -299,18 +249,21 @@ export default function HomePage() {
     restoredRef.current = true;
     if (new URLSearchParams(window.location.search).get("startSync") === "1")
       return;
+    const store = useSyncStore.getState();
+    // 새로고침 직전에 분석 중이었다면 그 상태를 되살린다 — 이때는 저장된 결과보다 진행 중이 먼저다
+    store.restorePending();
+    // 이미 진행 중이거나 이번 방문 중에 끝난 결과가 있으면 스토어의 상태를 그대로 보여 준다
+    if (useSyncStore.getState().status !== "idle") return;
     const last = loadLastSync();
     if (last) {
-      /* eslint-disable react-hooks/set-state-in-effect -- 마운트 때 저장된 결과를 화면 상태로 옮기는 1회성 복원 */
-      setSyncState(last.state);
-      setSyncResult(last.result);
+      store.hydrate(last.state, last.result);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 때 저장된 결과를 화면 상태로 옮기는 1회성 복원
       setDismissed(last.dismissed);
-      /* eslint-enable react-hooks/set-state-in-effect */
       return;
     }
     void hasNoSavedGuides().then((none) => {
       // 보관함에 이미 있으면 "아직 저장된 장소가 없어요"를 보여 주지 않는다(그 사이 새로 시작했다면 건드리지 않는다)
-      if (none === false) setSyncState((s) => (s === "idle" ? "done" : s));
+      if (none === false) useSyncStore.getState().hydrate("done", null);
     });
   }, []);
 
@@ -344,6 +297,7 @@ export default function HomePage() {
                   if (syncState === "done" || syncState === "empty") {
                     dismissLastSync(syncState, syncResult);
                   }
+                  useSyncStore.getState().dismiss();
                 }}
               >
                 <Icon name="close" size={15} />
@@ -395,16 +349,6 @@ export default function HomePage() {
                 onClick={() => void handleStartSync()}
               >
                 {syncState !== "failed" && <YouTubeMark size={24} />}
-                <span>{sync.actionLabel}</span>
-              </button>
-            )}
-            {sync.action === "collection" && (
-              <button
-                className="btn btn--block"
-                type="button"
-                onClick={() => router.push("/collection")}
-              >
-                <Icon name="bookmark" size={18} />
                 <span>{sync.actionLabel}</span>
               </button>
             )}

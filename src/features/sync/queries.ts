@@ -36,20 +36,16 @@ export function isSyncStillRunning(error: unknown, elapsedMs: number): boolean {
     - 꺼져 있으면 POST /user/youtube-analyze(v1) — 지금 BE 는 영상 목록만 가져오고 분석 · 보관함 저장 코드가 꺼져 있다.
     진행률을 알려주는 조회 API 가 BE 에 없어서, 끝날 때까지 기다렸다가(동기 처리) 성공 여부만 본다.
     LOCAL_DUMMY 켜짐 여부와 무관하게 항상 실제 BE 를 호출한다(더미는 /user/liked-video-syncs 만 가로챈다). */
-export function useSyncYoutubeNow() {
-  return useMutation({
-    mutationFn: async (): Promise<SyncResult> => {
-      if (CHAT_V2) {
-        await apiV2.post<void>("/youtube-sync");
-        return { videoCount: null, placeCount: null };
-      }
-      // 204(본문 없음)이면 data 가 비어 있다 — 개수를 모르는 것으로 본다
-      const { data } = await api.post<SyncResult | undefined>(
-        "/user/youtube-analyze",
-      );
-      return data ?? { videoCount: null, placeCount: null };
-    },
-  });
+export async function requestYoutubeSync(): Promise<SyncResult> {
+  if (CHAT_V2) {
+    await apiV2.post<void>("/youtube-sync");
+    return { videoCount: null, placeCount: null };
+  }
+  // 204(본문 없음)이면 data 가 비어 있다 — 개수를 모르는 것으로 본다
+  const { data } = await api.post<SyncResult | undefined>(
+    "/user/youtube-analyze",
+  );
+  return data ?? { videoCount: null, placeCount: null };
 }
 
 /** 동기화가 끝난 뒤 보관함(BE v2)에 장소 · 이벤트가 하나도 없는지.
