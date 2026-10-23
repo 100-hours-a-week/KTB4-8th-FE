@@ -1272,6 +1272,33 @@
   flex-direction: column;
   gap: var(--s-3);
 }
+/* 대화 스크롤바 — 트랙 없이 가는 둥근 막대, 스크롤하는 동안(.is-scrolling)에만 보인다(장소 상세 시트와 같은 모양) */
+.chat__log::-webkit-scrollbar {
+  width: 8px;
+}
+.chat__log::-webkit-scrollbar-track {
+  background: transparent;
+  border: 0;
+}
+.chat__log::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.chat__log.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--ink-4);
+  background-clip: padding-box;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .chat__log {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .chat__log.is-scrolling {
+    scrollbar-color: var(--ink-4) transparent;
+  }
+}
 .chat__intro {
   text-align: center;
   padding: var(--s-4) 0 var(--s-2);
