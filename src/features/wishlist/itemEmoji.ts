@@ -63,6 +63,22 @@ const RULES: Rule[] = [
     emoji: "🎶",
     words: ["뮤직", "음악", "재즈", "라이브", "밴드", "lp바", "jazz", "music"],
   },
+  /* 술 — 구체적인 것부터: 사케 · 이자카야 → 칵테일 → 와인 → 맥주. "맥주나 와인을 곁들이기 좋은"처럼 여러 개가 같이 나오면 앞의 것이 이긴다.
+     조명 · 야경 같은 일반 단어 규칙보다 앞에 둬서, 야외 조명이 있는 칵테일 바가 🌃 로 나오지 않게 한다. */
+  {
+    emoji: "🍶",
+    words: ["이자카야", "니혼슈", "일본주", "izakaya"],
+    // "사케동"(연어 덮밥)은 술이 아니다
+    patterns: [/사케(?!동)/, /(^|[^a-z])sake($|[^a-z])/],
+  },
+  { emoji: "🍸", words: ["칵테일", "cocktail"] },
+  { emoji: "🍷", words: ["와인", "wine"] },
+  {
+    emoji: "🍺",
+    words: ["맥주", "beer"],
+    // "비어 있는"처럼 한글 속의 "비어"는 맥주가 아니다 — 앞뒤가 한글이 아닐 때만
+    patterns: [/(^|[^가-힣])비어($|[^가-힣])/],
+  },
   { emoji: "🌉", words: ["잠수교", "대교", "야경"] },
   { emoji: "🌸", words: ["벚꽃", "꽃놀이", "튤립", "flower"] },
   { emoji: "🍁", words: ["단풍", "가을 소풍"] },
@@ -75,9 +91,6 @@ const RULES: Rule[] = [
   { emoji: "💄", words: ["뷰티", "화장품", "코스메틱", "립스틱", "beauty"] },
   { emoji: "👕", words: ["패션", "의류", "fashion"] },
   { emoji: "🍰", words: ["디저트", "케이크", "베이커리", "dessert", "cake"] },
-  { emoji: "🍺", words: ["맥주", "비어", "beer"] },
-  { emoji: "🍷", words: ["와인", "wine"] },
-  { emoji: "🍸", words: ["칵테일", "cocktail"] },
   { emoji: "☕", words: ["커피", "로스터리", "coffee"] },
   { emoji: "🍽️", words: ["미식", "푸드", "먹거리", "레스토랑", "food"] },
   { emoji: "🛍️", words: ["마켓", "플리마켓", "시장", "market"] },

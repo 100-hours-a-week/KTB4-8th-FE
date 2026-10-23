@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppBar } from "@/components/ui/AppBar";
 import { Icon } from "@/components/ui/Icon";
-import { Empty, Skeleton, Thumb } from "@/components/ui/Primitives";
+import { Empty, Skeleton, Spinner, Thumb } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { CATEGORY_LABEL, WISHLIST_V2 } from "@/lib/constants";
 import {
@@ -147,6 +147,14 @@ function CollectionContent() {
     (showsPlaces && wishlist.isError) ||
     (showsEvents && wishlistEventsQuery.isError) ||
     (showsCourses && wishlistCoursesQuery.isError);
+  // 목록이 아예 안 떴을 때만 오류 화면으로 바꾼다 — 다음 페이지를 불러오다 실패한 건 이미 받은 목록을 지우지 않고 아래의 "다시 불러오기"로 다룬다
+  const loadFailed =
+    (localOnly && items.isError) ||
+    (showsPlaces && wishlist.isError && !wishlist.data) ||
+    (showsEvents && wishlistEventsQuery.isError && !wishlistEventsQuery.data) ||
+    (showsCourses &&
+      wishlistCoursesQuery.isError &&
+      !wishlistCoursesQuery.data);
   const error =
     items.error ??
     wishlist.error ??
@@ -353,14 +361,14 @@ function CollectionContent() {
             <Skeleton style={{ height: 82, borderRadius: 18 }} />
           </>
         )}
-        {!isLoading && isError && (
+        {!isLoading && loadFailed && (
           <Empty
             icon="alert"
             title="목록을 불러오지 못했어요."
             message="잠시 후 다시 시도해 주세요."
           />
         )}
-        {!isLoading && !isError && !hasAny && (
+        {!isLoading && !loadFailed && !hasAny && (
           <Empty
             icon="bookmark"
             title="보관한 항목이 없어요."
@@ -376,7 +384,7 @@ function CollectionContent() {
             }
           />
         )}
-        {!isLoading && !isError && hasAny && visibleCount === 0 && (
+        {!isLoading && !loadFailed && hasAny && visibleCount === 0 && (
           <Empty
             icon="search"
             title={`조건에 맞는 ${courseFiltering ? "코스가" : placeFiltering ? "장소가" : "이벤트가"} 없어요.`}
@@ -398,7 +406,7 @@ function CollectionContent() {
             }
           />
         )}
-        {!isLoading && !isError && visibleCount > 0 && (
+        {!isLoading && !loadFailed && visibleCount > 0 && (
           <div>
             {shownHomePlaces.map((p) => (
               <WishlistRow
@@ -428,16 +436,13 @@ function CollectionContent() {
                 }
               />
             ))}
-            {showsPlaces && wishlist.hasNextPage && (
-              <button
-                className="btn btn--ghost btn--block"
-                type="button"
-                disabled={wishlist.isFetchingNextPage}
-                onClick={() => void wishlist.fetchNextPage()}
-                style={{ marginBottom: 8 }}
-              >
-                더 보기
-              </button>
+            {showsPlaces && (
+              <AutoLoadMore
+                hasNext={wishlist.hasNextPage}
+                fetching={wishlist.isFetchingNextPage}
+                failed={wishlist.isFetchNextPageError}
+                onLoad={() => void wishlist.fetchNextPage()}
+              />
             )}
             {shownHomeEvents.map((e) => {
               const period = describePeriod(e.start_date, e.end_date);
@@ -483,16 +488,13 @@ function CollectionContent() {
                 />
               );
             })}
-            {showsEvents && wishlistEventsQuery.hasNextPage && (
-              <button
-                className="btn btn--ghost btn--block"
-                type="button"
-                disabled={wishlistEventsQuery.isFetchingNextPage}
-                onClick={() => void wishlistEventsQuery.fetchNextPage()}
-                style={{ marginBottom: 8 }}
-              >
-                더 보기
-              </button>
+            {showsEvents && (
+              <AutoLoadMore
+                hasNext={wishlistEventsQuery.hasNextPage}
+                fetching={wishlistEventsQuery.isFetchingNextPage}
+                failed={wishlistEventsQuery.isFetchNextPageError}
+                onLoad={() => void wishlistEventsQuery.fetchNextPage()}
+              />
             )}
             {shownWishlistCourses.map((c) => (
               <WishlistCourseRow
@@ -506,16 +508,13 @@ function CollectionContent() {
                 }
               />
             ))}
-            {showsCourses && wishlistCoursesQuery.hasNextPage && (
-              <button
-                className="btn btn--ghost btn--block"
-                type="button"
-                disabled={wishlistCoursesQuery.isFetchingNextPage}
-                onClick={() => void wishlistCoursesQuery.fetchNextPage()}
-                style={{ marginBottom: 8 }}
-              >
-                더 보기
-              </button>
+            {showsCourses && (
+              <AutoLoadMore
+                hasNext={wishlistCoursesQuery.hasNextPage}
+                fetching={wishlistCoursesQuery.isFetchingNextPage}
+                failed={wishlistCoursesQuery.isFetchNextPageError}
+                onLoad={() => void wishlistCoursesQuery.fetchNextPage()}
+              />
             )}
             {shownRows.map((row) => (
               <CollectionRow
@@ -614,6 +613,67 @@ function CollectionContent() {
         />
       )}
     </>
+  );
+}
+
+/** 목록 끝에 닿으면 다음 페이지를 자동으로 불러온다(스크롤하면 이어서 나온다).
+    불러오다 실패하면 같은 요청이 계속 반복되지 않게 멈추고 "다시 불러오기" 버튼을 보여 준다. */
+function AutoLoadMore({
+  hasNext,
+  fetching,
+  failed,
+  onLoad,
+}: {
+  hasNext: boolean;
+  fetching: boolean;
+  failed: boolean;
+  onLoad: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const loadRef = useRef(onLoad);
+  useEffect(() => {
+    loadRef.current = onLoad;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !hasNext || fetching || failed) return;
+    // 바닥에서 조금 떨어져 있을 때 미리 불러와서, 스크롤이 끊기지 않게 한다
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) loadRef.current();
+      },
+      { rootMargin: "240px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNext, fetching, failed]);
+
+  if (!hasNext) return null;
+  if (failed) {
+    return (
+      <button
+        className="btn btn--ghost btn--block"
+        type="button"
+        onClick={onLoad}
+        style={{ marginBottom: 8 }}
+      >
+        다시 불러오기
+      </button>
+    );
+  }
+  return (
+    <div
+      ref={ref}
+      aria-hidden
+      style={{
+        height: 48,
+        display: "grid",
+        placeItems: "center",
+        marginBottom: 8,
+      }}
+    >
+      {fetching && <Spinner />}
+    </div>
   );
 }
 

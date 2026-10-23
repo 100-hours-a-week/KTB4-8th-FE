@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sheet } from "@/components/ui/Sheet";
 import { Icon } from "@/components/ui/Icon";
@@ -250,6 +250,27 @@ export function CoursePopup() {
   const condCollapsed = collapsedKey === convKey;
 
   const logRef = useRef<HTMLDivElement | null>(null);
+  /* 대화 스크롤바는 스크롤하는 동안에만 보인다 — 장소 상세 시트(Sheet autoHideScroll)와 같은 방식.
+     움직이면 .is-scrolling 을 달고 잠시 뒤 뗀다. 대화 로그는 팝업을 열 때 · 완료 화면을 오갈 때 새로 생기므로, 생길 때마다 달 수 있게 콜백 ref 로 처리한다. */
+  const logCleanup = useRef<(() => void) | null>(null);
+  const setLogEl = useCallback((el: HTMLDivElement | null) => {
+    logRef.current = el;
+    logCleanup.current?.();
+    logCleanup.current = null;
+    if (!el) return;
+    let timer: number | undefined;
+    const onScroll = () => {
+      el.classList.add("is-scrolling");
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => el.classList.remove("is-scrolling"), 700);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    logCleanup.current = () => {
+      window.clearTimeout(timer);
+      el.removeEventListener("scroll", onScroll);
+      el.classList.remove("is-scrolling");
+    };
+  }, []);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const shakeTimer = useRef<number | null>(null);
   // 한글 등 조합 중에는 값을 자르지 않는다(자르면 조합이 깨진다). 조합이 끝난 뒤에 자른다.
@@ -750,7 +771,7 @@ export function CoursePopup() {
           />
         ) : (
           <div className="chat">
-            <div className="chat__log" ref={logRef}>
+            <div className="chat__log" ref={setLogEl}>
               {lines.length === 0 && (
                 <div className="chat__intro">
                   <div className="chat__intro-ico">

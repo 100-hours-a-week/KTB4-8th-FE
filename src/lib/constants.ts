@@ -20,7 +20,7 @@ export const CATEGORY_EMOJI: Record<Category, string> = {
   CAFE: "☕",
   DESSERT: "🍰",
   RESTAURANT: "🍽️",
-  BAR: "🍷",
+  BAR: "🍻",
   POPUP: "🎟️",
   SELECTSHOP: "🛍️",
   EXHIBITION: "🖼️",
