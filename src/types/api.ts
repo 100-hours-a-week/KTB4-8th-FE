@@ -209,6 +209,9 @@ export type EmptyReason =
 export interface SyncResult {
   videoCount: number | null;
   placeCount: number | null;
+  /** 이번 불러오기로 보관함에 새로 담긴 장소 · 이벤트 수 — 불러오기 전후 보관함을 견줘 FE 가 센다(못 세면 없다) */
+  addedPlaces?: number | null;
+  addedEvents?: number | null;
 }
 
 export interface Candidate {

@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { TabBar } from "@/components/ui/TabBar";
 import { CoursePopup } from "@/features/recommendations/CoursePopup";
 import { hasSession } from "@/features/auth/session";
+import { SyncHost } from "@/features/sync/SyncHost";
 
 /* 인증된 셸.
    Bearer 헤더 방식이라 Edge Middleware 가 토큰을 읽을 수 없다.
@@ -29,6 +30,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <>
       {children}
       <TabBar />
+      {/* 좋아요 영상 불러오기 — 어느 화면에서든 진행 막대 · 완료 안내 */}
+      <SyncHost />
       {/* 코스 추천은 화면 이동이 아니라 현재 화면 위에 뜨는 팝업이다 */}
       <CoursePopup />
     </>

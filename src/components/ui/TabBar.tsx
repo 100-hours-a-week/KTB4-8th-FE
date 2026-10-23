@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Icon, type IconName } from "./Icon";
 import { useCourseStore } from "@/features/recommendations/courseStore";
+import { useNewItemsStore } from "@/features/sync/newItems";
 
 /* 하단 글로벌 내비게이션 — 보관함 / 지도 / 홈 / 코스 / 마이페이지.
    가운데 홈을 강조하고, 코스는 화면 이동이 아니라 팝업을 연다. */
@@ -35,6 +37,12 @@ export function TabBar() {
   const router = useRouter();
   const courseOpen = useCourseStore((s) => s.open);
   const openCourse = useCourseStore((s) => s.setOpen);
+  // 좋아요 불러오기로 새로 담긴 항목 수 — 보관함 탭에 배지로 보여 준다(보관함에서 "확인했어요"를 누르면 사라진다)
+  const newCount = useNewItemsStore((s) => s.keys.length);
+  const hydrateNew = useNewItemsStore((s) => s.hydrate);
+  useEffect(() => {
+    hydrateNew();
+  }, [hydrateNew]);
 
   return (
     <nav className="tabbar" aria-label="주요 메뉴">
@@ -65,6 +73,14 @@ export function TabBar() {
           >
             <span className="tabbar__icon">
               <Icon name={it.icon} size={21} />
+              {it.key === "collection" && newCount > 0 && (
+                <i
+                  className="tabbar__badge"
+                  aria-label={`새로 담긴 항목 ${newCount}개`}
+                >
+                  {newCount > 99 ? "99+" : newCount}
+                </i>
+              )}
             </span>
             <span>{it.label}</span>
           </button>

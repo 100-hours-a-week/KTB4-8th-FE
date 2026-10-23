@@ -2274,6 +2274,38 @@
   letter-spacing: var(--tr-h3);
   font-size: 15px;
 }
+/* 좋아요 불러오기로 방금 담긴 항목 */
+.listitem__new {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 99px;
+  background: #e5484d;
+  color: #fff;
+  font: 800 10.5px/17px var(--font);
+  letter-spacing: 0;
+  vertical-align: 1px;
+}
+.newbanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+  padding: 11px 14px;
+  border-radius: var(--r-md);
+  background: var(--brand-50, #eef7f1);
+  color: var(--brand-700, #1f5e3d);
+  font: 600 13px/1.4 var(--font);
+}
+.newbanner__ok {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: 800 13px var(--font);
+  padding: 4px 0 4px 8px;
+}
 .listitem__meta {
   font: var(--t-sm);
   color: var(--ink-3);
@@ -3651,7 +3683,7 @@ button.me__row:hover {
   color: #fff;
 }
 
-/* 마이페이지 영상 다시 불러오기 진행 막대 — 탭바 위에 뜨는 얇은 반투명 블러 유리 */
+/* 좋아요 영상 불러오기 진행 막대(홈이 아닌 화면) — 탭바 위에 뜨는 얇은 반투명 블러 유리 */
 .rsbar {
   position: fixed;
   /* 좌우 0 + 자동 여백으로 가운데 맞춘다(transform 은 등장 애니메이션이 쓰므로 쓰지 않는다) */
@@ -3677,10 +3709,6 @@ button.me__row:hover {
   align-items: center;
   gap: 9px;
 }
-.rsbar__text {
-  flex: 1;
-  min-width: 0;
-}
 .rsbar__title {
   flex: 1;
   min-width: 0;
@@ -3700,9 +3728,6 @@ button.me__row:hover {
   line-height: 1.45;
   opacity: 0.78;
 }
-.rsbar__sub--tight {
-  margin-top: 1px;
-}
 .rsbar__bar {
   height: 4px;
   margin-top: 9px;
@@ -3716,45 +3741,6 @@ button.me__row:hover {
   border-radius: 99px;
   background: linear-gradient(90deg, #74d3a9, #16a46b);
   transition: width 0.4s var(--e-out);
-}
-.rsbar__ico {
-  flex: none;
-  display: grid;
-  place-items: center;
-  color: #74d3a9;
-}
-.rsbar__ico--failed {
-  color: #ff9b9b;
-}
-.rsbar__ico--slow,
-.rsbar__ico--empty {
-  color: rgba(255, 255, 255, 0.85);
-}
-/* 버튼은 초록 없이 단순하게 — 반투명 흰 바탕 */
-.rsbar__btn {
-  flex: none;
-  height: 30px;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-  font: 700 12px var(--font);
-  white-space: nowrap;
-}
-.rsbar__btn:active {
-  background: rgba(255, 255, 255, 0.26);
-}
-.rsbar__x {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
 }
 .rsbar .spinner {
   width: 16px;
