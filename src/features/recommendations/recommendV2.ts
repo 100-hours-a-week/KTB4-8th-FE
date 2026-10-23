@@ -56,7 +56,8 @@ async function requestError(
         status: 400,
         code: "RECOMMENDATION_CONDITIONS_MISSING",
         title: "추천에 필요한 조건이 부족해요",
-        detail: "채팅으로 원하는 분위기를 한 번 알려 준 뒤 다시 시도해 주세요.",
+        detail:
+          "출발지 · 날짜와 시간 · 외출 가능 시간(3 · 6 · 9시간)이 모두 정해졌는지 확인한 뒤 다시 시도해 주세요.",
       },
       400,
     );
