@@ -15,7 +15,7 @@ const GLYPH: Record<string, string> = {
   CAFE: "☕️",
   DESSERT: "🍰",
   RESTAURANT: "🍽️",
-  BAR: "🍷",
+  BAR: "🍻",
   POPUP: "🎟️",
   SELECTSHOP: "🛍️",
   EXHIBITION: "🖼️",
