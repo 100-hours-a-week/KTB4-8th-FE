@@ -74,7 +74,30 @@ export interface WishlistEventDetail {
 /* ── 표시용 추가 값(extra) ─────────────────────────────────
    공식 링크 · 일정표 · 이모지 · 지도 검색어는 BE 명세에 아직 없다. 로컬 BE 가 응답에 `extra` 로 실어 주면 그대로 쓰고,
    실제(개발) 서버는 보내지 않으므로 모두 없는 것으로 보고 해당 구역을 그리지 않는다. */
+/** 방탈출 카페 같은 곳의 테마 하나 — 펼치면 소개 · 포스터 · 시간표가 나온다 */
+export interface ExtraTheme {
+  name: string;
+  /** 줄거리 · 소개 */
+  description: string;
+  /** "스릴러" · "협동" … */
+  genre: string;
+  /** 플레이 시간(분) */
+  minutes: number;
+  /** 공포도 · 난이도(0~5) */
+  fear: number;
+  difficulty: number;
+  /** 포스터 주소 */
+  image: string;
+  /** 예약 시간(= 사전 콘텐츠 시작 시간) "10:00". 테마 시작은 +10분, 종료는 시작 + minutes 로 계산한다 */
+  times: string[];
+}
+
+/** 미쉐린 가이드 선정 — 스타 1~3개 또는 빕 구르망("bib"). 카테고리 배지 오른쪽에 아이콘으로 보여 준다 */
+export type Michelin = 1 | 2 | 3 | "bib";
+
 export interface WishlistExtra {
+  /** 미쉐린 가이드(서울) 선정 여부 */
+  michelin?: Michelin;
   /** 보관함 목록 아이콘에 올릴, 이 항목의 특성에 맞춘 이모지 */
   emoji?: string;
   /** 공식 홈페이지 · 인스타그램 링크 — 있는 것만 "공식 링크" 구역에 칩으로 보여 준다 */
@@ -87,6 +110,10 @@ export interface WishlistExtra {
   map_query?: string;
   /** 대회 · 축제처럼 일정이 여러 개인 이벤트의 일정표(공연 라인업, 매주 프로그램 등) */
   schedule?: { title: string; rows: ExtraScheduleRow[] };
+  /** 예약 · 예매 페이지 — 있으면 공식 링크 위에 "예약하기" 줄을 보여 준다(https 주소만 연결) */
+  booking_url?: string;
+  /** 방탈출 테마 목록 — 테마마다 펼침 줄로 보여 준다 */
+  themes?: { title: string; items: ExtraTheme[] };
   /** 요일별 영업시간 — 장소 상세의 "영업 중 · 11:00 - 22:00" 줄 */
   hours?: BusinessHours;
   /** 행사장 안내도 같은 안내 이미지 — 제목 아래에 크게 보여 주고, 누르면 원본을 연다 */
@@ -120,7 +147,7 @@ export interface ExtraImage {
 }
 
 export interface ExtraLink {
-  type: "official" | "instagram";
+  type: "official" | "instagram" | "blog";
   url: string;
 }
 

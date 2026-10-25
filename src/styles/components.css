@@ -12,7 +12,7 @@
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
   border-bottom: 1px solid var(--line-2);
-  position: relative;
+  /* 위에서 sticky 로 고정한다 — 여기서 position: relative 를 다시 주면 sticky 가 덮여서 스크롤 때 앱바가 같이 올라갔다 */
   z-index: 5;
 }
 .appbar--plain {
@@ -421,6 +421,12 @@
   color: var(--ink-3);
   font: var(--t-xs);
   font-weight: 600;
+}
+/* 미쉐린 가이드 아이콘 — 카테고리 배지 오른쪽, 배지와 세로 가운데 */
+.michelin {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
 }
 .chip--brand {
   background: var(--brand-50);
