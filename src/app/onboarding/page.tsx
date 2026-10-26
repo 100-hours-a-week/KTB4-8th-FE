@@ -215,27 +215,42 @@ function useSwipeRef(onNext: () => void, onPrev: () => void) {
   useEffect(() => {
     if (!el) return;
     let x0: number | null = null;
+    let y0 = 0;
     let m0: number | null = null;
+    let my0 = 0;
+
+    /** 가로로 충분히 밀었고(세로보다 두 배 이상) 글자를 드래그해 선택한 게 아닐 때만 슬라이드를 넘긴다.
+        예전에는 글자를 오른쪽으로 끌어 선택하면(드래그) 그냥 "이전 화면" 스와이프로 처리돼 앞 화면으로 돌아갔다. */
+    const decide = (dx: number, dy: number, min: number) => {
+      if (Math.abs(dx) < min || Math.abs(dx) < Math.abs(dy) * 2) return;
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed && sel.toString().trim()) return;
+      if (dx < 0) onNext();
+      else onPrev();
+    };
 
     const onTouchStart = (e: TouchEvent) => {
       x0 = e.touches[0].clientX;
+      y0 = e.touches[0].clientY;
     };
     const onTouchEnd = (e: TouchEvent) => {
       if (x0 == null) return;
-      const dx = e.changedTouches[0].clientX - x0;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - x0;
+      const dy = t.clientY - y0;
       x0 = null;
-      if (dx < -48) onNext();
-      else if (dx > 48) onPrev();
+      decide(dx, dy, 48);
     };
     const onMouseDown = (e: MouseEvent) => {
       m0 = e.clientX;
+      my0 = e.clientY;
     };
     const onMouseUp = (e: MouseEvent) => {
       if (m0 == null) return;
       const dx = e.clientX - m0;
+      const dy = e.clientY - my0;
       m0 = null;
-      if (dx < -60) onNext();
-      else if (dx > 60) onPrev();
+      decide(dx, dy, 60);
     };
 
     el.addEventListener("touchstart", onTouchStart, { passive: true });
