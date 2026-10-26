@@ -31,6 +31,9 @@ import type {
 import { useYoutubeMeta } from "./youtubeMeta";
 import { BusinessHours } from "./BusinessHours";
 import { useSavedHomeItems } from "@/features/home/savedHomeItems";
+import { MICHELIN_EDITION, resolveMichelin } from "./michelin";
+import { MichelinMark } from "@/components/ui/MichelinMark";
+import { ThemeSection } from "./ThemeSection";
 import { groupSchedule, isCurrentWeek, pickDefaultGroup } from "./schedule";
 
 /* 보관한 장소·이벤트 상세(BE v2) — GET /outing-wishlist/places/{placeId} · events/{eventId}.
@@ -216,6 +219,10 @@ export function WishlistDetailSheet({
     l.url.startsWith("https://"),
   );
   const savedAt = fmtSaveDate(place?.save_date);
+  // 미쉐린 가이드 서울 선정 — 이름으로 자동 매칭(데이터에 직접 적은 값이 우선). 장소에만 적용한다
+  const michelin = isEvent
+    ? undefined
+    : resolveMichelin(place?.name, extra?.michelin);
 
   /** 홈 이벤트 더미(preset)를 보관함에 담거나 뺀다. 보관함 화면에서 열었을 때는 지우기 전에 한 번 묻고, 지우면 시트를 닫는다. */
   async function handleTogglePreset(p: HomeDummyEvent | HomeDummyPlace) {
@@ -401,6 +408,25 @@ export function WishlistDetailSheet({
             <p className="pdetail__desc">{place.description}</p>
           )}
 
+          {michelin &&
+            (michelin.url ? (
+              // 미쉐린 가이드 서울의 이 레스토랑 페이지로 연결한다
+              <a
+                className="wl__michelin"
+                href={michelin.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MichelinMark michelin={michelin.michelin} size={14} />
+                <span>{MICHELIN_EDITION}</span>
+              </a>
+            ) : (
+              <p className="wl__michelin">
+                <MichelinMark michelin={michelin.michelin} size={14} />
+                <span>{MICHELIN_EDITION}</span>
+              </p>
+            ))}
+
           {period && (
             <div className="wl__period">
               <Icon name="calendar" size={16} />
@@ -416,6 +442,13 @@ export function WishlistDetailSheet({
           {extra?.hours && <BusinessHours hours={extra.hours} />}
 
           {extra?.schedule && <ScheduleSection schedule={extra.schedule} />}
+
+          {extra?.themes && (
+            <ThemeSection
+              title={extra.themes.title}
+              items={extra.themes.items}
+            />
+          )}
 
           {(extra?.images ?? [])
             .filter(
@@ -433,6 +466,19 @@ export function WishlistDetailSheet({
                 <p className="wl__img-hint">누르면 크게 볼 수 있어요</p>
               </div>
             ))}
+
+          {extra?.booking_url?.startsWith("https://") && (
+            <a
+              className="wl__booking"
+              href={extra.booking_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Icon name="calendar" size={18} />
+              <span className="wl__booking-name">예약하기</span>
+              <Icon name="chevron" size={18} />
+            </a>
+          )}
 
           {links.length > 0 && (
             <div className="wl__yt wl__links" ref={linksRef}>
@@ -469,7 +515,9 @@ export function WishlistDetailSheet({
                       <span>
                         {l.type === "instagram"
                           ? "인스타그램"
-                          : "공식 홈페이지"}
+                          : l.type === "blog"
+                            ? "블로그"
+                            : "공식 홈페이지"}
                       </span>
                     </a>
                   ))}

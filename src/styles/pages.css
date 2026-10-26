@@ -1006,12 +1006,32 @@
   overflow: hidden;
   background: var(--surface-3);
 }
+/* 사진 칸에는 분류 색 그라데이션(.thumb::after)이 필요 없다 — 사진이 안 덮는 자리를 image_bg 색으로 채울 때 비쳐 보인다 */
+.placecard__photo::after {
+  display: none;
+}
 .placecard__photo img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+/* 사진을 자르지 않고 통째로 보여 주는 장소(image_fit: "contain") — 남는 양옆은 뒤에 깔린 흐린 사진이 채운다 */
+.placecard__bg {
+  filter: blur(18px) saturate(1.1);
+  transform: scale(1.25);
+  opacity: 0.85;
+}
+.placecard__photo .placecard__img--contain {
+  object-fit: contain;
+  z-index: 1;
+}
+/* 전체보기 격자 — 칸 폭에 맞춘다(사진 비율은 홈 가로 넘김과 같은 4:3) */
+.placecard--grid {
+  width: 100%;
+  min-width: 0;
+  text-align: left;
 }
 .placecard__name {
   font: var(--t-h3);
@@ -1031,8 +1051,8 @@
 }
 .placecard__rank {
   position: absolute;
-  left: 10px;
-  top: 10px;
+  left: 7px;
+  top: 7px;
   z-index: 2;
   width: 24px;
   height: 24px;
@@ -1044,13 +1064,14 @@
   place-items: center;
   font: 700 12px/1 var(--font);
 }
+/* 보관함 담기 버튼 — 위 · 오른쪽 여백은 왼쪽 위 상태 배지(.evcard__badge)와 같은 8px */
 .placecard__save {
   position: absolute;
   right: 8px;
   top: 8px;
   z-index: 3;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 0;
   background: rgba(20, 18, 26, 0.28);
@@ -1061,6 +1082,11 @@
   transition:
     background var(--d-fast) var(--e-io),
     transform var(--d-fast) var(--e-out);
+}
+/* 요즘 뜨는 곳 카드는 왼쪽 위 순위 번호(.placecard__rank)와 같은 7px 여백에 맞춘다(이벤트 카드는 날짜 배지와 같은 8px) */
+.placecard .placecard__save {
+  top: 7px;
+  right: 7px;
 }
 .placecard__save:hover {
   background: rgba(20, 18, 26, 0.44);
@@ -1096,6 +1122,8 @@
 /* 홈 이벤트 가로 넘김 — 한 장에 카드 2개, 스크롤 스냅으로 한 장씩 넘어가고 점으로 위치를 알려 준다 */
 .evpager__track {
   display: flex;
+  /* 장과 장 사이 간격 — 카드 사이 가로 간격(.evgrid)과 같아서 넘어가는 동안에도 카드가 붙어 보이지 않는다 */
+  gap: var(--s-3);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
@@ -1169,11 +1197,21 @@
   transform: scale(1.25);
   opacity: 0.85;
 }
+/* 카드 칸(.evcard__img)을 위아래 · 좌우 여백 없이 꽉 채운다. 포스터는 위쪽에 제목이 있는 경우가 많아 위를 기준으로 맞추고,
+   칸보다 긴 아래쪽만 잘라 낸다(이벤트마다 image_position 으로 바꿀 수 있다). */
 .evcard__photo {
-  position: relative;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+/* 사진을 자르지 않고 통째로 보여 주는 이벤트(image_fit: "contain") — 남는 위아래는 뒤에 깔린 흐린 사진이 채운다 */
+.evcard__photo--contain {
   object-fit: contain;
+  /* 기본은 위쪽 기준이지만, 통째로 보여 줄 때는 위아래 여백이 같게 가운데에 둔다 */
+  object-position: center;
 }
 .evcard__glyph {
   font-size: 44px;
@@ -2857,10 +2895,17 @@ button.me__row:hover {
 .wl__period .dday {
   margin-left: 2px;
 }
+/* 설명(또는 미쉐린 줄)과 영업시간 사이 — 구분선 위 8px · 아래 10px 로 붙여 설명과 영업시간이 한 덩어리로 읽히게 한다 */
 .wl__hours {
-  margin-top: var(--s-4);
-  padding: var(--s-3) 0;
+  margin-top: 8px;
+  padding: 10px 0;
   border-top: 1px solid var(--line-2);
+}
+/* 영업시간 바로 뒤에 오는 구역은 영업시간 아래 패딩(12px)이 이미 간격이라 위 여백을 더 두지 않는다(두면 줄 위에 빈 칸이 크게 남는다) */
+.wl__hours + .wl__themes,
+.wl__hours + .wl__sched,
+.wl__hours + .wl__img {
+  margin-top: 0;
 }
 .wl__hours-row {
   display: flex;
@@ -3556,6 +3601,142 @@ button.me__row:hover {
   font: var(--t-xs);
   color: var(--ink-3);
 }
+/* 방탈출 테마 — 한 줄(이름 + 화살표)을 누르면 아래로 펼쳐진다 */
+.wl__themes {
+  margin-top: var(--s-5);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line-2);
+}
+.wl__theme-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.wl__theme + .wl__theme {
+  border-top: 1px solid var(--line-2);
+}
+.wl__theme-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 2px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.wl__theme-name {
+  font: var(--t-body);
+  font-weight: 700;
+  color: var(--ink);
+}
+.wl__theme-body {
+  padding: 0 2px 14px;
+}
+.wl__theme-desc {
+  margin: 0 0 6px;
+  font: var(--t-sm);
+  color: var(--ink-2);
+}
+.wl__theme-facts {
+  margin: 0 0 10px;
+  font: var(--t-xs);
+  font-weight: 700;
+  color: var(--brand-600);
+}
+/* 왼쪽 포스터 + 오른쪽 테마 시간 — 포스터는 오른쪽 시간 영역과 같은 높이(위 · 아래 끝이 같게)로 맞춘다 */
+.wl__theme-split {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+.wl__theme-poster {
+  flex: 0 0 46%;
+  display: block;
+  position: relative;
+  min-height: 190px;
+}
+.wl__theme-times {
+  flex: 1;
+  min-width: 0;
+}
+.wl__theme-times .wl__theme-sub {
+  margin-top: 0;
+}
+.wl__theme-poster img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-2);
+}
+.wl__theme-sub {
+  margin: 14px 0 4px;
+  font: var(--t-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+/* 예약하기 줄 — 공식 링크 위. 연한 초록 바탕에 달력 · 이름 · 화살표 */
+/* 미쉐린 가이드 선정 줄 — 설명 아래, 아이콘 + 빨간 글자 */
+.wl__michelin {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 0 0;
+  font: var(--t-sm);
+  font-weight: 600;
+  color: #c40d2e;
+  text-decoration: none;
+}
+a.wl__michelin:active {
+  opacity: 0.7;
+}
+.wl__booking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: var(--s-4);
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--brand-50);
+  color: var(--brand-700);
+  font: var(--t-body);
+  font-weight: 700;
+  text-decoration: none;
+}
+.wl__booking:active {
+  background: var(--brand-100);
+}
+.wl__booking-name {
+  flex: 1;
+}
+.wl__theme-note {
+  margin: 0 0 8px;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.wl__time-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.wl__time-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font: var(--t-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .wl__sched-title {
   font: var(--t-sm);
   font-weight: 700;
@@ -3570,13 +3751,17 @@ button.me__row:hover {
 /* 상반기 · 하반기 탭 — 작게 두고, 오른쪽에 그 기간을 보여 준다 */
 .wl__sched-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px 10px;
   margin-bottom: var(--s-2);
 }
 .wl__sched-tabs {
   position: relative;
   display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
   gap: 2px;
   padding: 2px;
   border-radius: 10px;
@@ -3599,6 +3784,7 @@ button.me__row:hover {
     width 0.28s var(--e-out);
 }
 .wl__sched-tab {
+  white-space: nowrap;
   position: relative;
   z-index: 1;
   min-height: 26px;

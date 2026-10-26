@@ -22,12 +22,11 @@ import {
   type SyncStatus,
 } from "@/features/sync/syncStore";
 import type { SyncResult } from "@/types/api";
-import { HomePlaceCard } from "@/features/home/HomePlaceCard";
 import { HOME_DUMMY_PLACES } from "@/features/home/dummyPlaces";
 import { EventCarousel } from "@/features/home/EventCarousel";
+import { PlaceCarousel } from "@/features/home/PlaceCarousel";
 import { splitHomeEvents } from "@/features/home/homeEvents";
 import { WishlistDetailSheet } from "@/features/wishlist/WishlistDetailSheet";
-import { PlaceListSheet } from "@/features/places/PlaceListSheet";
 
 /* 04 · 메인 — 로그인 후 첫 진입 화면. 프로토타입 js/pages/home.js 를 그대로 옮겼다.
    bootstrap() 이 하나로 묶었던 GET /user + /user/accounts 는 이 화면에서 쓰이지 않아(화면에
@@ -126,10 +125,7 @@ function buildSyncCard(
 }
 
 type Overlay =
-  | { name: "placeList" }
-  | { name: "homePlace"; id: string }
-  | { name: "homeEvent"; id: string }
-  | null;
+  { name: "homePlace"; id: string } | { name: "homeEvent"; id: string } | null;
 
 /** 가로 스크롤을 마우스로도 끌 수 있게 한다 — 프로토타입의 dragScroll() 을 그대로 옮겼다.
     드래그가 6px 넘게 움직였으면 그 클릭은 카드 탭으로 이어지지 않게 캡처 단계에서 막는다. */
@@ -374,21 +370,16 @@ export default function HomePage() {
             <button
               className="section__more"
               type="button"
-              onClick={() => setOverlay({ name: "placeList" })}
+              onClick={() => router.push("/home/places")}
             >
-              더보기
+              전체보기
             </button>
           </div>
-          <div className="hscroll" ref={hscrollRef}>
-            {HOME_DUMMY_PLACES.map((p, i) => (
-              <HomePlaceCard
-                key={p.id}
-                place={p}
-                rank={i + 1}
-                onOpen={(id) => setOverlay({ name: "homePlace", id })}
-              />
-            ))}
-          </div>
+          <PlaceCarousel
+            places={HOME_DUMMY_PLACES}
+            setScrollEl={hscrollRef}
+            onOpen={(id) => setOverlay({ name: "homePlace", id })}
+          />
         </section>
 
         {homeEvents.ongoing.length > 0 && (
@@ -437,10 +428,6 @@ export default function HomePage() {
 
         <div style={{ height: 28 }} />
       </div>
-
-      {overlay?.name === "placeList" && (
-        <PlaceListSheet onClose={closeOverlay} />
-      )}
       {overlay?.name === "homePlace" && (
         <WishlistDetailSheet
           kind="place"
