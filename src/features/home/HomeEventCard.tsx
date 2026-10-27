@@ -56,7 +56,7 @@ export function HomeEventCard({
       <span className="evcard__img">
         {showImage ? (
           <>
-            {/* 포스터마다 비율이 달라서, 사진을 자르지 않고 통째로 보여 준다. 남는 자리는 같은 사진을 흐리게 깔아 채운다.
+            {/* 사진은 카드를 여백 없이 꽉 채운다(자르는 쪽은 아래).
                 외부(공식 페이지 · 네이버) 이미지라 next/image 최적화 대상이 아니고, 못 열면 이모지 타일로 바꾼다. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -69,7 +69,12 @@ export function HomeEventCard({
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              className="evcard__photo"
+              className={`evcard__photo${event.image_fit === "contain" ? " evcard__photo--contain" : ""}`}
+              style={
+                event.image_position
+                  ? { objectPosition: event.image_position }
+                  : undefined
+              }
               src={event.image_url}
               alt=""
               loading="lazy"
@@ -93,7 +98,7 @@ export function HomeEventCard({
             toggle(event.id);
           }}
         >
-          <Icon name={isSaved ? "bookmarkFill" : "bookmark"} size={15} />
+          <Icon name={isSaved ? "bookmarkFill" : "bookmark"} size={13} />
         </button>
         {status && (
           <span className={`evcard__badge event-status--${status.tone}`}>
@@ -102,10 +107,10 @@ export function HomeEventCard({
         )}
       </span>
       <span className="evcard__title">{event.name}</span>
-      {period && (
+      {(event.period_text || period) && (
         <span className="evcard__date">
           <Icon name="clock" size={12} />
-          {period.text}
+          {event.period_text ?? period?.text}
         </span>
       )}
       <span className="evcard__tags">

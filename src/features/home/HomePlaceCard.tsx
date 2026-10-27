@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { MichelinMark } from "@/components/ui/MichelinMark";
 import { Icon } from "@/components/ui/Icon";
 import { Thumb } from "@/components/ui/Primitives";
 import { splitRegion } from "@/features/wishlist/eventFilter";
 import { splitCategories, primaryCategory } from "@/features/wishlist/format";
 import { resolveItemEmoji } from "@/features/wishlist/itemEmoji";
+import { resolveMichelin } from "@/features/wishlist/michelin";
 import type { HomeDummyPlace } from "./dummyPlaces";
 import { useSavedHomeItems } from "./savedHomeItems";
 
@@ -17,15 +19,23 @@ export function HomePlaceCard({
   place,
   rank,
   onOpen,
+  ariaHidden,
+  grid,
 }: {
   place: HomeDummyPlace;
   rank?: number;
   onOpen: (id: string) => void;
+  /** 끝에서 처음으로 이어 붙이는 복제 카드 — 화면에만 보이고 접근성 트리와 탭 이동에서는 뺀다 */
+  ariaHidden?: boolean;
+  /** 전체보기 격자에서 쓰는 모양(칸 폭에 맞추고 사진을 4:5 로) */
+  grid?: boolean;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const { saved, toggle } = useSavedHomeItems();
   const isSaved = place.id in saved;
   const { sido, gu } = splitRegion(place.address_sg);
+  // 미쉐린 가이드 서울 선정 여부 — 이름으로 자동 매칭(데이터에 직접 적은 값이 우선)
+  const michelin = resolveMichelin(place.name, place.extra.michelin)?.michelin;
   const showImage = !!place.image_url && !imageFailed;
 
   const save = (
@@ -40,15 +50,16 @@ export function HomePlaceCard({
         toggle(place.id);
       }}
     >
-      <Icon name={isSaved ? "bookmarkFill" : "bookmark"} size={15} />
+      <Icon name={isSaved ? "bookmarkFill" : "bookmark"} size={13} />
     </button>
   );
 
   return (
     <div
-      className="placecard card--tap press"
+      className={`placecard card--tap press${grid ? " placecard--grid" : ""}`}
       role="button"
-      tabIndex={0}
+      tabIndex={ariaHidden ? -1 : 0}
+      aria-hidden={ariaHidden || undefined}
       onClick={() => onOpen(place.id)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -58,10 +69,30 @@ export function HomePlaceCard({
       }}
     >
       {showImage ? (
-        <div className="thumb thumb--wide placecard__photo">
+        <div
+          className="thumb thumb--wide placecard__photo"
+          style={place.image_bg ? { background: place.image_bg } : undefined}
+        >
           {/* 외부(네이버 지도) 이미지라 next/image 최적화 대상이 아니다. 못 열면 타일로 바꾼다. */}
+          {place.image_fit === "contain" && !place.image_bg && (
+            // 통째로 보여 줄 때 남는 양옆은 같은 사진을 흐리게 깔아 채운다
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              className="placecard__bg"
+              src={place.image_url}
+              alt=""
+              aria-hidden
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            className={
+              place.image_fit === "contain"
+                ? "placecard__img--contain"
+                : undefined
+            }
             src={place.image_url}
             alt=""
             loading="lazy"
@@ -98,6 +129,7 @@ export function HomePlaceCard({
             {c}
           </span>
         ))}
+        {michelin && <MichelinMark michelin={michelin} size={14} />}
       </p>
     </div>
   );

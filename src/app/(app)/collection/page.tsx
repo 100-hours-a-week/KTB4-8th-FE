@@ -16,6 +16,11 @@ import {
   type DdayLevel,
 } from "@/lib/format";
 import { useCourseStore } from "@/features/recommendations/courseStore";
+import {
+  countNewItems,
+  describeAdded,
+  useNewItemsStore,
+} from "@/features/sync/newItems";
 import { PlaceDetailSheet } from "@/features/places/PlaceDetailSheet";
 import { EventDetailSheet } from "@/features/places/EventDetailSheet";
 import { CourseDetailSheet } from "@/features/collections/CourseDetailSheet";
@@ -114,6 +119,11 @@ function CollectionContent() {
   const [placeFilter, setPlaceFilter] = useState<EventFilter>(NO_FILTER);
   const [courseFilter, setCourseFilter] = useState<EventFilter>(NO_FILTER);
   const openCourse = useCourseStore((s) => s.setOpen);
+  // 좋아요 불러오기로 방금 담긴 항목 — NEW 표시와 위쪽 안내(확인했어요를 누르면 사라진다)
+  const newKeys = useNewItemsStore((s) => s.keys);
+  const clearNew = useNewItemsStore((s) => s.clear);
+  const newSet = new Set(newKeys);
+  const newCounts = countNewItems(newKeys);
 
   // 이미 보관함에 있는 상태에서 ?tab= 만 바뀌어 들어와도(예: 코스 추천 완료 → 보관함에서 확인하기) 탭을 맞춘다.
   // (렌더 중 상태 조정 패턴: https://react.dev/learn/you-might-not-need-an-effect)
@@ -350,6 +360,16 @@ function CollectionContent() {
       </div>
 
       <div className="scroll scroll--pad">
+        {newKeys.length > 0 && !isLoading && !loadFailed && (
+          <div className="newbanner" role="status">
+            <span className="newbanner__text">
+              방금 담긴 {describeAdded(newCounts.places, newCounts.events)}
+            </span>
+            <button className="newbanner__ok" type="button" onClick={clearNew}>
+              확인했어요
+            </button>
+          </div>
+        )}
         {isLoading && (
           <>
             <Skeleton
@@ -426,6 +446,7 @@ function CollectionContent() {
             {shownWishlistPlaces.map((p) => (
               <WishlistRow
                 key={`wl-${p.place_id}`}
+                isNew={newSet.has(`place:${p.place_id}`)}
                 name={p.name}
                 category={p.category}
                 addressSg={p.address_sg}
@@ -471,6 +492,7 @@ function CollectionContent() {
               return (
                 <WishlistRow
                   key={`wle-${e.event_id}`}
+                  isNew={newSet.has(`event:${e.event_id}`)}
                   name={e.name}
                   category={e.category}
                   addressSg={e.place?.address_sg ?? ""}
@@ -886,12 +908,15 @@ function WishlistRow({
   ended,
   opensIn,
   emoji,
+  isNew,
   onOpen,
 }: {
   name: string;
   category: string;
   addressSg: string;
   sub: string;
+  /** 좋아요 불러오기로 방금 담긴 항목 */
+  isNew?: boolean;
   dday?: { label: string; level: DdayLevel } | null;
   ended?: boolean;
   /** 열리기까지 남은 날(아직 열리지 않은 이벤트만) */
@@ -914,7 +939,10 @@ function WishlistRow({
         </span>
       )}
       <div className="listitem__body">
-        <p className="listitem__name">{name}</p>
+        <p className="listitem__name">
+          {name}
+          {isNew && <span className="listitem__new">NEW</span>}
+        </p>
         <p className="listitem__meta">{meta}</p>
         <ListSub
           sub={sub}
