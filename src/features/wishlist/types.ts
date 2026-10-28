@@ -209,6 +209,8 @@ export interface WishlistCourseDetailItem {
   type: string;
   category: string;
   coordinate: { lat: number | null; lng: number | null } | null;
+  /** 이전 장소(첫 장소는 출발지)에서 이동하는 데 걸리는 시간(분) — 이름은 duration 이지만 이동시간이다 */
+  duration_minutes?: number | null;
   /** 지금 이용할 수 있는지(영업 중 · 진행 중) */
   is_available: boolean | null;
 }
@@ -217,5 +219,8 @@ export interface WishlistCourseDetail {
   course_id: number;
   name: string;
   duration_hours: number | null;
-  stops: { count: number; items: WishlistCourseDetailItem[] }[];
+  /** 상세는 묶음 하나(객체)로 온다. 예전엔 배열이었어서 둘 다 받는다 — courseStopItems 로 편다 */
+  stops:
+    | { count: number; items: WishlistCourseDetailItem[] }
+    | { count: number; items: WishlistCourseDetailItem[] }[];
 }
