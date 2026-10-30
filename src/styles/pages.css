@@ -2495,6 +2495,48 @@
   color: var(--ok);
   font-weight: 700;
 }
+/* 화면 모드 토글 — 이름 · 지금 모드 · 해/달 토글 */
+.me__row-sub {
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.themetoggle {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+  width: 68px;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line);
+  background: var(--surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.themetoggle__icon {
+  display: flex;
+  color: var(--ink-4);
+}
+.themetoggle__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--sh-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f2a33c; /* 해 */
+  transition: transform var(--d-base) var(--e-spring);
+}
+.me__row--theme[aria-checked="true"] .themetoggle__knob {
+  transform: translateX(34px);
+  color: #5b8def; /* 달 */
+}
 button.me__row {
   transition: all var(--d-fast) var(--e-io);
 }
@@ -3501,6 +3543,31 @@ button.me__row:hover {
   background: var(--brand-50);
   color: var(--brand-600);
 }
+/* "2026 미쉐린" 칩 — 글자는 미쉐린 아이콘과 같은 빨강(#BA0B2F, MichelinMark 의 RED), 폰트는 프리텐다드 */
+.evf__chip--michelin {
+  font-family: "Pretendard Variable", Pretendard, sans-serif;
+  /* 옆의 "흑백요리사" 글자 이미지(높이 13px)와 글자 크기를 맞춘다 */
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #ba0b2f;
+}
+.evf__chip--michelin[aria-pressed="true"] {
+  border-color: #ba0b2f;
+  background: rgba(186, 11, 47, 0.08);
+  color: #ba0b2f;
+}
+/* "흑백요리사" 칩 — 글자 이미지. 켜면 검정 테두리 · 연한 회색 바탕 */
+.evf__chip--bwchef img {
+  display: block;
+  width: auto;
+  height: 13px;
+}
+.evf__chip--bwchef[aria-pressed="true"] {
+  border-color: #222;
+  background: #ececec;
+}
 .evf__btn {
   gap: 5px;
   min-width: 0;
@@ -3683,6 +3750,19 @@ button.me__row:hover {
 }
 /* 예약하기 줄 — 공식 링크 위. 연한 초록 바탕에 달력 · 이름 · 화살표 */
 /* 미쉐린 가이드 선정 줄 — 설명 아래, 아이콘 + 빨간 글자 */
+.wl__bwchef {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 0 0;
+  font: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+/* 아이콘(상징 + 수저)과 "흑백요리사 …" 문구 사이를 조금 띄운다 */
+.wl__bwchef > span:last-child {
+  margin-left: 5px;
+}
 .wl__michelin {
   display: flex;
   align-items: center;
@@ -3690,7 +3770,7 @@ button.me__row:hover {
   margin: 6px 0 0;
   font: var(--t-sm);
   font-weight: 600;
-  color: #c40d2e;
+  color: #ba0b2f;
   text-decoration: none;
 }
 a.wl__michelin:active {
@@ -3990,4 +4070,45 @@ a.wl__michelin:active {
   border-radius: 50%;
   background: rgba(23, 22, 27, 0.06);
   color: var(--ink-3);
+}
+
+/* ══ 다크 모드 — 토큰으로 못 바꾸는 색(화면별) ═══════════════════════════ */
+:root[data-theme="dark"] .login,
+:root[data-theme="dark"] .onb {
+  background: radial-gradient(
+    120% 70% at 50% -10%,
+    var(--brand-50) 0%,
+    var(--surface) 58%
+  );
+}
+/* 지도 자리표시 카드 */
+:root[data-theme="dark"] .route {
+  background: linear-gradient(160deg, #1d2823, #1b2230);
+}
+/* 미쉐린 — 어두운 바탕에서는 빨강을 한 단계 밝게 */
+:root[data-theme="dark"] .wl__michelin {
+  color: #ff6b84;
+}
+:root[data-theme="dark"] .evf__chip--michelin,
+:root[data-theme="dark"] .evf__chip--michelin[aria-pressed="true"] {
+  color: #ff6b84;
+}
+:root[data-theme="dark"] .evf__chip--michelin[aria-pressed="true"] {
+  border-color: #ff6b84;
+  background: rgba(255, 107, 132, 0.14);
+}
+:root[data-theme="dark"] .michelin svg path {
+  fill: #ff6b84;
+}
+:root[data-theme="dark"] .michelin img {
+  filter: brightness(1.15);
+}
+/* 흑백요리사 — 검은 글자 이미지는 어두운 바탕에서 보이도록 흑백을 뒤집는다.
+   수저는 라이트 · 다크와 상관없이 색을 그대로 둔다(검은 수저는 검게, 흰 수저는 희게). */
+:root[data-theme="dark"] .evf__chip--bwchef img {
+  filter: invert(1);
+}
+:root[data-theme="dark"] .evf__chip--bwchef[aria-pressed="true"] {
+  border-color: var(--ink-2);
+  background: var(--surface-3);
 }
