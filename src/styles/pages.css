@@ -3501,6 +3501,31 @@ button.me__row:hover {
   background: var(--brand-50);
   color: var(--brand-600);
 }
+/* "2026 미쉐린" 칩 — 글자는 미쉐린 아이콘과 같은 빨강(#BA0B2F, MichelinMark 의 RED), 폰트는 프리텐다드 */
+.evf__chip--michelin {
+  font-family: "Pretendard Variable", Pretendard, sans-serif;
+  /* 옆의 "흑백요리사" 글자 이미지(높이 13px)와 글자 크기를 맞춘다 */
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #ba0b2f;
+}
+.evf__chip--michelin[aria-pressed="true"] {
+  border-color: #ba0b2f;
+  background: rgba(186, 11, 47, 0.08);
+  color: #ba0b2f;
+}
+/* "흑백요리사" 칩 — 글자 이미지. 켜면 검정 테두리 · 연한 회색 바탕 */
+.evf__chip--bwchef img {
+  display: block;
+  width: auto;
+  height: 13px;
+}
+.evf__chip--bwchef[aria-pressed="true"] {
+  border-color: #222;
+  background: #ececec;
+}
 .evf__btn {
   gap: 5px;
   min-width: 0;
@@ -3683,6 +3708,19 @@ button.me__row:hover {
 }
 /* 예약하기 줄 — 공식 링크 위. 연한 초록 바탕에 달력 · 이름 · 화살표 */
 /* 미쉐린 가이드 선정 줄 — 설명 아래, 아이콘 + 빨간 글자 */
+.wl__bwchef {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 0 0;
+  font: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+/* 아이콘(상징 + 수저)과 "흑백요리사 …" 문구 사이를 조금 띄운다 */
+.wl__bwchef > span:last-child {
+  margin-left: 5px;
+}
 .wl__michelin {
   display: flex;
   align-items: center;
@@ -3690,7 +3728,7 @@ button.me__row:hover {
   margin: 6px 0 0;
   font: var(--t-sm);
   font-weight: 600;
-  color: #c40d2e;
+  color: #ba0b2f;
   text-decoration: none;
 }
 a.wl__michelin:active {
