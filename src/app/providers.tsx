@@ -11,11 +11,13 @@ import {
   writeSession,
 } from "@/lib/api/client";
 import { useClarity } from "@/lib/clarity";
+import { useThemeSync } from "@/features/theme/theme";
 import { useFixedPin } from "@/lib/useFixedPin";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
   useFixedPin();
+  useThemeSync();
   useClarity();
 
   const [client] = useState(

@@ -2495,6 +2495,48 @@
   color: var(--ok);
   font-weight: 700;
 }
+/* 화면 모드 토글 — 이름 · 지금 모드 · 해/달 토글 */
+.me__row-sub {
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.themetoggle {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+  width: 68px;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line);
+  background: var(--surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.themetoggle__icon {
+  display: flex;
+  color: var(--ink-4);
+}
+.themetoggle__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--sh-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f2a33c; /* 해 */
+  transition: transform var(--d-base) var(--e-spring);
+}
+.me__row--theme[aria-checked="true"] .themetoggle__knob {
+  transform: translateX(34px);
+  color: #5b8def; /* 달 */
+}
 button.me__row {
   transition: all var(--d-fast) var(--e-io);
 }
@@ -4028,4 +4070,45 @@ a.wl__michelin:active {
   border-radius: 50%;
   background: rgba(23, 22, 27, 0.06);
   color: var(--ink-3);
+}
+
+/* ══ 다크 모드 — 토큰으로 못 바꾸는 색(화면별) ═══════════════════════════ */
+:root[data-theme="dark"] .login,
+:root[data-theme="dark"] .onb {
+  background: radial-gradient(
+    120% 70% at 50% -10%,
+    var(--brand-50) 0%,
+    var(--surface) 58%
+  );
+}
+/* 지도 자리표시 카드 */
+:root[data-theme="dark"] .route {
+  background: linear-gradient(160deg, #1d2823, #1b2230);
+}
+/* 미쉐린 — 어두운 바탕에서는 빨강을 한 단계 밝게 */
+:root[data-theme="dark"] .wl__michelin {
+  color: #ff6b84;
+}
+:root[data-theme="dark"] .evf__chip--michelin,
+:root[data-theme="dark"] .evf__chip--michelin[aria-pressed="true"] {
+  color: #ff6b84;
+}
+:root[data-theme="dark"] .evf__chip--michelin[aria-pressed="true"] {
+  border-color: #ff6b84;
+  background: rgba(255, 107, 132, 0.14);
+}
+:root[data-theme="dark"] .michelin svg path {
+  fill: #ff6b84;
+}
+:root[data-theme="dark"] .michelin img {
+  filter: brightness(1.15);
+}
+/* 흑백요리사 — 검은 글자 이미지는 어두운 바탕에서 보이도록 흑백을 뒤집는다.
+   수저는 라이트 · 다크와 상관없이 색을 그대로 둔다(검은 수저는 검게, 흰 수저는 희게). */
+:root[data-theme="dark"] .evf__chip--bwchef img {
+  filter: invert(1);
+}
+:root[data-theme="dark"] .evf__chip--bwchef[aria-pressed="true"] {
+  border-color: var(--ink-2);
+  background: var(--surface-3);
 }

@@ -1207,3 +1207,27 @@ body[data-sync-bar] .toasts:not(.toasts--top):not(.toasts--login) {
   height: 112px;
   font-size: 30px;
 }
+
+/* ══ 다크 모드 — 토큰(tokens.css)으로 못 바꾸는 색 ═══════════════════════
+   <html data-theme="dark"> 일 때만 적용된다(화면 모드 설정: 마이페이지). 밝은 바탕을 하드코딩한 곳을 어두운 색으로 덮는다. */
+:root[data-theme="dark"] body {
+  background: var(--page-bg);
+}
+:root[data-theme="dark"] .appbar:not(.appbar--plain):not(.appbar--brand) {
+  background: rgba(23, 22, 27, 0.86);
+}
+:root[data-theme="dark"] .tabbar {
+  background: rgba(23, 22, 27, 0.94);
+}
+/* 어두운 버튼은 밝은 글자를 쓰므로, 다크에서는 바탕을 밝은 ink 가 아니라 한 단계 밝은 어두운 면으로 */
+:root[data-theme="dark"] .btn--dark {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .btn--mute:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+/* 카테고리 기본 타일의 파스텔 바탕은 어둡게 눌러 눈부심을 줄인다 */
+:root[data-theme="dark"] .thumb[data-cat]::after {
+  filter: brightness(0.5) saturate(0.85);
+}
