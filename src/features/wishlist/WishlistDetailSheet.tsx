@@ -32,6 +32,7 @@ import { useYoutubeMeta } from "./youtubeMeta";
 import { BusinessHours } from "./BusinessHours";
 import { useSavedHomeItems } from "@/features/home/savedHomeItems";
 import { MICHELIN_EDITION, resolveMichelin } from "./michelin";
+import { BwChefMark, BwSpoon } from "@/components/ui/BwChefMark";
 import { MichelinMark } from "@/components/ui/MichelinMark";
 import { ThemeSection } from "./ThemeSection";
 import { groupSchedule, isCurrentWeek, pickDefaultGroup } from "./schedule";
@@ -223,6 +224,11 @@ export function WishlistDetailSheet({
   const michelin = isEvent
     ? undefined
     : resolveMichelin(place?.name, extra?.michelin);
+
+  // 흑백요리사 참가 셰프의 식당(홈 예시 장소에만 표시가 있다) — 흑수저 · 백수저 아이콘과 시즌 · 셰프 문구
+  const bwChef = isEvent
+    ? undefined
+    : (preset as HomeDummyPlace | undefined)?.bw_chef;
 
   /** 홈 이벤트 더미(preset)를 보관함에 담거나 뺀다. 보관함 화면에서 열었을 때는 지우기 전에 한 번 묻고, 지우면 시트를 닫는다. */
   async function handleTogglePreset(p: HomeDummyEvent | HomeDummyPlace) {
@@ -426,6 +432,14 @@ export function WishlistDetailSheet({
                 <span>{MICHELIN_EDITION}</span>
               </p>
             ))}
+
+          {bwChef && (
+            <p className="wl__bwchef">
+              <BwChefMark size={24} />
+              <BwSpoon spoon={bwChef.spoon} height={24} />
+              <span>{bwChef.note}</span>
+            </p>
+          )}
 
           {period && (
             <div className="wl__period">

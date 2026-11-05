@@ -120,6 +120,8 @@ interface BeRecommendationItem {
   /** 이동 · 체류 시간(분) — AI 가 주는 값을 BE 가 전달하기 시작하면 온다(그 전에는 없다) */
   travel_minutes?: number;
   stay_minutes?: number;
+  /** 이전 장소(첫 장소는 출발지)에서의 이동시간(분) — BE v2 가 이 이름으로 내려준다 */
+  duration_minutes?: number;
 }
 
 interface BeRecommendationDetail {
@@ -191,9 +193,11 @@ export function toRecommendationRun(
       const travelMinutes =
         typeof item.travel_minutes === "number"
           ? item.travel_minutes
-          : travelInDescription && item.description
-            ? Number(item.description)
-            : NaN;
+          : typeof item.duration_minutes === "number"
+            ? item.duration_minutes
+            : travelInDescription && item.description
+              ? Number(item.description)
+              : NaN;
       return {
         // BE 순번은 0부터 오므로 그대로 쓰지 않고 목록 순서대로 1부터 매긴다
         sequence: j + 1,

@@ -39,6 +39,7 @@ import {
   ddayOf,
   describePeriod,
   eventStatus,
+  courseStopItems,
   fmtSaveDate,
   splitCategories,
   primaryCategory,
@@ -707,8 +708,7 @@ function WishlistCourseRow({
   course: WishlistCourseSummary;
   onOpen: () => void;
 }) {
-  const names = course.stops
-    .flatMap((s) => s.items)
+  const names = courseStopItems(course.stops)
     .sort((a, b) => a.sequence - b.sequence)
     .map((i) => i.name)
     .join(" → ");

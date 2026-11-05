@@ -11,6 +11,7 @@ export const MICHELIN_EDITION = "미쉐린 가이드 서울 2026";
 const STARS: Record<string, [1 | 2 | 3, string]> = {
   라연: [2, "la-yeon"],
   "라망 시크레": [1, "l-amant-secret"],
+  "레스케이프 라망 시크레": [1, "l-amant-secret"], // 네이버 지도의 장소 이름
   "유 유안": [1, "yu-yuan"],
   기가스: [1, "gigas"],
   "레스토랑 주은": [1, "restaurant-jueun"],
@@ -49,6 +50,7 @@ const STARS: Record<string, [1 | 2 | 3, string]> = {
   세븐스도어: [1, "7th-door"],
   "레스토랑 알렌": [2, "restaurant-allen"],
   "이타닉 가든": [1, "eatanic-garden"],
+  "조선 팰리스 이타닉 가든": [1, "eatanic-garden"], // 네이버 지도의 장소 이름
   "스시 카네사카": [1, "sushi-kanesaka-1244365"],
   비채나: [1, "bicena"],
 };
@@ -59,6 +61,7 @@ const BIB: [string, string][] = [
   ["필동면옥", "pildong-myeonok"],
   ["개성만두 궁", "gaeseong-mandu-koong"],
   ["미진", "mijin"],
+  ["광화문미진", "mijin"], // 네이버 지도의 장소 이름
   ["소바키리 스즈", "sobakeeri-suzu"],
   ["안암", "anam"],
   ["금돼지식당", "geumdwaeji-sikdang"],
@@ -78,6 +81,7 @@ const BIB: [string, string][] = [
   ["오일제", "oilje"],
   ["역전회관", "yukjeon-hoekwan"],
   ["능동미나리", "neungdong-minari"],
+  ["능동미나리 신용산점", "neungdong-minari"], // 네이버 지도의 장소 이름
   ["베이스 이즈 나이스", "base-is-nice"],
   ["계월", "kyewol-gomtang"],
   ["맷돌", "mattdol"],

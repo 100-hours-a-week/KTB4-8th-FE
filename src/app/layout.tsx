@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { THEME_INIT_SCRIPT } from "@/features/theme/theme";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -26,8 +27,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko">
+    // data-theme 은 아래 인라인 스크립트가 그리기 전에 붙인다(서버가 그린 HTML 에는 없다)
+    <html lang="ko" suppressHydrationWarning>
       <head>
+        {/* 저장된 화면 모드(라이트/다크/시스템)를 첫 화면을 그리기 전에 적용해 깜빡임을 막는다 */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { useAccounts, useLogout, useMe } from "@/features/auth/session";
 import { useSyncStore } from "@/features/sync/syncStore";
+import { ThemeToggleRow } from "@/features/theme/ThemeToggleRow";
 import { useDisconnectGoogle } from "@/features/user/queries";
 
 /* 09 · 마이페이지 — 프로토타입 js/pages/mypage.js 를 그대로 옮겼다.
@@ -135,6 +136,13 @@ export default function MyPage() {
                 </span>
               </button>
             )}
+          </div>
+        </div>
+
+        <div className="me__group">
+          <p className="me__group-title">화면</p>
+          <div className="me__rows">
+            <ThemeToggleRow />
           </div>
         </div>
 

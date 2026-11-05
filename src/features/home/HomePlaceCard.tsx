@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BwChefMark } from "@/components/ui/BwChefMark";
 import { MichelinMark } from "@/components/ui/MichelinMark";
 import { Icon } from "@/components/ui/Icon";
 import { Thumb } from "@/components/ui/Primitives";
@@ -98,8 +99,13 @@ export function HomePlaceCard({
             loading="lazy"
             referrerPolicy="no-referrer"
             style={
-              place.image_position
-                ? { objectPosition: place.image_position }
+              place.image_position || place.image_zoom
+                ? {
+                    objectPosition: place.image_position,
+                    transform: place.image_zoom
+                      ? `scale(${place.image_zoom})`
+                      : undefined,
+                  }
                 : undefined
             }
             onError={() => setImageFailed(true)}
@@ -130,6 +136,7 @@ export function HomePlaceCard({
           </span>
         ))}
         {michelin && <MichelinMark michelin={michelin} size={14} />}
+        {place.bw_chef && <BwChefMark size={16} />}
       </p>
     </div>
   );

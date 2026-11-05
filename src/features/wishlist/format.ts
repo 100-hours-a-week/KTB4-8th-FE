@@ -2,6 +2,16 @@ import { CATEGORY_LABEL } from "@/lib/constants";
 import { fmtDot, getDdayBadge } from "@/lib/format";
 import type { Category } from "@/types/api";
 
+/** 코스의 구성 요소 묶음(stops)에서 항목만 펴서 돌려준다.
+    BE 가 묶음 배열(`[{count, items}]`)로도, 묶음 하나(`{count, items}`)로도 주고 있어 둘 다 받는다
+    (상세 응답이 배열에서 객체로 바뀌면서 `.flatMap` 이 깨졌었다). */
+export function courseStopItems<T>(
+  stops: { items?: T[] | null }[] | { items?: T[] | null } | null | undefined,
+): T[] {
+  const groups = Array.isArray(stops) ? stops : stops ? [stops] : [];
+  return groups.flatMap((g) => (Array.isArray(g?.items) ? g.items : []));
+}
+
 /** "카페,디저트" · "카페 · 디저트" · "카페/디저트" 처럼 오는 분류 문자열을 배지용 목록으로 나눈다 */
 export function splitCategories(category: string | null | undefined): string[] {
   // "레저·스포츠"는 가운데점까지가 이름이라 나누지 않는다

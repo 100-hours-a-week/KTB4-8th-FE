@@ -9,13 +9,14 @@ import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { CATEGORY_BY_LABEL } from "@/lib/api/backend";
 import { fmtDuration } from "@/lib/format";
-import { fmtSaveDate } from "./format";
+import { courseStopItems, fmtSaveDate } from "./format";
 import { useDeleteWishlistCourse, useWishlistCourse } from "./queries";
 import type { CandidateComponent } from "@/types/api";
 
 /* 보관한 코스 상세 — BE v2(GET /outing-wishlist/outing-courses/{courseId}).
    코스 추천 결과 화면과 같은 지도 · 통계 · 순서 구성이고, 삭제 버튼이 붙는다.
-   BE 는 추천 순위 · 장소별 이동 · 머무름 시간을 내려주지 않아서 그 부분은 보여 주지 않는다. */
+   BE 는 추천 순위 · 머무름 시간을 내려주지 않아서 그 부분은 보여 주지 않는다.
+   장소별 이동시간은 duration_minutes 로 온다(없으면 문구를 뺀다). */
 const CourseMap = dynamic(
   () => import("@/features/recommendations/CourseMap").then((m) => m.CourseMap),
   { ssr: false },
@@ -49,9 +50,9 @@ export function WishlistCourseSheet({
   }, [isError, error]);
 
   // 구성 요소(장소 · 이벤트)를 순서대로 한 줄로 펴고, 지도·목록이 같이 쓰는 모양으로 바꾼다
-  const items = (course?.stops ?? [])
-    .flatMap((s) => s.items)
-    .sort((a, b) => a.sequence - b.sequence);
+  const items = courseStopItems(course?.stops).sort(
+    (a, b) => a.sequence - b.sequence,
+  );
   const components: CandidateComponent[] = items.map((it, i) => ({
     sequence: i + 1,
     guideId: `wl-course-${courseId}-${it.stop_id}`,
@@ -147,6 +148,9 @@ export function WishlistCourseSheet({
                   <span className="step__meta">
                     {categoryLabel(components[i].category)}
                     {it.type === "event" && " · 이벤트"}
+                    {it.duration_minutes != null &&
+                      it.duration_minutes > 0 &&
+                      ` · ${i === 0 ? "출발지에서" : "이전 장소에서"} ${it.duration_minutes}분 이동`}
                     {it.is_available === false && " · 지금은 이용할 수 없어요"}
                   </span>
                 </span>
