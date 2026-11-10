@@ -1,4 +1,5 @@
 import { API_BASE_V3, ApiError, headers, toApiError } from "@/lib/api/client";
+import { idempotentFetch } from "@/lib/api/idempotency";
 import { readSse } from "@/lib/api/sse";
 import type { SyncResult } from "@/types/api";
 
@@ -107,7 +108,7 @@ export async function requestYoutubeSyncStream(opts: {
   signal?: AbortSignal;
 }): Promise<SyncResult> {
   const instance = `${API_BASE_V3}/youtube-sync`;
-  const res = await fetch(instance, {
+  const res = await idempotentFetch(instance, {
     method: "POST",
     headers: headers({ Accept: "text/event-stream" }),
     credentials: "include",

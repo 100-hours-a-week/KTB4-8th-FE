@@ -4,6 +4,7 @@ import {
   toApiError,
   type ApiError,
 } from "@/lib/api/client";
+import { idempotentFetch } from "@/lib/api/idempotency";
 import { readSse } from "@/lib/api/sse";
 import type { AvailableMinutes, ChatReply, ChatSlot } from "@/types/api";
 import { parseSlotDatetime } from "./slotTime";
@@ -120,7 +121,7 @@ async function sendOnce(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
   try {
-    const res = await fetch(instance, {
+    const res = await idempotentFetch(instance, {
       method: "POST",
       headers: headers({ Accept: "text/event-stream" }),
       body: JSON.stringify(body),

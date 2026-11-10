@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE, api, headers, toApiError } from "@/lib/api/client";
+import { idempotentFetch } from "@/lib/api/idempotency";
 import { CHAT_V2 } from "@/lib/constants";
 import { sleep } from "@/lib/format";
 import { sendChatMessageV2 } from "./chatV2";
@@ -130,7 +131,7 @@ async function pollUntilComplete(chatId: string): Promise<ChatReply> {
 
 async function sendChatMessageV1(body: SendChatBody): Promise<ChatReply> {
   const path = "/user/chat-messages";
-  const res = await fetch(API_BASE + path, {
+  const res = await idempotentFetch(API_BASE + path, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify(body),

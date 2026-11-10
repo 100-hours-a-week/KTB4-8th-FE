@@ -4,6 +4,7 @@ import {
   toApiError,
   type ApiError,
 } from "@/lib/api/client";
+import { idempotentFetch } from "@/lib/api/idempotency";
 import { toRecommendationRun } from "@/lib/api/backend";
 import { readSse } from "@/lib/api/sse";
 import type { RecommendationRun } from "@/types/api";
@@ -83,7 +84,7 @@ export async function requestRecommendationV2(): Promise<RecommendationRun> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CLIENT_TIMEOUT_MS);
   try {
-    const res = await fetch(instance, {
+    const res = await idempotentFetch(instance, {
       method: "POST",
       headers: headers({ Accept: "text/event-stream" }),
       credentials: "include",
@@ -136,7 +137,7 @@ export async function requestRecommendationV2(): Promise<RecommendationRun> {
 /** 진행 중인 추천을 멈춘다. 진행 중인 요청이 없어도 204 다 */
 export async function cancelRecommendationV2(): Promise<void> {
   const instance = `${API_BASE_V2}/recommendation/cancellation`;
-  const res = await fetch(instance, {
+  const res = await idempotentFetch(instance, {
     method: "POST",
     headers: headers(),
     credentials: "include",
