@@ -99,6 +99,11 @@ export const WISHLIST_V2 = process.env.NEXT_PUBLIC_WISHLIST_V2 === "on";
 export const SYNC_PROGRESS_DUMMY =
   process.env.NEXT_PUBLIC_SYNC_PROGRESS_DUMMY !== "off";
 
+/** 좋아요 영상 불러오기를 BE v3(POST /api/v3/member/youtube-sync, SSE)로 한다 — 분석한 영상 수 · 진행률이 실시간으로 온다.
+    켜면 가짜 진행률(SYNC_PROGRESS_DUMMY) 대신 실제 값을 쓰고, v3 가 없는 서버(404 등)면 예전 v2 방식 + 가짜 진행률로 돌아간다.
+    BE v3 가 배포돼 있을 때만 on 으로 켠다. */
+export const SYNC_V3 = process.env.NEXT_PUBLIC_SYNC_V3 === "on";
+
 /** 챗봇 채팅 전송을 BE v2(POST /api/v2/member/chat-messages, SSE)로 보낸다. 꺼져 있으면 v1(202 + 폴링).
     BE 에 v2 채팅이 배포돼 있을 때만 on 으로 켠다. */
 export const CHAT_V2 = process.env.NEXT_PUBLIC_CHAT_V2 === "on";

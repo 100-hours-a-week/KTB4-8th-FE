@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, apiV2, isApiError } from "@/lib/api/client";
 import { CHAT_V2 } from "@/lib/constants";
 import type { LikedVideoSync, SyncResult } from "@/types/api";
+import { SyncStreamError } from "./syncV3";
 
 /* 홈의 동기화 카드가 쓰는 훅 — 프로토타입 js/pages/home.js 의 bootstrap()/requestSync()/startPolling() 을
    TanStack Query 로 옮겼다. */
@@ -25,6 +26,11 @@ export function useStartSync() {
 /** 동기화(영상 분석)가 게이트웨이 시간 제한(502 · 504 · 408)이나 오래 끊긴 연결로 끝난 경우.
     BE 는 요청이 끊겨도 분석을 이어 가므로 "실패"가 아니라 "더 걸리는 중"으로 보여 준다. */
 export function isSyncStillRunning(error: unknown, elapsedMs: number): boolean {
+  // v3 스트림이 실패 이벤트로 알린 오류(YouTube 조회 실패 등)는 502 여도 시간 제한이 아니라 진짜 실패다
+  if (error instanceof SyncStreamError) return false;
+  // 끝났다는 이벤트 없이 스트림만 끊겼다 — BE 의 분석은 연결과 별개로 이어 간다
+  if (error instanceof TypeError && error.message === "SYNC_STREAM_ENDED")
+    return true;
   if (isApiError(error)) return [408, 502, 504].includes(error.status);
   // 응답을 못 받고 연결이 끊긴 경우 — 한참 기다린 뒤라면 시간 제한으로 본다
   return error instanceof TypeError && elapsedMs > 20_000;

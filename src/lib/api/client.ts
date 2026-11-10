@@ -20,6 +20,9 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
 /** v2 API(보관함 등)의 기준 경로. v1 과 달리 /api/v2/member 아래에 있다. */
 export const API_BASE_V2 = "/api/v2/member";
 
+/** v3 API(좋아요 영상 동기화 SSE)의 기준 경로 */
+export const API_BASE_V3 = "/api/v3/member";
+
 export class ApiError extends Error {
   problem: Problem;
   code: string;

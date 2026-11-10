@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui/Primitives";
 import { wishlistKeys } from "@/features/wishlist/queries";
-import { useSyncProgress } from "./progress";
+import { syncProgressNote, useDisplayProgress } from "./progress";
 import { setSyncNavigator, useSyncStore } from "./syncStore";
 
 /* 좋아요 영상 불러오기의 앱 전체 연결부 — (app) 레이아웃에 한 번만 붙인다.
@@ -21,6 +21,8 @@ export function SyncHost() {
   const status = useSyncStore((s) => s.status);
   const startedAt = useSyncStore((s) => s.startedAt);
   const finishAt = useSyncStore((s) => s.finishAt);
+  const live = useSyncStore((s) => s.live);
+  const liveDone = useSyncStore((s) => s.liveDone);
   const restorePending = useSyncStore((s) => s.restorePending);
   const prevStatus = useRef(status);
 
@@ -42,9 +44,11 @@ export function SyncHost() {
     }
   }, [status, qc]);
 
-  const progress = useSyncProgress(
+  const progress = useDisplayProgress(
     status === "pending" ? startedAt : null,
     finishAt,
+    status === "pending" ? live : null,
+    liveDone,
   );
   const show = status === "pending" && pathname !== "/home";
 
@@ -63,15 +67,19 @@ export function SyncHost() {
       <div className="rsbar__row">
         <Spinner />
         <p className="rsbar__title">
-          {progress ? "좋아요 영상 분석 중" : "좋아요 영상 불러오는 중"}
+          {progress && !progress.fetching
+            ? "좋아요 영상 분석 중"
+            : "좋아요 영상 불러오는 중"}
         </p>
         <span className="rsbar__eta">다른 화면을 봐도 계속돼요</span>
       </div>
       <p className="rsbar__sub">
-        {progress
-          ? progress.capped
-            ? "영상이 많아 시간이 더 걸리고 있어요."
-            : "영상 속 장소와 이벤트를 찾고 있어요."
+        {progress && !progress.fetching
+          ? progress.real
+            ? syncProgressNote(progress)
+            : progress.capped
+              ? "영상이 많아 시간이 더 걸리고 있어요."
+              : "영상 속 장소와 이벤트를 찾고 있어요."
           : "영상 수에 따라 시간이 걸릴 수 있어요."}
       </p>
       {progress && (

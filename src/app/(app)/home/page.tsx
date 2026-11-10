@@ -10,7 +10,8 @@ import { Spinner } from "@/components/ui/Primitives";
 import { useCourseStore } from "@/features/recommendations/courseStore";
 import { hasNoSavedGuides } from "@/features/sync/queries";
 import {
-  useSyncProgress,
+  syncProgressNote,
+  useDisplayProgress,
   type SyncDemoMode,
   type SyncProgress,
 } from "@/features/sync/progress";
@@ -19,6 +20,7 @@ import { describeAddedObject } from "@/features/sync/newItems";
 import {
   defaultSyncDemo,
   useSyncStore,
+  type SyncFailReason,
   type SyncStatus,
 } from "@/features/sync/syncStore";
 import type { SyncResult } from "@/types/api";
@@ -53,7 +55,17 @@ function buildSyncCard(
   state: SyncState,
   result: SyncResult | null,
   progress: SyncProgress | null,
+  failReason: SyncFailReason = null,
 ): SyncCardModel {
+  // BE 가 알려 준 실제 진행: 영상을 가져오는 중이면 "불러오는 중", 분석이 시작되면 "AI 분석 중"
+  if (state === "pending" && progress?.real && progress.fetching) {
+    return {
+      badge: "불러오는 중",
+      title: "좋아요 영상을 불러오고 있어요.",
+      msg: "영상 수에 따라 시간이 걸릴 수 있어요.",
+      closable: false,
+    };
+  }
   if (state === "pending" && progress) {
     return {
       badge: "AI 분석 중",
@@ -110,7 +122,12 @@ function buildSyncCard(
     return {
       badge: "불러오기 실패",
       title: "좋아요 영상을 불러오지 못했어요.",
-      msg: "일시적인 문제로 실패했어요. 다시 시도해 주세요.",
+      msg:
+        failReason === "reauth"
+          ? "유튜브 연동이 만료됐어요. 마이페이지에서 다시 연동해 주세요."
+          : failReason === "busy"
+            ? "이미 다른 곳에서 불러오는 중이에요. 잠시 뒤 다시 시도해 주세요."
+            : "일시적인 문제로 실패했어요. 다시 시도해 주세요.",
       action: "sync",
       actionLabel: "다시 시도",
     };
@@ -194,6 +211,9 @@ export default function HomePage() {
   const syncResult = useSyncStore((st) => st.result);
   const syncStartedAt = useSyncStore((st) => st.startedAt);
   const syncFinishAt = useSyncStore((st) => st.finishAt);
+  const syncLive = useSyncStore((st) => st.live);
+  const syncLiveDone = useSyncStore((st) => st.liveDone);
+  const syncFailReason = useSyncStore((st) => st.failReason);
   const demoRef = useRef<SyncDemoMode | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const initDoneRef = useRef(false);
@@ -263,11 +283,13 @@ export default function HomePage() {
     });
   }, []);
 
-  const progress = useSyncProgress(
+  const progress = useDisplayProgress(
     syncState === "pending" ? syncStartedAt : null,
     syncFinishAt,
+    syncState === "pending" ? syncLive : null,
+    syncLiveDone,
   );
-  const sync = buildSyncCard(syncState, syncResult, progress);
+  const sync = buildSyncCard(syncState, syncResult, progress, syncFailReason);
 
   function closeOverlay() {
     setOverlay(null);
@@ -330,11 +352,7 @@ export default function HomePage() {
                 </div>
                 <p className="home__sync-eta">
                   <Icon name="clock" size={13} />
-                  <span>
-                    {progress.capped
-                      ? "조금만 더 기다려 주세요"
-                      : "영상 수에 따라 시간이 걸려요"}
-                  </span>
+                  <span>{syncProgressNote(progress)}</span>
                 </p>
               </>
             )}
