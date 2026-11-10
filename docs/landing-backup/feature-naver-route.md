@@ -5,6 +5,7 @@
 `src/features/wishlist/naverRoute.ts`, `RouteButton.tsx`)
 
 되돌리는 방법
+
 1. `LandingFeatures.tsx` — `features` 배열 맨 끝에 아래 1번 객체를 다시 넣고, `activeTab` 의 타입을 `0 | 1 | 2` 로,
    탭 버튼의 `idx as 0 | 1` 을 `idx as 0 | 1 | 2` 로 되돌립니다.
 2. `LandingFaq.tsx` — "추천받은 여행 코스는 어떻게 실제로 활용하나요?" 항목의 `a:` 를 아래 2번 문구로 바꿉니다.

@@ -13,7 +13,10 @@ export function LandingGoogleCompliance() {
         <ScrollReveal animation="fade-up">
           <div className="text-center max-w-2xl mx-auto mb-14">
             <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#0a5236] dark:text-[#74d3a9] bg-white dark:bg-[#162e22] px-3.5 py-1 rounded-full border border-[#16a46b]/30 shadow-sm">
-              <svg className="w-3.5 h-3.5 fill-current text-[#16a46b]" viewBox="0 0 24 24">
+              <svg
+                className="w-3.5 h-3.5 fill-current text-[#16a46b]"
+                viewBox="0 0 24 24"
+              >
                 <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
               </svg>
               <span>Google API Services User Data Policy Compliance</span>
@@ -22,11 +25,14 @@ export function LandingGoogleCompliance() {
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#17161b] dark:text-white mt-4 mb-4 tracking-tight">
               사용자의 소중한 데이터,
               <br />
-              <span className="text-[#16a46b]">철저하고 투명하게 보호합니다</span>
+              <span className="text-[#16a46b]">
+                철저하고 투명하게 보호합니다
+              </span>
             </h2>
 
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">
-              KeepGo는 구글 공식 보안 표준과 사용자 데이터 제한적 사용 정책(Limited Use Requirements)을 철저히 준수합니다.
+              KeepGo는 구글 공식 보안 표준과 사용자 데이터 제한적 사용
+              정책(Limited Use Requirements)을 철저히 준수합니다.
             </p>
           </div>
         </ScrollReveal>
@@ -46,11 +52,19 @@ export function LandingGoogleCompliance() {
                   </h3>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
-                  KeepGo는 YouTube의 <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-xs font-mono text-emerald-600 dark:text-emerald-400">.../auth/youtube.readonly</code> 단 하나의 권한만을 사용합니다.
+                  KeepGo는 YouTube의{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-xs font-mono text-emerald-600 dark:text-emerald-400">
+                    .../auth/youtube.readonly
+                  </code>{" "}
+                  단 하나의 권한만을 사용합니다.
                 </p>
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 space-y-1">
-                  <p className="text-gray-700 dark:text-gray-300 font-semibold">❌ 절대 하지 않는 행위:</p>
-                  <p>• 사용자 명의의 동영상 업로드 / 댓글 작성 / 채널 구독 변경</p>
+                  <p className="text-gray-700 dark:text-gray-300 font-semibold">
+                    ❌ 절대 하지 않는 행위:
+                  </p>
+                  <p>
+                    • 사용자 명의의 동영상 업로드 / 댓글 작성 / 채널 구독 변경
+                  </p>
                   <p>• 비공개 개인정보 열람 및 불필요한 유튜브 활동 추적</p>
                 </div>
               </div>
@@ -70,11 +84,16 @@ export function LandingGoogleCompliance() {
                   </h3>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
-                  수집된 쇼츠 데이터는 사용자가 요청한 ‘장소 추출 및 여행 일정 생성’ 단 하나의 기능에만 사용됩니다.
+                  수집된 쇼츠 데이터는 사용자가 요청한 ‘장소 추출 및 여행 일정
+                  생성’ 단 하나의 기능에만 사용됩니다.
                 </p>
                 <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 space-y-1">
-                  <p className="text-gray-700 dark:text-gray-300 font-semibold">🛡️ 데이터 안전 보장:</p>
-                  <p>• 제3자 마케팅사, 데이터 브로커 대상 판매/공유 일절 불가</p>
+                  <p className="text-gray-700 dark:text-gray-300 font-semibold">
+                    🛡️ 데이터 안전 보장:
+                  </p>
+                  <p>
+                    • 제3자 마케팅사, 데이터 브로커 대상 판매/공유 일절 불가
+                  </p>
                   <p>• 외부 광고 타겟팅 목적의 프로파일링 원천 차단</p>
                 </div>
               </div>
@@ -94,7 +113,9 @@ export function LandingGoogleCompliance() {
                   </h3>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
-                  Google과의 모든 통신은 최신 TLS 1.3 암호화 프로토콜을 통하며, 임시 토큰과 세션 데이터는 업계 표준 암호화 알고리즘으로 안전하게 보호됩니다.
+                  Google과의 모든 통신은 최신 TLS 1.3 암호화 프로토콜을 통하며,
+                  임시 토큰과 세션 데이터는 업계 표준 암호화 알고리즘으로
+                  안전하게 보호됩니다.
                 </p>
               </div>
             </div>
@@ -113,7 +134,9 @@ export function LandingGoogleCompliance() {
                   </h3>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
-                  사용자는 서비스 내 [계정 설정] 또는 Google 보안 계정 관리에서 언제든지 연동을 즉시 해제할 수 있으며, 요청 즉시 보관된 모든 데이터는 영구 복구 불가능하게 파기됩니다.
+                  사용자는 서비스 내 [계정 설정] 또는 Google 보안 계정 관리에서
+                  언제든지 연동을 즉시 해제할 수 있으며, 요청 즉시 보관된 모든
+                  데이터는 영구 복구 불가능하게 파기됩니다.
                 </p>
               </div>
             </div>
@@ -130,7 +153,8 @@ export function LandingGoogleCompliance() {
                   Google API Services User Data Policy 준수 공표
                 </p>
                 <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  KeepGo&apos;s use and transfer to any other app of information received from Google APIs will adhere to{" "}
+                  KeepGo&apos;s use and transfer to any other app of information
+                  received from Google APIs will adhere to{" "}
                   <a
                     href="https://developers.google.com/terms/api-services-user-data-policy"
                     target="_blank"

@@ -36,21 +36,41 @@ export function KeepGoLogo({
         >
           <defs>
             {/* 브랜드 에메랄드 그라데이션 */}
-            <linearGradient id="kg-grad-emerald" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+            <linearGradient
+              id="kg-grad-emerald"
+              x1="4"
+              y1="4"
+              x2="44"
+              y2="44"
+              gradientUnits="userSpaceOnUse"
+            >
               <stop stopColor="#1dd18a" />
               <stop offset="0.55" stopColor="#16a46b" />
               <stop offset="1" stopColor="#0a6b44" />
             </linearGradient>
 
             {/* 선셋 앰버 포인트 그라데이션 (쇼츠 하트 & 활력) */}
-            <linearGradient id="kg-grad-amber" x1="28" y1="8" x2="44" y2="24" gradientUnits="userSpaceOnUse">
+            <linearGradient
+              id="kg-grad-amber"
+              x1="28"
+              y1="8"
+              x2="44"
+              y2="24"
+              gradientUnits="userSpaceOnUse"
+            >
               <stop stopColor="#ffb03a" />
               <stop offset="1" stopColor="#f28522" />
             </linearGradient>
 
             {/* 소프트 글로우 필터 */}
             <filter id="kg-glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#16a46b" floodOpacity="0.25" />
+              <feDropShadow
+                dx="0"
+                dy="2"
+                stdDeviation="3"
+                floodColor="#16a46b"
+                floodOpacity="0.25"
+              />
             </filter>
           </defs>
 
@@ -99,7 +119,7 @@ export function KeepGoLogo({
           <span
             className="font-bold text-[#17161b] dark:text-[#f4f3f6]"
             style={{
-              fontFamily: 'Literata, Pretendard, -apple-system, serif',
+              fontFamily: "Literata, Pretendard, -apple-system, serif",
               fontSize: `${textHeight}px`,
               letterSpacing: "-0.03em",
               lineHeight: 1,
@@ -110,7 +130,7 @@ export function KeepGoLogo({
           <span
             className="font-extrabold text-[#16a46b]"
             style={{
-              fontFamily: 'Pretendard, -apple-system, sans-serif',
+              fontFamily: "Pretendard, -apple-system, sans-serif",
               fontSize: `${textHeight}px`,
               letterSpacing: "-0.02em",
               lineHeight: 1,

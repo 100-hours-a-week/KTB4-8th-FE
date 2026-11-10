@@ -69,17 +69,39 @@ function PopoCharacter({ size }: { size: number }) {
           <stop offset="1" stopColor="#e3e3ea" />
         </radialGradient>
         {/* 초록색 잎사귀 모자 (당근 레퍼런스 스타일) */}
-        <linearGradient id="popo-leaf" x1="40" y1="30" x2="100" y2="70" gradientUnits="userSpaceOnUse">
+        <linearGradient
+          id="popo-leaf"
+          x1="40"
+          y1="30"
+          x2="100"
+          y2="70"
+          gradientUnits="userSpaceOnUse"
+        >
           <stop stopColor="#2dd88e" />
           <stop offset="1" stopColor="#129e64" />
         </linearGradient>
         {/* 작은 오렌지 토트백 */}
-        <linearGradient id="popo-bag" x1="18" y1="80" x2="42" y2="105" gradientUnits="userSpaceOnUse">
+        <linearGradient
+          id="popo-bag"
+          x1="18"
+          y1="80"
+          x2="42"
+          y2="105"
+          gradientUnits="userSpaceOnUse"
+        >
           <stop stopColor="#ff8933" />
           <stop offset="1" stopColor="#e85d04" />
         </linearGradient>
         {/* 그림자 */}
-        <ellipse id="char-shadow" cx="70" cy="132" rx="36" ry="7" fill="#000000" fillOpacity="0.1" />
+        <ellipse
+          id="char-shadow"
+          cx="70"
+          cy="132"
+          rx="36"
+          ry="7"
+          fill="#000000"
+          fillOpacity="0.1"
+        />
       </defs>
 
       <use href="#char-shadow" />
@@ -92,7 +114,11 @@ function PopoCharacter({ size }: { size: number }) {
         stroke="#e2e1ec"
         strokeWidth="1.5"
       />
-      <path d="M54 38 C51 22, 55 12, 60 12 C64 12, 64 22, 60 38 Z" fill="#fed7aa" opacity="0.7" />
+      <path
+        d="M54 38 C51 22, 55 12, 60 12 C64 12, 64 22, 60 38 Z"
+        fill="#fed7aa"
+        opacity="0.7"
+      />
 
       {/* 오른쪽 귀 */}
       <path
@@ -101,7 +127,11 @@ function PopoCharacter({ size }: { size: number }) {
         stroke="#e2e1ec"
         strokeWidth="1.5"
       />
-      <path d="M80 38 C76 22, 78 12, 83 12 C88 12, 90 22, 86 38 Z" fill="#fed7aa" opacity="0.7" />
+      <path
+        d="M80 38 C76 22, 78 12, 83 12 C88 12, 90 22, 86 38 Z"
+        fill="#fed7aa"
+        opacity="0.7"
+      />
 
       {/* ── 둥글고 통통한 몸체 ── */}
       <path
@@ -144,18 +174,40 @@ function PopoCharacter({ size }: { size: number }) {
       {/* ── 걷는 발과 앙증맞은 신발 ── */}
       {/* 왼발 (앞으로 딛음) */}
       <ellipse cx="58" cy="126" rx="9" ry="6" fill="#16a46b" />
-      <path d="M52 126 Q58 123 64 126" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round" />
+      <path
+        d="M52 126 Q58 123 64 126"
+        stroke="#ffffff"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
 
       {/* 오른발 */}
       <ellipse cx="84" cy="125" rx="8" ry="5.5" fill="#16a46b" />
-      <path d="M79 125 Q84 122 89 125" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round" />
+      <path
+        d="M79 125 Q84 122 89 125"
+        stroke="#ffffff"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
 
       {/* ── 주황색 작은 토트백 (당근 스타일) ── */}
       <g transform="translate(18, 76)">
         {/* 가방 끈 */}
-        <path d="M8 8 C8 0, 16 0, 16 8" stroke="#b45309" strokeWidth="1.5" fill="none" />
+        <path
+          d="M8 8 C8 0, 16 0, 16 8"
+          stroke="#b45309"
+          strokeWidth="1.5"
+          fill="none"
+        />
         {/* 가방 본체 */}
-        <rect x="3" y="7" width="18" height="16" rx="3.5" fill="url(#popo-bag)" />
+        <rect
+          x="3"
+          y="7"
+          width="18"
+          height="16"
+          rx="3.5"
+          fill="url(#popo-bag)"
+        />
         {/* 손잡이 손 */}
         <circle cx="9" cy="8" r="4.5" fill="url(#popo-body)" />
         {/* 가방 속 새싹 핀 */}
@@ -189,16 +241,44 @@ function ChichiCharacter({ size }: { size: number }) {
           <stop offset="1" stopColor="#e5a820" />
         </radialGradient>
         {/* 뽀얀 주둥이/볼 */}
-        <ellipse id="chichi-muzzle" cx="70" cy="77" rx="14" ry="10" fill="#ffffff" />
+        <ellipse
+          id="chichi-muzzle"
+          cx="70"
+          cy="77"
+          rx="14"
+          ry="10"
+          fill="#ffffff"
+        />
       </defs>
 
       {/* 바닥 그림자 */}
-      <ellipse cx="70" cy="130" rx="34" ry="7" fill="#000000" fillOpacity="0.1" />
+      <ellipse
+        cx="70"
+        cy="130"
+        rx="34"
+        ry="7"
+        fill="#000000"
+        fillOpacity="0.1"
+      />
 
       {/* ── 둥근 귀 ── */}
-      <circle cx="44" cy="46" r="10" fill="url(#chichi-body)" stroke="#d99b1c" strokeWidth="1.2" />
+      <circle
+        cx="44"
+        cy="46"
+        r="10"
+        fill="url(#chichi-body)"
+        stroke="#d99b1c"
+        strokeWidth="1.2"
+      />
       <circle cx="44" cy="46" r="6" fill="#e5a820" opacity="0.6" />
-      <circle cx="96" cy="46" r="10" fill="url(#chichi-body)" stroke="#d99b1c" strokeWidth="1.2" />
+      <circle
+        cx="96"
+        cy="46"
+        r="10"
+        fill="url(#chichi-body)"
+        stroke="#d99b1c"
+        strokeWidth="1.2"
+      />
       <circle cx="96" cy="46" r="6" fill="#e5a820" opacity="0.6" />
 
       {/* ── 둥글넓적 통통한 바디 ── */}
@@ -219,8 +299,18 @@ function ChichiCharacter({ size }: { size: number }) {
       <circle cx="86" cy="65" r="3.2" fill="#17161a" />
 
       {/* 눈썹 살짝 */}
-      <path d="M51 58 Q54 56 57 58" stroke="#92400e" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M83 58 Q86 56 89 58" stroke="#92400e" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M51 58 Q54 56 57 58"
+        stroke="#92400e"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M83 58 Q86 56 89 58"
+        stroke="#92400e"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
 
       {/* 동그란 까만 코 */}
       <ellipse cx="70" cy="70" rx="3.5" ry="2.8" fill="#17161a" />
@@ -246,8 +336,21 @@ function ChichiCharacter({ size }: { size: number }) {
       {/* ── 양손: 맛있는 디저트/포크 들고 행복해함 ── */}
       {/* 왼손: 작은 포크 */}
       <g transform="translate(26, 80)">
-        <line x1="12" y1="2" x2="6" y2="18" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-        <path d="M10 2 L14 4 L12 8" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" />
+        <line
+          x1="12"
+          y1="2"
+          x2="6"
+          y2="18"
+          stroke="#94a3b8"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M10 2 L14 4 L12 8"
+          stroke="#94a3b8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
         <circle cx="10" cy="10" r="5" fill="url(#chichi-body)" />
       </g>
       {/* 오른손: 배에 올리고 만족 */}
@@ -277,7 +380,14 @@ function KeepyV2Character({ size }: { size: number }) {
         </radialGradient>
       </defs>
 
-      <ellipse cx="70" cy="130" rx="34" ry="7" fill="#000000" fillOpacity="0.1" />
+      <ellipse
+        cx="70"
+        cy="130"
+        rx="34"
+        ry="7"
+        fill="#000000"
+        fillOpacity="0.1"
+      />
 
       {/* 둥근 귀 */}
       <circle cx="44" cy="46" r="10" fill="#0c7d4e" />
@@ -323,8 +433,24 @@ function KeepyV2Character({ size }: { size: number }) {
 
       {/* 돋보기 들고 있는 손 */}
       <g transform="translate(86, 72)">
-        <circle cx="14" cy="8" r="8" fill="#e0f2fe" stroke="#f59e0b" strokeWidth="2" opacity="0.85" />
-        <line x1="8" y1="14" x2="2" y2="20" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round" />
+        <circle
+          cx="14"
+          cy="8"
+          r="8"
+          fill="#e0f2fe"
+          stroke="#f59e0b"
+          strokeWidth="2"
+          opacity="0.85"
+        />
+        <line
+          x1="8"
+          y1="14"
+          x2="2"
+          y2="20"
+          stroke="#b45309"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
         <circle cx="14" cy="8" r="2.5" fill="#16a46b" />
         <ellipse cx="6" cy="14" rx="4.5" ry="4.5" fill="url(#keepy-v2)" />
       </g>
@@ -360,7 +486,14 @@ function RuruCharacter({ size }: { size: number }) {
         </radialGradient>
       </defs>
 
-      <ellipse cx="70" cy="126" rx="26" ry="6" fill="#000000" fillOpacity="0.1" />
+      <ellipse
+        cx="70"
+        cy="126"
+        rx="26"
+        ry="6"
+        fill="#000000"
+        fillOpacity="0.1"
+      />
 
       {/* 머리 위 뿅 솟은 새싹 털 */}
       <path d="M70 42 Q68 28 62 25 Q70 28 70 42" fill="#16a46b" />
@@ -370,8 +503,22 @@ function RuruCharacter({ size }: { size: number }) {
       <circle cx="70" cy="80" r="36" fill="url(#ruru-body)" />
 
       {/* 날개 (좌/우) */}
-      <ellipse cx="36" cy="84" rx="8" ry="12" fill="#eab308" transform="rotate(-15 36 84)" />
-      <ellipse cx="104" cy="84" rx="8" ry="12" fill="#eab308" transform="rotate(15 104 84)" />
+      <ellipse
+        cx="36"
+        cy="84"
+        rx="8"
+        ry="12"
+        fill="#eab308"
+        transform="rotate(-15 36 84)"
+      />
+      <ellipse
+        cx="104"
+        cy="84"
+        rx="8"
+        ry="12"
+        fill="#eab308"
+        transform="rotate(15 104 84)"
+      />
 
       {/* 하얀 가슴 깃털 */}
       <ellipse cx="70" cy="94" rx="18" ry="14" fill="#ffffff" opacity="0.9" />
