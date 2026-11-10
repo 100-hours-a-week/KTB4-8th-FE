@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { describe, isApiError } from "@/lib/api/client";
 import { CHAT_V2 } from "@/lib/constants";
+import { HOME_PATH } from "@/lib/routes";
 import { hasNoSavedGuides } from "@/features/sync/queries";
 import { RecNotice, type RecNoticeModel } from "./RecNotice";
 import { CATEGORY_BY_LABEL } from "@/lib/api/backend";
@@ -676,7 +677,7 @@ export function CoursePopup() {
   function handleGoHome(opts?: { startSync?: boolean }) {
     setView(null);
     setOpen(false);
-    router.push(opts?.startSync ? "/home?startSync=1" : "/home");
+    router.push(opts?.startSync ? `${HOME_PATH}?startSync=1` : HOME_PATH);
   }
 
   function handleAdded(course: Candidate, itemId: string) {

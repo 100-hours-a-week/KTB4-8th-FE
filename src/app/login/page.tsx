@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { loginWithAccessToken } from "@/features/auth/session";
+import { HOME_PATH } from "@/lib/routes";
 
 /* 01 · 로그인 — 서비스 진입점. 인증되지 않은 모든 접근이 이 화면으로 유도된다.
    가입·로그인은 구글 OAuth 단일 수단이고, BE(Spring Security oauth2Login)가 전담한다.
@@ -20,7 +21,7 @@ export default function LoginPage() {
     const devToken = process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN;
     if (devToken) {
       loginWithAccessToken(devToken);
-      router.push("/home");
+      router.push(HOME_PATH);
       return;
     }
     // 첫 클릭 직후 비활성화하고, 이동 표시를 잠깐 보여준다(기능정의서 2-1)

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Icon, type IconName } from "./Icon";
 import { useCourseStore } from "@/features/recommendations/courseStore";
 import { useNewItemsStore } from "@/features/sync/newItems";
+import { HOME_PATH, isHomeTabActive } from "@/lib/routes";
 
 /* 하단 글로벌 내비게이션 — 보관함 / 지도 / 홈 / 코스 / 마이페이지.
    가운데 홈을 강조하고, 코스는 화면 이동이 아니라 팝업을 연다. */
@@ -21,7 +22,7 @@ interface Item {
 const ITEMS: Item[] = [
   { href: "/collection", key: "collection", label: "보관함", icon: "bookmark" },
   { href: "/map", key: "map", label: "지도", icon: "map" },
-  { href: "/home", key: "home", label: "홈", icon: "home", home: true },
+  { href: HOME_PATH, key: "home", label: "홈", icon: "home", home: true },
   {
     href: "#course",
     key: "course",
@@ -47,7 +48,11 @@ export function TabBar() {
   return (
     <nav className="tabbar" aria-label="주요 메뉴">
       {ITEMS.map((it) => {
-        const active = it.popup ? courseOpen : pathname.startsWith(it.href);
+        const active = it.popup
+          ? courseOpen
+          : it.home
+            ? isHomeTabActive(pathname)
+            : pathname.startsWith(it.href);
         return (
           <button
             key={it.key}

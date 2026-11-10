@@ -14,6 +14,7 @@ import { LandingFooter } from "./LandingFooter";
 import { InteractiveKeepy } from "../brand/InteractiveKeepy";
 import { PolicyModal, type PolicyType } from "./PolicyModal";
 import { loginWithAccessToken } from "@/features/auth/session";
+import { HOME_PATH } from "@/lib/routes";
 
 interface LandingPageProps {
   isLoggedIn?: boolean;
@@ -28,7 +29,7 @@ export function LandingPage({ isLoggedIn = false }: LandingPageProps) {
     const devToken = process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN;
     if (devToken) {
       loginWithAccessToken(devToken);
-      router.push("/home");
+      router.push(HOME_PATH);
       return;
     }
 

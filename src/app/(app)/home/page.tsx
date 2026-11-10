@@ -250,7 +250,7 @@ export default function HomePage() {
     // 그래서 진행률 더미가 켜져 있으면 BE 를 부르지 않고 가짜로 끝까지 진행시킨다(?syncDemo=fail 로 실패도 볼 수 있다).
     demoRef.current = defaultSyncDemo();
     if (params.get("startSync") === "1") {
-      router.replace("/home");
+      router.replace(window.location.pathname);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- URL 파라미터로 진입 시 동기화를 트리거하는 1회성 초기화
       void handleStartSync();
     }

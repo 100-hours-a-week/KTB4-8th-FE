@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui/Primitives";
 import { wishlistKeys } from "@/features/wishlist/queries";
+import { isHomePath } from "@/lib/routes";
 import { syncProgressNote, useDisplayProgress } from "./progress";
 import { setSyncNavigator, useSyncStore } from "./syncStore";
 
@@ -50,7 +51,7 @@ export function SyncHost() {
     status === "pending" ? live : null,
     liveDone,
   );
-  const show = status === "pending" && pathname !== "/home";
+  const show = status === "pending" && !isHomePath(pathname);
 
   // 토스트가 이 막대를 가리지 않게 CSS 가 body 속성을 보고 토스트를 막대 위로 올린다
   useEffect(() => {

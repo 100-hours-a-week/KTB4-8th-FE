@@ -9,6 +9,7 @@ import {
   WISHLIST_V2,
 } from "@/lib/constants";
 import { sleep } from "@/lib/format";
+import { isHomePath } from "@/lib/routes";
 import type { SyncResult } from "@/types/api";
 import { saveLastSync, type LastSync } from "./lastResult";
 import {
@@ -125,7 +126,7 @@ export function setSyncNavigator(fn: ((href: string) => void) | null) {
   navigate = fn;
 }
 
-const onHome = () => window.location.pathname === "/home";
+const onHome = () => isHomePath(window.location.pathname);
 
 /** 끝났을 때의 안내. 홈에서는 카드가 결과를 보여 주므로 토스트를 겹쳐 띄우지 않는다(완료만 예외). */
 function notifyFinished(
