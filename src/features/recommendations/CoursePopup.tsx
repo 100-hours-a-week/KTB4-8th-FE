@@ -1226,14 +1226,7 @@ function ProgressView({
       <div className="progress__steps">
         {PROGRESS_LINES.slice(0, stepIndex).map((t, idx) => (
           <span key={t}>
-            {idx === stepIndex - 1 ? (
-              <span
-                className="spinner"
-                style={{ width: 12, height: 12, borderWidth: "1.6px" }}
-              />
-            ) : (
-              <b>✓</b>
-            )}
+            {idx === stepIndex - 1 ? <span className="spinner" /> : <b>✓</b>}
             {t}
           </span>
         ))}

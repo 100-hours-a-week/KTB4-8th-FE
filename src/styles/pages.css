@@ -839,6 +839,7 @@
 }
 /* 분석 중 도넛 스피너는 배지 글자 크기와 비슷하게 */
 .home__sync-badge .spinner,
+.progress__steps .spinner,
 .ptr .spinner {
   /* 끊긴 원 대신, 꼬리는 투명하게 흐려지고 머리(위쪽 끝)는 진한 링.
      --ring 은 링 두께(머리 끝 동그라미 크기도 같다) */
@@ -863,6 +864,7 @@
 }
 /* 머리 끝을 둥글게 */
 .home__sync-badge .spinner::after,
+.progress__steps .spinner::after,
 .ptr .spinner::after {
   content: "";
   position: absolute;
@@ -873,6 +875,17 @@
   margin-left: calc(var(--ring) / -2);
   border-radius: 50%;
   background: currentColor;
+}
+/* 채팅 생성 진행 줄(✓ 자리)의 스피너 — 글자 높이에 맞춘 작은 크기 */
+.progress__steps .spinner {
+  --ring: 2px;
+  width: 12px;
+  height: 12px;
+  flex: none;
+  /* ✓ 글자(약 10px)보다 넓은 만큼을 덜어, 글이 ✓ 줄과 같은 위치에서 시작하게 한다 */
+  margin-right: -2px;
+  /* 위의 ".progress__steps span" 애니메이션(줄이 올라오는 효과)이 스피너까지 덮어쓰지 않게 다시 지정 */
+  animation: kg-spin 0.85s linear infinite;
 }
 /* 당겨서 새로고침의 흰 원 안에서는 더 크게 */
 .ptr .spinner {
