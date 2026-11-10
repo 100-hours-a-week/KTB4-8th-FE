@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { CATEGORY_BY_LABEL } from "@/lib/api/backend";
 import { fmtDuration } from "@/lib/format";
-import { courseStopItems, fmtSaveDate } from "./format";
+import { courseDurationMinutes, courseStopItems, fmtSaveDate } from "./format";
 import { useDeleteWishlistCourse, useWishlistCourse } from "./queries";
 import type { CandidateComponent } from "@/types/api";
 
@@ -136,7 +136,9 @@ export function WishlistCourseSheet({
             </div>
             <div className="stat">
               <p className="stat__key">총 소요시간</p>
-              <p className="stat__val">{fmtDuration(course.duration_hours)}</p>
+              <p className="stat__val">
+                {fmtDuration(courseDurationMinutes(course))}
+              </p>
             </div>
           </div>
           <div className="steps">

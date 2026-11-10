@@ -1,0 +1,19 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kg-grad-emerald" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stopColor="#1dd18a" />
+      <stop offset="0.55" stopColor="#16a46b" />
+      <stop offset="1" stopColor="#0a6b44" />
+    </linearGradient>
+    <linearGradient id="kg-grad-amber" x1="28" y1="8" x2="44" y2="24" gradientUnits="userSpaceOnUse">
+      <stop stopColor="#ffb03a" />
+      <stop offset="1" stopColor="#f28522" />
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="42" height="42" rx="13" fill="url(#kg-grad-emerald)" />
+  <path d="M5 15C5 9.47715 9.47715 5 15 5H33C38.5228 5 43 9.47715 43 15V19C33 21 21 17 5 24V15Z" fill="white" fillOpacity="0.12" />
+  <path d="M17 14.5C17 12.8 18.9 11.8 20.3 12.7L32.2 20.5C33.4 21.3 33.4 23.1 32.2 23.9L20.3 31.7C18.9 32.6 17 31.6 17 29.9V14.5Z" fill="white" />
+  <path d="M27.5 16L35.5 22.2L27.5 28.5L29.5 22.2L27.5 16Z" fill="url(#kg-grad-amber)" />
+  <circle cx="23" cy="22.2" r="3" fill="#16a46b" />
+  <circle cx="38" cy="10" r="2.5" fill="#ffd15c" />
+</svg>

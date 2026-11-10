@@ -9,3 +9,86 @@
 @import "../styles/base.css";
 @import "../styles/components.css";
 @import "../styles/pages.css";
+
+/* ── 랜딩페이지 전용 풀 와이드(Full Width) 반응형 오버라이드 ──
+   구글 심사 및 일반 웹 방문객에게 시원한 데스크톱 & 모바일 웹 경험을 제공 */
+body:has(.landing-page),
+html:has(.landing-page) {
+  background: var(--surface) !important;
+}
+
+.desk:has(.landing-page) {
+  justify-content: stretch !important;
+  background: var(--surface) !important;
+}
+
+.phone:has(.landing-page) {
+  max-width: 100% !important;
+  border-left: none !important;
+  border-right: none !important;
+  background: transparent !important;
+}
+
+.phone__stage:has(.landing-page) {
+  max-width: 100% !important;
+  padding-bottom: 0 !important;
+}
+
+/* ── 랜딩 카드의 번지는 테두리 ──
+   카드 가장자리는 아주 옅은 가는 선이고, 바깥으로 약 16px 안쪽에서만 살짝 풀어진다(경계가 부드러워지는 정도).
+   방향에 따른 색 차이는 없이 둘레 전체가 같다. 겹친 그림자를 반경은 키우고 투명도는 낮춰 쌓아서 부드럽게 이어 준다.
+   색은 눈에 띄지 않는 회녹색이다(라이트 모드 · 다크 모드 · 항상 어두운 카드 .gborder--dark 가 각각 조금씩 다르다). */
+.gborder {
+  --gb: 90, 150, 120;
+  --gb-line: 0.2;
+  --gb-glow: 0.6;
+  position: relative;
+  border-radius: var(--r-xl);
+  box-shadow:
+    0 0 0 1px rgba(var(--gb), var(--gb-line)),
+    0 0 3px 0 rgba(var(--gb), calc(0.22 * var(--gb-glow))),
+    0 0 8px 0 rgba(var(--gb), calc(0.14 * var(--gb-glow))),
+    0 0 16px 1px rgba(var(--gb), calc(0.07 * var(--gb-glow)));
+}
+:root[data-theme="dark"] .gborder,
+.gborder--dark {
+  --gb: 125, 175, 150;
+  --gb-line: 0.22;
+  --gb-glow: 0.6;
+}
+
+/* ── 랜딩의 "좋아요 영상 불러오기" 카드 — 라이트 모드에서는 흰 카드 ──
+   앱의 카드(.card--dark)는 항상 어둡지만, 랜딩의 예시 카드는 화면 모드를 따른다.
+   다크 모드는 아무것도 덮지 않아 앱과 똑같이 보인다. */
+:root:not([data-theme="dark"]) .home__sync--themed {
+  background: #fff;
+  color: var(--ink);
+  /* 테두리는 바깥 .gborder 의 선 하나만 쓴다 — 여기서 또 그리면 2 · 3번 카드보다 두꺼워 보인다 */
+  border-color: transparent;
+  box-shadow: none;
+}
+:root:not([data-theme="dark"]) .home__sync--themed::before {
+  background: rgba(22, 164, 107, 0.07);
+}
+:root:not([data-theme="dark"]) .home__sync--themed .home__sync-close {
+  background: rgba(23, 22, 27, 0.07);
+}
+:root:not([data-theme="dark"]) .home__sync--themed .home__sync-close:hover {
+  background: rgba(23, 22, 27, 0.13);
+}
+:root:not([data-theme="dark"]) .home__sync--themed .home__sync-badge {
+  color: var(--brand-700);
+}
+:root:not([data-theme="dark"]) .home__sync--themed .home__sync-bar {
+  background: rgba(23, 22, 27, 0.09);
+}
+:root:not([data-theme="dark"]) .home__sync--themed .btn--yt {
+  background: #fff;
+  color: #e5222b;
+  border-color: #dcdbe2;
+}
+:root:not([data-theme="dark"])
+  .home__sync--themed
+  .btn--yt:hover:not(:disabled) {
+  background: #f6f6f8;
+}
