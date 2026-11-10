@@ -32,6 +32,7 @@ export function HomePlaceCard({
   grid?: boolean;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const { saved, toggle } = useSavedHomeItems();
   const isSaved = place.id in saved;
   const { sido, gu } = splitRegion(place.address_sg);
@@ -71,7 +72,7 @@ export function HomePlaceCard({
     >
       {showImage ? (
         <div
-          className="thumb thumb--wide placecard__photo"
+          className={`thumb thumb--wide placecard__photo${imageLoaded ? " placecard__photo--loaded" : ""}`}
           style={place.image_bg ? { background: place.image_bg } : undefined}
         >
           {/* 외부(네이버 지도) 이미지라 next/image 최적화 대상이 아니다. 못 열면 타일로 바꾼다. */}
@@ -84,6 +85,7 @@ export function HomePlaceCard({
               alt=""
               aria-hidden
               loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
           )}
@@ -97,6 +99,7 @@ export function HomePlaceCard({
             src={place.image_url}
             alt=""
             loading="lazy"
+            decoding="async"
             referrerPolicy="no-referrer"
             style={
               place.image_position || place.image_zoom
@@ -108,6 +111,7 @@ export function HomePlaceCard({
                   }
                 : undefined
             }
+            onLoad={() => setImageLoaded(true)}
             onError={() => setImageFailed(true)}
           />
           {rank != null && <span className="placecard__rank">{rank}</span>}
