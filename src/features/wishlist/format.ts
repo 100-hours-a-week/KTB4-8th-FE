@@ -168,3 +168,11 @@ export function ddayOf(end: string | null | undefined) {
   const e = new Date(`${end.slice(0, 10)}T00:00:00`);
   return Number.isNaN(e.getTime()) ? null : getDdayBadge(e.toISOString());
 }
+
+/** 보관한 코스의 총 소요시간(분) — BE 최신 버전은 duration_minutes, 옛 버전은 duration_hours(분 단위)로 준다 */
+export function courseDurationMinutes(c: {
+  duration_minutes?: number | null;
+  duration_hours?: number | null;
+}): number | null {
+  return c.duration_minutes ?? c.duration_hours ?? null;
+}
