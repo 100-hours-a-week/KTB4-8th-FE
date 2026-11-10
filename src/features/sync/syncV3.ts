@@ -31,7 +31,7 @@ export interface LiveSyncProgress {
 
 /** 스트림이 열린 뒤 BE 가 실패 이벤트로 알린 오류 — "게이트웨이 시간 제한(502)"과 구별하려고 따로 둔다 */
 export class SyncStreamError extends ApiError {
-  /** BE 의 실패 코드: YOUTUBE_REAUTHORIZATION_REQUIRED · YOUTUBE_FETCH_FAILED · SYNC_BUSY · INTERNAL_ERROR */
+  /** BE 의 실패 코드: YOUTUBE_NOT_CONNECTED(요청 단계 409) · YOUTUBE_REAUTHORIZATION_REQUIRED · YOUTUBE_FETCH_FAILED · SYNC_BUSY(서버 동시 처리 한도) · INTERNAL_ERROR */
   reason: string;
   constructor(problem: ConstructorParameters<typeof ApiError>[0]) {
     super(problem);
@@ -118,6 +118,21 @@ export async function requestYoutubeSyncStream(opts: {
     throw new SyncV3Unavailable();
   if (!res.ok) {
     const body = await res.json().catch(() => null);
+    // 409 = 유튜브 계정이 연동돼 있지 않음(YOUTUBE_NOT_CONNECTED). 스트림이 열리기 전에 BE 가 일반 오류로 막는다
+    if (res.status === 409) {
+      const b = (body ?? {}) as Record<string, unknown>;
+      throw new SyncStreamError({
+        type: typeof b.type === "string" ? b.type : "about:blank",
+        title: typeof b.title === "string" ? b.title : "Conflict",
+        status: 409,
+        detail: typeof b.detail === "string" ? b.detail : "",
+        instance,
+        code:
+          typeof b.code === "string" && b.code
+            ? b.code
+            : "YOUTUBE_NOT_CONNECTED",
+      });
+    }
     throw toApiError(body, res.status, instance);
   }
   if (!res.body) throw new TypeError("SYNC_STREAM_ENDED");

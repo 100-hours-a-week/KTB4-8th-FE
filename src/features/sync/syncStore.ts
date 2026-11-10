@@ -53,7 +53,11 @@ export type SyncFailReason = "reauth" | "busy" | null;
 
 function failReasonOf(err: unknown): SyncFailReason {
   if (!(err instanceof SyncStreamError)) return null;
-  if (err.reason === "YOUTUBE_REAUTHORIZATION_REQUIRED") return "reauth";
+  if (
+    err.reason === "YOUTUBE_REAUTHORIZATION_REQUIRED" ||
+    err.reason === "YOUTUBE_NOT_CONNECTED"
+  )
+    return "reauth";
   if (err.reason === "SYNC_BUSY") return "busy";
   return null;
 }
@@ -185,8 +189,8 @@ function notifyFinished(
   } else if (reason === "reauth") {
     toast.show({
       tone: "error",
-      title: "유튜브 연동을 다시 해 주세요",
-      text: "연동이 만료됐어요. 마이페이지에서 유튜브를 다시 연동한 뒤 불러와 주세요.",
+      title: "유튜브 연동이 필요해요",
+      text: "연동이 안 돼 있거나 만료됐어요. 마이페이지에서 유튜브를 연동한 뒤 불러와 주세요.",
       duration: 6000,
       actionLabel: "마이페이지",
       onAction: () => navigate?.("/mypage/data-sources"),
@@ -194,8 +198,8 @@ function notifyFinished(
   } else if (reason === "busy") {
     toast.show({
       tone: "warn",
-      title: "이미 불러오는 중이에요",
-      text: "다른 곳에서 동기화가 진행 중이에요. 잠시 뒤 다시 시도해 주세요.",
+      title: "지금 요청이 몰려 있어요",
+      text: "서버가 바빠서 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
       duration: 5000,
       actionLabel: "다시 시도",
       onAction: retry,
