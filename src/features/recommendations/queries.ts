@@ -143,7 +143,7 @@ async function sendChatMessageV1(body: SendChatBody): Promise<ChatReply> {
   return await pollUntilComplete(chatId);
 }
 
-/** 채팅 전송. NEXT_PUBLIC_CHAT_V2=on 이면 v2(SSE)로, 아니면 v1(202 + 폴링)로 보낸다.
+/** 채팅 전송. NEXT_PUBLIC_CHAT_V2=off 이면 v1(202 + 폴링)로, 아니면 v2(SSE)로 보낸다.
     두 방식 모두 같은 ChatReply 를 돌려줘서 화면(CoursePopup)은 어느 쪽인지 모른다.
 
     [v1] POST /user/chat-messages — BE 는 봇 답변을 바로 주지 않고 202 Accepted + Location 헤더만

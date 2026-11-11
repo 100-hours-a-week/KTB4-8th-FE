@@ -37,9 +37,9 @@ export function isSyncStillRunning(error: unknown, elapsedMs: number): boolean {
 }
 
 /** 좋아요 영상 불러오기(동기화) 요청.
-    - NEXT_PUBLIC_CHAT_V2=on: POST /api/v2/member/youtube-sync — BE 가 좋아요 영상을 가져와 AI 로 분석하고
+    - 기본값: POST /api/v2/member/youtube-sync — BE 가 좋아요 영상을 가져와 AI 로 분석하고
       보관함에 담은 뒤 204 로 끝난다. 영상이 많으면 끝날 때까지 요청이 열려 있어 오래 걸린다.
-    - 꺼져 있으면 POST /user/youtube-analyze(v1) — 지금 BE 는 영상 목록만 가져오고 분석 · 보관함 저장 코드가 꺼져 있다.
+    - NEXT_PUBLIC_CHAT_V2=off: POST /user/youtube-analyze(v1) — 지금 BE 는 영상 목록만 가져오고 분석 · 보관함 저장 코드가 꺼져 있다.
     진행률을 알려주는 조회 API 가 BE 에 없어서, 끝날 때까지 기다렸다가(동기 처리) 성공 여부만 본다.
     LOCAL_DUMMY 켜짐 여부와 무관하게 항상 실제 BE 를 호출한다(더미는 /user/liked-video-syncs 만 가로챈다). */
 export async function requestYoutubeSync(): Promise<SyncResult> {

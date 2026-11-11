@@ -112,5 +112,5 @@ export const LANDING_ENABLED = process.env.NEXT_PUBLIC_LANDING !== "off";
 export const SYNC_V3 = process.env.NEXT_PUBLIC_SYNC_V3 === "on";
 
 /** 챗봇 채팅 전송을 BE v2(POST /api/v2/member/chat-messages, SSE)로 보낸다. 꺼져 있으면 v1(202 + 폴링).
-    BE 에 v2 채팅이 배포돼 있을 때만 on 으로 켠다. */
-export const CHAT_V2 = process.env.NEXT_PUBLIC_CHAT_V2 === "on";
+    NEXT_PUBLIC_CHAT_V2=off 일 때만 v1 을 사용한다. */
+export const CHAT_V2 = process.env.NEXT_PUBLIC_CHAT_V2 !== "off";
