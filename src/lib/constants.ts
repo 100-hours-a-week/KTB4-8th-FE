@@ -100,14 +100,11 @@ export const SYNC_PROGRESS_DUMMY =
   process.env.NEXT_PUBLIC_SYNC_PROGRESS_DUMMY !== "off";
 
 /** 로그인 전 방문자에게 랜딩페이지(/)를 보여 줄지.
-    개발(dev) 서버에는 랜딩이 필요 없어서 끈다 — 끄면 로그아웃 상태의 / 가 바로 /login 으로 간다.
-    별도 환경변수를 새로 만들지 않고, 배포 워크플로가 이미 브랜치로 정해 넘기는 NEXT_PUBLIC_SENTRY_ENVIRONMENT 를 쓴다
-    (main = "production", 그 외 = "dev"). 그래서 Dockerfile · 워크플로를 바꾸지 않아도 된다.
-    값이 없거나 다른 값이면(로컬 · 운영) 켜져 있다 — 설정이 빠져도 운영에는 랜딩이 나온다.
-    로컬에서 끈 모습을 보려면 .env.local 에 NEXT_PUBLIC_LANDING=off 를 둔다. */
-export const LANDING_ENABLED =
-  process.env.NEXT_PUBLIC_LANDING !== "off" &&
-  process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT !== "dev";
+    개발(dev) 서버에는 랜딩이 필요 없어서 끌 수 있다 — 끄면 로그아웃 상태의 / 가 바로 /login 으로 간다.
+    NEXT_PUBLIC_LANDING=off 일 때만 꺼지고, 값이 없거나 다른 값이면 켜져 있다(설정이 빠져도 운영에는 랜딩이 나온다).
+    NEXT_PUBLIC_* 는 빌드 시점에 고정되므로, dev 서버용 빌드에 이 값을 넘기려면 Dockerfile 의 ARG 와
+    워크플로의 --build-arg 가 필요하다(인프라 담당 파일). 로컬에서는 .env.local 에 NEXT_PUBLIC_LANDING=off 를 둔다. */
+export const LANDING_ENABLED = process.env.NEXT_PUBLIC_LANDING !== "off";
 
 /** 좋아요 영상 불러오기를 BE v3(POST /api/v3/member/youtube-sync, SSE)로 한다 — 분석한 영상 수 · 진행률이 실시간으로 온다.
     켜면 가짜 진행률(SYNC_PROGRESS_DUMMY) 대신 실제 값을 쓰고, v3 가 없는 서버(404 등)면 예전 v2 방식 + 가짜 진행률로 돌아간다.
