@@ -47,7 +47,8 @@ import {
   useUpdateSlot,
   type UpdateSlotBody,
 } from "./queries";
-import { isRecommendationStopped } from "./recommendV2";
+import { expectsStageUpdates, isRecommendationStopped } from "./recommendV2";
+import { STAGE_LINES, TIMED_LINES, addStage } from "./progressStages";
 import { timeOfDayOfHour } from "./slotTime";
 import { RegionSheet } from "./RegionSheet";
 import { DateTimeSheet } from "./DateTimeSheet";
@@ -86,12 +87,6 @@ const TIME_START: Record<TimeOfDay, number> = {
   AFTERNOON: 13,
   EVENING: 18,
 };
-
-const PROGRESS_LINES = [
-  "좋아요 영상에서 찾은 장소를 모으는 중",
-  "조건에 맞는 장소를 추리는 중",
-  "이동 순서를 계산하는 중",
-];
 
 const INTRO_GREETING =
   "가고 싶은 곳을 편하게 말씀해 주세요.\n예) 이번 주 토요일 오후에 카페 가고 싶어";
@@ -242,6 +237,8 @@ export function CoursePopup() {
   // 추천이 실패했을 때 조건 카드 위에 남기는 안내(닫거나 다시 요청하면 사라진다)
   const [recNotice, setRecNotice] = useState<RecNoticeModel | null>(null);
   const [view, setView] = useState<ViewState>(null);
+  // 서버(v3)가 알려 준 추천 단계. null 이면 단계를 알 수 없어(v2 · v1) 시간 기반 문구를 쓴다
+  const [stages, setStages] = useState<string[] | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   // 조건 카드를 접어 둔 대화의 식별값. 새 대화(reset 이 새 식별값을 발급)가 시작되면
   // 값이 달라져서 카드는 자동으로 다시 펼쳐진다.
@@ -376,9 +373,10 @@ export function CoursePopup() {
     setOpen(false);
   }, [pathname, setOpen]);
 
-  /* 생성 중 문구 애니메이션 */
+  /* 생성 중 문구 애니메이션 — 서버가 단계를 알려 주지 않을 때만(stages === null) 시간으로 넘긴다 */
+  const timedProgress = generating && stages === null;
   useEffect(() => {
-    if (!generating) {
+    if (!timedProgress) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- 애니메이션 인터벌 구독 시작 전 상태 초기화
       setStepIndex(0);
       return;
@@ -386,10 +384,10 @@ export function CoursePopup() {
 
     setStepIndex(0);
     const id = window.setInterval(() => {
-      setStepIndex((i) => Math.min(i + 1, PROGRESS_LINES.length));
+      setStepIndex((i) => Math.min(i + 1, TIMED_LINES.length));
     }, 700);
     return () => window.clearInterval(id);
-  }, [generating]);
+  }, [timedProgress]);
 
   /* 대화 로그 자동 스크롤 */
   useEffect(() => {
@@ -419,6 +417,8 @@ export function CoursePopup() {
       return;
     }
     setRecNotice(null);
+    // v3 라면 서버가 알려 주는 단계를 보여 준다(처음엔 비어 있다가 단계가 올 때마다 늘어난다)
+    setStages(CHAT_V2 && expectsStageUpdates() ? [] : null);
     useCourseStore.setState({ phase: "creating" });
     try {
       // v2 추천은 BE 가 보관함의 장소 · 이벤트 중에서만 후보를 고른다 — 보관함이 비어 있으면 요청해도 503 만 돌아오므로 먼저 알려 준다
@@ -435,7 +435,10 @@ export function CoursePopup() {
       await updateSlot.mutateAsync(
         buildSlotUpdateBody(state.slots, state.origin),
       );
-      const run = await recommend.mutateAsync();
+      const run = await recommend.mutateAsync({
+        onStage: (stage) => setStages((prev) => prev && addStage(prev, stage)),
+        onNoStages: () => setStages(null),
+      });
       useCourseStore.setState({ phase: "idle" });
       setView({ name: "candidates", result: run });
     } catch (err) {
@@ -824,7 +827,11 @@ export function CoursePopup() {
               {generating && (
                 <ProgressView
                   slots={slots}
-                  stepIndex={stepIndex}
+                  lines={
+                    stages
+                      ? stages.map((stage) => STAGE_LINES[stage])
+                      : TIMED_LINES.slice(0, stepIndex)
+                  }
                   onCancel={() => void handleCancel()}
                 />
               )}
@@ -1207,11 +1214,12 @@ function SlotButton({
 
 function ProgressView({
   slots,
-  stepIndex,
+  lines,
   onCancel,
 }: {
   slots: Slots;
-  stepIndex: number;
+  /** 지금까지 시작된 단계의 문구 — 마지막 줄이 진행 중(스피너), 앞 줄은 끝난 것(✓) */
+  lines: string[];
   onCancel: () => void;
 }) {
   const timeLabel = slots.timeOfDay ? TIME_OF_DAY_LABEL[slots.timeOfDay] : "";
@@ -1225,9 +1233,9 @@ function ProgressView({
         {slots.region ?? ""}에서 보내는 {timeLabel}
       </p>
       <div className="progress__steps">
-        {PROGRESS_LINES.slice(0, stepIndex).map((t, idx) => (
+        {lines.map((t, idx) => (
           <span key={t}>
-            {idx === stepIndex - 1 ? <span className="spinner" /> : <b>✓</b>}
+            {idx === lines.length - 1 ? <span className="spinner" /> : <b>✓</b>}
             {t}
           </span>
         ))}

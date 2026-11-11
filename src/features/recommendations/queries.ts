@@ -7,7 +7,11 @@ import { CHAT_V2 } from "@/lib/constants";
 import { sleep } from "@/lib/format";
 import { sendChatMessageV2 } from "./chatV2";
 import { parseSlotDatetime } from "./slotTime";
-import { cancelRecommendationV2, requestRecommendationV2 } from "./recommendV2";
+import {
+  cancelRecommendationV2,
+  requestRecommendationV2,
+  type RecommendationStreamOptions,
+} from "./recommendV2";
 import type {
   AvailableMinutes,
   Candidate,
@@ -193,9 +197,9 @@ export function useUpdateSlot() {
     나중에 BE 가 비동기(202+폴링)로 바뀌면 생성(POST)과 폴링(GET)을 다시 분리하면 된다. */
 export function useRequestRecommendation() {
   return useMutation({
-    mutationFn: async () =>
+    mutationFn: async (opts?: RecommendationStreamOptions) =>
       CHAT_V2
-        ? requestRecommendationV2()
+        ? requestRecommendationV2(opts)
         : (await api.post<RecommendationRun>("/user/recommendation")).data,
   });
 }
