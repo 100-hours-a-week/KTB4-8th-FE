@@ -6,6 +6,9 @@ const nextConfig = {
   // Cloud 결정: 정적 export 대신 Node 런타임 컨테이너로 서빙한다.
   output: "standalone",
   reactStrictMode: true,
+  // 개발 서버의 /api 프록시(rewrites)는 응답을 gzip 으로 묶어서, SSE(좋아요 영상 동기화 진행률 등)가 끝날 때 한꺼번에 도착한다.
+  // 개발에서만 끈다 — 운영은 nginx 가 /api 를 BE 로 직접 넘기므로 이 설정과 무관하다.
+  compress: process.env.NODE_ENV === "production",
   images: {
     // 장소 썸네일이 외부 URL 로 내려오면 여기에 호스트를 등록한다.
     remotePatterns: [],

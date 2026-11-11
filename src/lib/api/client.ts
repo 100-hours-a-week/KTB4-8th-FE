@@ -5,6 +5,7 @@
    - 오류는 RFC 9457 Problem Details 이며 ApiError 로 던진다.
    - 401 AUTHENTICATION_REQUIRED 는 refresh 를 1회 시도한 뒤 실패하면 로그인으로 보낸다. */
 import { backendRoute, codeFromStatus } from "./backend";
+import { idempotentFetch } from "./idempotency";
 import { LOCAL_DUMMY } from "@/lib/constants";
 import { handleLocalCollection } from "./local-collection";
 import { handleLocalSync } from "./local-sync";
@@ -19,6 +20,9 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
 
 /** v2 API(보관함 등)의 기준 경로. v1 과 달리 /api/v2/member 아래에 있다. */
 export const API_BASE_V2 = "/api/v2/member";
+
+/** v3 API(좋아요 영상 동기화 SSE)의 기준 경로 */
+export const API_BASE_V3 = "/api/v3/member";
 
 export class ApiError extends Error {
   problem: Problem;
@@ -208,7 +212,8 @@ async function send<T>(
 
   let res: Response;
   try {
-    res = await fetch(url, {
+    // POST 는 멱등성 키(Idempotency-Key)를 붙여 보낸다 — 같은 요청이 두 번 가도 서버가 한 번만 처리하게 한다
+    res = await idempotentFetch(url, {
       method,
       headers: headers(),
       body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
@@ -331,7 +336,7 @@ export async function uploadProfileImage(
   if (s?.accessToken)
     h.Authorization = `${s.tokenType || "Bearer"} ${s.accessToken}`;
 
-  const res = await fetch(API_BASE + "/user/profile-image", {
+  const res = await idempotentFetch(API_BASE + "/user/profile-image", {
     method: "POST",
     headers: h,
     body: form,

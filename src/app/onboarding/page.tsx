@@ -11,6 +11,7 @@ import {
   ONBOARDING_CATEGORIES,
 } from "@/lib/constants";
 import type { Category } from "@/types/api";
+import { HOME_PATH } from "@/lib/routes";
 
 /* 03 · 온보딩 — 최초 가입(isNewUser = true)일 때만 진입한다.
    인트로 3슬라이드(스와이프 가능) → 관심사 선택(3개 이상) → 가입 완료.
@@ -301,7 +302,7 @@ export default function OnboardingPage() {
 
   function finish(opts?: { startSync?: boolean }) {
     setCategories(selected);
-    router.replace(opts?.startSync ? "/home?startSync=1" : "/home");
+    router.replace(opts?.startSync ? `${HOME_PATH}?startSync=1` : HOME_PATH);
   }
 
   if (step < SLIDES.length) {

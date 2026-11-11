@@ -6,6 +6,7 @@ import { Spinner } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
 import { useLogin } from "@/features/auth/session";
 import { GOOGLE_STATE_KEY, oauthRedirectUri } from "@/lib/auth/google";
+import { HOME_PATH } from "@/lib/routes";
 
 /* 02 · Google 인증 콜백 — Google 이 돌려준 인가 코드를 POST /user/auth-session 으로 전달한다. */
 export default function OauthPage() {
@@ -37,7 +38,7 @@ export default function OauthPage() {
     login
       .mutateAsync({ authorizationCode: code, redirectUri: oauthRedirectUri() })
       .then((session) =>
-        router.replace(session.isNewUser ? "/onboarding" : "/home"),
+        router.replace(session.isNewUser ? "/onboarding" : HOME_PATH),
       )
       .catch((err) => {
         toast.fromError(err, { noRelogin: true });

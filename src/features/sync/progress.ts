@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { SyncResult } from "@/types/api";
+import type { LiveSyncProgress } from "./syncV3";
 
 /* 좋아요 영상 분석 진행률 — **더미**.
    BE 에는 진행률 · 분석한 영상 수를 알려주는 조회 API 가 없다(POST youtube-sync / youtube-analyze 는
@@ -24,6 +25,12 @@ export interface SyncProgress {
   remainingSeconds: number;
   /** 가짜 진행이 끝까지 찼는데(약 30초) 실제 요청은 아직 안 끝난 상태 — "더 걸려요" 문구로 바꾼다 */
   capped: boolean;
+  /** BE v3 가 실시간으로 알려 준 값인지(가짜가 아니다) — true 면 영상 수 · 진행률을 그대로 믿고 보여 준다 */
+  real?: boolean;
+  /** real 일 때: 아직 영상을 가져오는 중이라 분석할 영상 수를 모른다 */
+  fetching?: boolean;
+  /** real 일 때: 분석에 실패한 영상 수 */
+  failed?: number;
 }
 
 /* 진행 속도 — 처음 15초는 일정한 속도로(30초에서 시작해 1초에 1초씩 줄어든다),
@@ -44,6 +51,30 @@ function virtualSeconds(elapsedSeconds: number): number {
     SLOWDOWN_TAU *
       (1 - Math.exp(-(elapsedSeconds - FULL_SPEED_SECONDS) / SLOWDOWN_TAU))
   );
+}
+
+/** BE v3 가 알려 준 실제 진행 상태 → 화면이 쓰는 진행률.
+    진행률(progress)이 오면 그 값을, 안 오면 분석한 영상 수 / 분석할 영상 수로 계산한다.
+    끝나기 전에는 99% 까지만 보여 준다(100% 는 끝났다는 소식이 온 뒤에 채운다). */
+export function liveToSyncProgress(
+  live: LiveSyncProgress,
+  finished = false,
+): SyncProgress {
+  const total = live.target ?? 0;
+  const analyzed = live.analyzed ?? 0;
+  const byCount = total > 0 ? Math.floor((analyzed / total) * 100) : 0;
+  const raw = live.progress ?? byCount;
+  return {
+    total,
+    analyzed,
+    places: 0,
+    percent: finished ? 100 : Math.min(99, Math.max(0, raw)),
+    remainingSeconds: 0,
+    capped: false,
+    real: true,
+    fetching: live.target == null,
+    failed: live.failed ?? 0,
+  };
 }
 
 /** 시작한 지 elapsedMs 가 지난 시점의 진행률 */
@@ -131,6 +162,29 @@ export function useSyncProgress(
   return finishAt != null
     ? progressWhileFinishing(startedAt, finishAt, now)
     : progressAt(now - startedAt);
+}
+
+/** 진행바 아래 한 줄 — 실제 값이면 "37 / 120 영상 분석됨", 가짜 진행률이면 예전 문구 */
+export function syncProgressNote(p: SyncProgress): string {
+  if (p.real) {
+    if (p.fetching) return "유튜브에서 영상을 가져오고 있어요";
+    if (p.total <= 0) return "영상을 분석하고 있어요";
+    const skipped = p.failed ? ` · ${p.failed}개는 건너뛰었어요` : "";
+    return `${p.analyzed} / ${p.total} 영상 분석됨${skipped}`;
+  }
+  return p.capped ? "조금만 더 기다려 주세요" : "영상 수에 따라 시간이 걸려요";
+}
+
+/** 화면에 보여 줄 진행률 — BE v3 가 알려 준 실제 값(live)이 있으면 그것을, 없으면 가짜 진행률을 쓴다.
+    liveDone 은 끝났다는 소식이 와서 100% 로 채워 보여 주는 동안이다. */
+export function useDisplayProgress(
+  startedAt: number | null,
+  finishAt: number | null,
+  live: LiveSyncProgress | null,
+  liveDone: boolean,
+): SyncProgress | null {
+  const dummy = useSyncProgress(startedAt, finishAt);
+  return live ? liveToSyncProgress(live, liveDone) : dummy;
 }
 
 /** 실제 요청이 아주 빨리 끝나도(영상이 적거나 없을 때) 진행 화면을 이만큼은 보여 준다 */
