@@ -22,6 +22,8 @@ export function KeepyMascot({
   reserveBubbleSpace = false,
   onClick,
 }: KeepyMascotProps) {
+  // SVG 그라데이션 id 는 문서 전체에서 하나여야 한다 — 같은 id 가 여러 개면(숨겨진 캐릭터가 먼저 나올 때 등) 보이는 캐릭터의 채움이 사라진다
+  const uid = `keepy${React.useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   return (
     <div
       className={`relative inline-flex flex-col items-center select-none ${
@@ -55,7 +57,7 @@ export function KeepyMascot({
         <defs>
           {/* 키피 몸체 젤리 그라데이션 */}
           <linearGradient
-            id="keepy-body"
+            id={`${uid}-body`}
             x1="40"
             y1="30"
             x2="120"
@@ -69,7 +71,7 @@ export function KeepyMascot({
 
           {/* 배 부분 부드러운 민트 크림 */}
           <linearGradient
-            id="keepy-belly"
+            id={`${uid}-belly`}
             x1="80"
             y1="80"
             x2="80"
@@ -82,7 +84,7 @@ export function KeepyMascot({
 
           {/* 배낭 코랄/선셋 앰버 */}
           <linearGradient
-            id="keepy-bag"
+            id={`${uid}-bag`}
             x1="100"
             y1="80"
             x2="140"
@@ -95,7 +97,7 @@ export function KeepyMascot({
 
           {/* 탐험 모자/핀 골드 앰버 */}
           <linearGradient
-            id="keepy-pin"
+            id={`${uid}-pin`}
             x1="70"
             y1="10"
             x2="90"
@@ -107,13 +109,13 @@ export function KeepyMascot({
           </linearGradient>
 
           {/* 눈 하이라이트 글로우 */}
-          <radialGradient id="keepy-eye-glow" cx="50%" cy="50%" r="50%">
+          <radialGradient id={`${uid}-eye-glow`} cx="50%" cy="50%" r="50%">
             <stop stopColor="#ffffff" stopOpacity="0.9" />
             <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
           </radialGradient>
 
           {/* 그림자 */}
-          <filter id="keepy-shadow" x="10" y="130" width="140" height="25">
+          <filter id={`${uid}-shadow`} x="10" y="130" width="140" height="25">
             <feGaussianBlur stdDeviation="4" />
           </filter>
         </defs>
@@ -169,7 +171,7 @@ export function KeepyMascot({
             width="26"
             height="34"
             rx="9"
-            fill="url(#keepy-bag)"
+            fill={`url(#${uid}-bag)`}
             stroke="#b45309"
             strokeWidth="1.5"
           />
@@ -218,7 +220,7 @@ export function KeepyMascot({
           {/* 메인 통통한 바디 */}
           <path
             d="M80 34C52 34 38 52 38 84C38 114 54 135 80 135C106 135 122 114 122 84C122 52 108 34 80 34Z"
-            fill="url(#keepy-body)"
+            fill={`url(#${uid}-body)`}
           />
 
           {/* 귀 (좌/우 둥근 곰돌이-정령 귀) */}
@@ -231,7 +233,7 @@ export function KeepyMascot({
           {/* 배 부분 부드러운 민트 크림 패치 */}
           <path
             d="M80 72C64 72 54 84 54 105C54 123 66 130 80 130C94 130 106 123 106 105C106 84 96 72 80 72Z"
-            fill="url(#keepy-belly)"
+            fill={`url(#${uid}-belly)`}
             opacity="0.9"
           />
         </g>
@@ -252,7 +254,7 @@ export function KeepyMascot({
           {/* 위치 핀 (📍) 장식 */}
           <path
             d="M80 6C74.5 6 70 10.5 70 16C70 22.5 80 29 80 29C80 29 90 22.5 90 16C90 10.5 85.5 6 80 6Z"
-            fill="url(#keepy-pin)"
+            fill={`url(#${uid}-pin)`}
             stroke="#b45309"
             strokeWidth="1.2"
           />

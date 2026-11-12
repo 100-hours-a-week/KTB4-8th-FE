@@ -130,11 +130,11 @@ export function InteractiveKeepy() {
             <span className="leading-snug">{speech.text}</span>
           </div>
 
-          {/* 숨기기 버튼 */}
+          {/* 숨기기 버튼 — 손을 흔드는 캐릭터의 팔 · 귀를 가리지 않게 위로 띄운다 */}
           <button
             type="button"
             onClick={() => setIsMinimized(true)}
-            className="pointer-events-auto absolute -top-1 -left-1 z-30 w-5 h-5 rounded-full bg-white/90 dark:bg-black/60 shadow border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-gray-800 text-[10px] flex items-center justify-center transition-colors"
+            className="pointer-events-auto absolute -top-3 -left-1 z-30 w-5 h-5 rounded-full bg-white/90 dark:bg-black/60 shadow border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-gray-800 text-[10px] flex items-center justify-center transition-colors"
             title="키피 숨기기"
             aria-label="키피 숨기기"
           >

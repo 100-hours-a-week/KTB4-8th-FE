@@ -13,6 +13,8 @@ export function KeepGoLogo({
   className = "",
   onClick,
 }: KeepGoLogoProps) {
+  // SVG id 는 문서 전체에서 하나여야 한다 — 로고가 여러 번 그려져도 그라데이션이 겹치지 않게 인스턴스마다 다르게 만든다
+  const uid = `kglogo${React.useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const symbolWidth = size;
   const symbolHeight = size;
   const textHeight = Math.round(size * 0.72);
@@ -37,7 +39,7 @@ export function KeepGoLogo({
           <defs>
             {/* 브랜드 에메랄드 그라데이션 */}
             <linearGradient
-              id="kg-grad-emerald"
+              id={`${uid}-grad-emerald`}
               x1="4"
               y1="4"
               x2="44"
@@ -51,7 +53,7 @@ export function KeepGoLogo({
 
             {/* 선셋 앰버 포인트 그라데이션 (쇼츠 하트 & 활력) */}
             <linearGradient
-              id="kg-grad-amber"
+              id={`${uid}-grad-amber`}
               x1="28"
               y1="8"
               x2="44"
@@ -63,7 +65,13 @@ export function KeepGoLogo({
             </linearGradient>
 
             {/* 소프트 글로우 필터 */}
-            <filter id="kg-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <filter
+              id={`${uid}-glow`}
+              x="-20%"
+              y="-20%"
+              width="140%"
+              height="140%"
+            >
               <feDropShadow
                 dx="0"
                 dy="2"
@@ -81,8 +89,8 @@ export function KeepGoLogo({
             width="42"
             height="42"
             rx="13"
-            fill="url(#kg-grad-emerald)"
-            filter="url(#kg-glow)"
+            fill={`url(#${uid}-grad-emerald)`}
+            filter={`url(#${uid}-glow)`}
           />
 
           {/* 쇼츠 화면 질감 및 은은한 하이라이트 곡선 */}
@@ -102,7 +110,7 @@ export function KeepGoLogo({
           {/* 핀 포인트 & 우상향 도약 화살표 헤드 */}
           <path
             d="M27.5 16L35.5 22.2L27.5 28.5L29.5 22.2L27.5 16Z"
-            fill="url(#kg-grad-amber)"
+            fill={`url(#${uid}-grad-amber)`}
           />
 
           {/* 위치 핀 중심의 마그네틱 링 (Keep의 저장 핀을 상징) */}
