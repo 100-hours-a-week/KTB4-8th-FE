@@ -1,17 +1,21 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { hasSession, loginWithAccessToken } from "@/features/auth/session";
+import {
+  readLoginRedirect,
+  stripLoginRedirect,
+} from "@/features/auth/loginRedirect";
 import { subscribeSession } from "@/lib/api/client";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { LANDING_ENABLED } from "@/lib/constants";
 import { HOME_PATH } from "@/lib/routes";
 
 /* BE 가 Google 로그인에 성공하면 액세스 토큰을 담아 이 주소로 리다이렉트한다
-   (예: /?accessToken=...&expiresIn=1800&initialLogin=true). 그 값이 있으면 세션으로 저장하고,
-   신규 가입이면 온보딩으로 · 기존 회원이면 홈으로 보낸다.
+   (예: /#accessToken=...&expiresIn=1800&initialLogin=true — fragment. 옛 BE 는 ?accessToken=... 쿼리).
+   그 값이 있으면 세션으로 저장하고 주소창에서 지운 뒤, 신규 가입이면 온보딩으로 · 기존 회원이면 홈으로 보낸다.
    
    토큰이 없는 일반 접속 시:
    구글 심사 및 일반 사용자에게 서비스 가치를 알리는 인터랙티브 랜딩페이지를 보여준다. */
@@ -56,20 +60,28 @@ function RootContent() {
     () => true,
     () => false,
   );
-  const searchParams = useSearchParams();
-  const accessToken = searchParams.get("accessToken");
+  // 로그인 결과는 주소(fragment · 쿼리)에만 있다. 서버에서는 읽을 수 없어 null — 서버가 그린 HTML 은 어차피 로딩 표시다
+  const [login] = useState(() =>
+    typeof window === "undefined"
+      ? null
+      : readLoginRedirect(window.location.search, window.location.hash),
+  );
 
   useEffect(() => {
-    if (accessToken) {
-      const expiresIn = Number(searchParams.get("expiresIn")) || undefined;
-      loginWithAccessToken(accessToken, expiresIn);
-      router.replace(
-        searchParams.get("initialLogin") === "true" ? "/onboarding" : HOME_PATH,
-      );
-    }
-  }, [accessToken, router, searchParams]);
+    if (!login) return;
+    loginWithAccessToken(login.accessToken, login.expiresIn);
+    // 토큰이 주소창 · 방문 기록에 남지 않게 주소에서 지운다
+    const { pathname, search, hash } = window.location;
+    window.history.replaceState(
+      window.history.state,
+      "",
+      stripLoginRedirect(pathname, search, hash),
+    );
+    router.replace(login.initialLogin ? "/onboarding" : HOME_PATH);
+  }, [login, router]);
 
-  if (accessToken) {
+  // 토큰을 받았고 아직 세션에 저장되기 전까지만 로딩 표시 — 저장되면 loggedIn 이 되어 아래에서 앱 홈이 그려진다
+  if (login && !loggedIn) {
     return (
       <div className="landing-page min-h-screen flex items-center justify-center bg-white dark:bg-[#111613]">
         <div className="w-8 h-8 border-3 border-[#16a46b]/20 border-t-[#16a46b] rounded-full animate-spin" />
