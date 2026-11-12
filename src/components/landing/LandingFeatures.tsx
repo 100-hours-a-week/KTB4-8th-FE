@@ -21,14 +21,14 @@ export function LandingFeatures() {
       footerNote: "✨ 저장한 장소가 지역 · 분류별로 정리돼요.",
       items: [
         {
-          name: "어니언 성수",
-          category: "베이커리 카페",
+          name: "성수율 카페",
+          category: "카페",
           time: "도보 5분",
           rating: "4.8",
         },
         {
-          name: "대림창고",
-          category: "복합문화공간",
+          name: "어니언 성수",
+          category: "베이커리 카페",
           time: "도보 8분",
           rating: "4.7",
         },
@@ -54,16 +54,16 @@ export function LandingFeatures() {
       footerNote: "✨ 코스의 장소 사이 이동 시간이 계산되어 있어요.",
       items: [
         {
-          name: "카페 온화",
+          name: "성수율 카페",
           category: "성수동 · 출발지에서 12분 이동",
           time: "첫 번째 장소",
           rating: "카페",
         },
         {
-          name: "대림창고",
+          name: "어니언 성수",
           category: "성수동 · 이전 장소에서 7분 이동",
           time: "두 번째 장소",
-          rating: "전시",
+          rating: "카페",
         },
         {
           name: "성수연방",

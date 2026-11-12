@@ -63,13 +63,19 @@ export function LandingHeader({
         aria-hidden="true"
       />
 
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-5 max-[380px]:px-3 sm:px-8 flex items-center justify-between">
         {/* 로고 */}
         <div
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="cursor-pointer"
         >
-          <KeepGoLogo size={34} variant="full" />
+          {/* 아주 좁은 화면(≤359px)에서는 글자 없이 심볼만 — 버튼 · 햄버거가 밀려나지 않게.
+              로고를 두 번 그리면 SVG 그라데이션 id 가 겹쳐 채움이 사라지므로 하나만 그리고 글자만 숨긴다 */}
+          <KeepGoLogo
+            size={34}
+            variant="full"
+            className="max-[359px]:[&>div]:hidden"
+          />
         </div>
 
         {/* 데스크톱 네비게이션 메뉴 */}
@@ -113,7 +119,7 @@ export function LandingHeader({
         </nav>
 
         {/* 우측 CTA */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 max-[380px]:gap-1.5">
           {/* 라이트 ↔ 다크 — 아이콘은 CSS 로만 바꿔서(dark: 변형) 첫 그리기에서 어긋나지 않는다 */}
           <button
             type="button"
@@ -140,15 +146,9 @@ export function LandingHeader({
             <button
               type="button"
               onClick={onStartLogin}
-              className="group flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-[#16a46b] text-white text-xs sm:text-sm font-semibold hover:bg-[#0e8a58] transition-all shadow-md shadow-[#16a46b]/25 hover:shadow-lg hover:shadow-[#16a46b]/35 active:scale-95"
+              className="group flex items-center gap-2 px-4 py-2 max-[380px]:px-3 max-[380px]:text-[11px] sm:px-5 sm:py-2.5 rounded-full bg-[#16a46b] text-white text-xs sm:text-sm font-semibold hover:bg-[#0e8a58] transition-all shadow-md shadow-[#16a46b]/25 hover:shadow-lg hover:shadow-[#16a46b]/35 active:scale-95"
             >
-              <svg
-                className="w-4 h-4 fill-current shrink-0"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
-              </svg>
-              <span>시작하기</span>
+              <span className="whitespace-nowrap">내 코스 보러가기</span>
             </button>
           )}
 

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Suspense, useEffect, useSyncExternalStore } from "react";
 import { hasSession, loginWithAccessToken } from "@/features/auth/session";
+import { subscribeSession } from "@/lib/api/client";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { LANDING_ENABLED } from "@/lib/constants";
 import { HOME_PATH } from "@/lib/routes";
@@ -43,8 +44,9 @@ function RootContent() {
   const router = useRouter();
   // 로그인 여부는 브라우저(localStorage)에만 있다. 서버가 그린 HTML 은 "로그아웃"이라, 첫 그리기까지는 같은 값(false)으로 맞추고
   // 그 뒤에 실제 값으로 바꾼다 — 그렇지 않으면 로그인한 채로 열 때 hydration 오류가 난다.
+  // 구독해 두어야 랜딩의 "시작하기"가 토큰을 저장했을 때(개발용 토큰 · 같은 주소 / 로 이동) 화면이 앱 홈으로 바뀐다
   const loggedIn = useSyncExternalStore(
-    subscribeNothing,
+    subscribeSession,
     hasSession,
     () => false,
   );

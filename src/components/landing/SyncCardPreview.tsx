@@ -19,7 +19,7 @@ export function SyncCardView({
   style,
 }: {
   phase: SyncCardPhase;
-  /** analyzing 일 때 진행바(0~100) */
+  /** loading · analyzing 일 때 진행바(0~100) */
   percent?: number;
   /** "좋아요 영상 불러오기" 버튼을 눌렀을 때 */
   onStart?: () => void;
@@ -73,7 +73,7 @@ export function SyncCardView({
         {phase === "done" && "찾은 장소와 이벤트로 코스를 만들어 드릴게요."}
       </p>
 
-      {phase === "analyzing" && (
+      {(phase === "loading" || phase === "analyzing") && (
         <>
           <div
             className="home__sync-bar"
@@ -86,7 +86,11 @@ export function SyncCardView({
           </div>
           <p className="home__sync-eta">
             <Icon name="clock" size={13} />
-            <span>영상 수에 따라 시간이 걸려요</span>
+            <span>
+              {phase === "loading"
+                ? "좋아요한 영상 목록을 가져오는 중이에요"
+                : "영상 수에 따라 시간이 걸려요"}
+            </span>
           </p>
         </>
       )}

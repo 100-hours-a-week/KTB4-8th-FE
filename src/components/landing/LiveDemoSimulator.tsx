@@ -30,8 +30,9 @@ const STAGE_NOTE: Record<DemoStage, string> = {
   route: "3단계 · 조건에 맞는 코스를 추천해 드려요",
 };
 
-/** 화면 영역 높이(px) — 세 단계 중 가장 큰 화면이 들어가는 크기로 고정한다 */
-const BODY_HEIGHT = 530;
+/** 화면 영역 높이 — 세 단계 중 가장 큰 화면(3단계 코스 후보 + 안내 문구, 창이 넓을 때 약 428px)이 위아래로 24px쯤 여유를 두고 들어가는 크기로 고정한다.
+    창이 좁은 폰(폭 430px 미만)은 글이 더 줄바꿈돼 화면이 커지므로 예전 높이(530px)를 그대로 쓴다 */
+const BODY_HEIGHT_CLASS = "h-[530px] min-[430px]:h-[480px]";
 /** 1단계(앱 홈 카드)의 실제 너비 */
 const CARD_WIDTH = 350;
 /** 2 · 3단계 화면의 최대 너비 */
@@ -55,7 +56,20 @@ function useLatest<T>(value: T) {
 /* 1단계 — 쇼츠 수집: 시작하기 → 불러오는 중 */
 function SyncStage({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<SyncCardPhase>("start");
+  // 불러오는 중에도 진행바가 차오른다(실제 앱의 불러오기 카드와 같다)
+  const [percent, setPercent] = useState(0);
   const done = useLatest(onDone);
+
+  useEffect(() => {
+    if (phase !== "loading") return;
+    const startedAt = performance.now();
+    const id = window.setInterval(() => {
+      const t = Math.min(1, (performance.now() - startedAt) / SYNC_LOADING_MS);
+      setPercent(Math.round((1 - Math.pow(1 - t, 2)) * 100));
+      if (t >= 1) window.clearInterval(id);
+    }, 80);
+    return () => window.clearInterval(id);
+  }, [phase]);
 
   useEffect(() => {
     const toLoading = window.setTimeout(
@@ -72,21 +86,33 @@ function SyncStage({ onDone }: { onDone: () => void }) {
     };
   }, [done]);
 
-  return <SyncCardView phase={phase} onStart={() => setPhase("loading")} />;
+  // 다른 랜딩 카드와 같은 번짐 테두리
+  return (
+    <div className="gborder">
+      <SyncCardView
+        phase={phase}
+        percent={percent}
+        onStart={() => {
+          setPercent(0);
+          setPhase("loading");
+        }}
+      />
+    </div>
+  );
 }
 
 /** 영상에서 추출한 장소 후보 — extractAt: 이 진행률(%)에 추출돼 "검증 중"이 되고, verifyAt 에 검증을 마친다 */
 const CANDIDATES = [
   {
-    name: "어니언 성수",
-    meta: "베이커리 카페",
+    name: "성수율 카페",
+    meta: "카페",
     rate: "99.4%",
     extractAt: 12,
     verifyAt: 38,
   },
   {
-    name: "대림창고",
-    meta: "복합문화공간",
+    name: "어니언 성수",
+    meta: "카페",
     rate: "98.7%",
     extractAt: 40,
     verifyAt: 66,
@@ -181,10 +207,19 @@ function AnalyzeStage({ onDone }: { onDone: () => void }) {
                 <span className="block text-sm font-bold leading-tight text-gray-900 dark:text-white">
                   {c.name}
                 </span>
-                <span className="block text-[11px] leading-tight text-gray-500 dark:text-gray-400">
-                  {verified
-                    ? `이름 · 주소 · 위치 확인 완료 · ${c.meta}`
-                    : `영상에서 추출 · 후보 검증 중…`}
+                <span className="block truncate text-[11px] leading-tight text-gray-500 dark:text-gray-400">
+                  {verified ? (
+                    <>
+                      {/* 폭이 좁은 폰에서는 줄여서 한 줄에 들어가게 한다: 480px 미만은 업종을, 420px 미만은 "이름 · 주소 · 위치"까지 뺀다 */}
+                      <span className="max-[419px]:hidden">
+                        이름 · 주소 · 위치{" "}
+                      </span>
+                      확인 완료
+                      <span className="max-[479px]:hidden"> · {c.meta}</span>
+                    </>
+                  ) : (
+                    "영상에서 추출 · 후보 검증 중…"
+                  )}
                 </span>
               </span>
               <span
@@ -233,14 +268,14 @@ function demoCandidate(
 }
 
 const DEMO_CANDIDATES: Candidate[] = [
-  demoCandidate("c1", "성수 감성 카페 · 전시 코스", 240, [
-    { name: "카페 온화", category: "CAFE" },
-    { name: "대림창고", category: "EXHIBITION" },
+  demoCandidate("c1", "성수 감성 카페 · 팝업 코스", 240, [
+    { name: "성수율 카페", category: "CAFE" },
+    { name: "어니언 성수", category: "DESSERT" },
     { name: "성수연방", category: "POPUP" },
   ]),
   demoCandidate("c2", "맛집 탐방 후 서울숲 산책", 300, [
     { name: "소문난 성수 감자탕", category: "RESTAURANT" },
-    { name: "어니언 성수", category: "DESSERT" },
+    { name: "도토리오븐", category: "DESSERT" },
     { name: "서울숲", category: "WALK" },
   ]),
 ];
@@ -359,7 +394,7 @@ export function LiveDemoSimulator() {
         </div>
 
         {/* 화면 영역 — 높이가 고정이라 단계가 바뀌어도 창 크기와 주변이 움직이지 않는다 */}
-        <div className="relative" style={{ height: BODY_HEIGHT }}>
+        <div className={`relative ${BODY_HEIGHT_CLASS}`}>
           {ORDER.map((stage) => (
             <div
               key={stage}

@@ -301,81 +301,85 @@ export default function HomePage() {
       <PullIndicator {...pullState} />
       <div className="scroll">
         {!dismissed && sync && (
-          <div
-            className={`card card--dark home__sync${sync.badge ? " home__sync--badged" : ""}`}
-          >
-            {sync.closable !== false && (
-              <button
-                className="home__sync-close"
-                type="button"
-                aria-label="닫기"
-                data-ptr-ignore
-                onClick={() => {
-                  setDismissed(true);
-                  if (syncState === "done" || syncState === "empty") {
-                    dismissLastSync(syncState, syncResult);
-                  }
-                  useSyncStore.getState().dismiss();
-                }}
-              >
-                <Icon name="close" size={15} />
-              </button>
-            )}
-            {sync.badge && (
-              <p
-                className={`home__sync-badge${syncState === "failed" ? " home__sync-badge--error" : ""}`}
-              >
-                {syncState === "pending" ? (
-                  <Spinner />
-                ) : syncState === "failed" ? (
-                  <Icon name="alert" size={13} />
-                ) : syncState === "empty" ? (
-                  <Icon name="search" size={13} />
-                ) : (
-                  <Icon name="sparkle" size={13} />
-                )}
-                <span>{sync.badge}</span>
-              </p>
-            )}
-            <p className="home__sync-title">{sync.title}</p>
-            <p className="home__sync-msg">{sync.msg}</p>
-            {progress && (
-              <>
-                <div
-                  className="home__sync-bar"
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progress.percent}
+          /* 랜딩의 예시 카드와 같은 번짐 테두리. 라이트 모드는 흰 카드(home__sync--themed) */
+          <div className="gborder home__sync-wrap">
+            <div
+              className={`card card--dark home__sync home__sync--themed${sync.badge ? " home__sync--badged" : ""}`}
+              style={{ margin: 0 }}
+            >
+              {sync.closable !== false && (
+                <button
+                  className="home__sync-close"
+                  type="button"
+                  aria-label="닫기"
+                  data-ptr-ignore
+                  onClick={() => {
+                    setDismissed(true);
+                    if (syncState === "done" || syncState === "empty") {
+                      dismissLastSync(syncState, syncResult);
+                    }
+                    useSyncStore.getState().dismiss();
+                  }}
                 >
-                  <i style={{ width: `${progress.percent}%` }} />
-                </div>
-                <p className="home__sync-eta">
-                  <Icon name="clock" size={13} />
-                  <span>{syncProgressNote(progress)}</span>
+                  <Icon name="close" size={15} />
+                </button>
+              )}
+              {sync.badge && (
+                <p
+                  className={`home__sync-badge${syncState === "failed" ? " home__sync-badge--error" : ""}`}
+                >
+                  {syncState === "pending" ? (
+                    <Spinner />
+                  ) : syncState === "failed" ? (
+                    <Icon name="alert" size={13} />
+                  ) : syncState === "empty" ? (
+                    <Icon name="search" size={13} />
+                  ) : (
+                    <Icon name="sparkle" size={13} />
+                  )}
+                  <span>{sync.badge}</span>
                 </p>
-              </>
-            )}
-            {sync.action === "sync" && (
-              <button
-                className="btn btn--yt btn--block"
-                type="button"
-                onClick={() => void handleStartSync()}
-              >
-                {syncState !== "failed" && <YouTubeMark size={24} />}
-                <span>{sync.actionLabel}</span>
-              </button>
-            )}
-            {sync.action === "course" && (
-              <button
-                className="btn btn--block"
-                type="button"
-                onClick={() => openCourse(true)}
-              >
-                <Icon name="sparkle" size={18} />
-                <span>{sync.actionLabel}</span>
-              </button>
-            )}
+              )}
+              <p className="home__sync-title">{sync.title}</p>
+              <p className="home__sync-msg">{sync.msg}</p>
+              {progress && (
+                <>
+                  <div
+                    className="home__sync-bar"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={progress.percent}
+                  >
+                    <i style={{ width: `${progress.percent}%` }} />
+                  </div>
+                  <p className="home__sync-eta">
+                    <Icon name="clock" size={13} />
+                    <span>{syncProgressNote(progress)}</span>
+                  </p>
+                </>
+              )}
+              {sync.action === "sync" && (
+                <button
+                  className="btn btn--yt btn--block"
+                  type="button"
+                  onClick={() => void handleStartSync()}
+                >
+                  {syncState !== "failed" && <YouTubeMark size={24} />}
+                  <span>{sync.actionLabel}</span>
+                </button>
+              )}
+              {sync.action === "course" && (
+                <button
+                  className="btn btn--block"
+                  type="button"
+                  onClick={() => openCourse(true)}
+                >
+                  <Icon name="sparkle" size={18} />
+                  <span>{sync.actionLabel}</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 
