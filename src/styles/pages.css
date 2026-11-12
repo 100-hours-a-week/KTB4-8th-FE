@@ -1454,6 +1454,22 @@
   margin-top: 6px;
 }
 
+/* 빠른 시작 — 첫 안내 말풍선 아래의 칩. 누르면 조건이 채워진다 */
+.qstart {
+  margin-top: var(--s-3);
+}
+.qstart__title {
+  font: var(--t-body);
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--s-2);
+}
+.qstart__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
 .bubble {
   max-width: 84%;
   padding: 11px var(--s-4);

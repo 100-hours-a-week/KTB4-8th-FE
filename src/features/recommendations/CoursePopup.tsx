@@ -49,6 +49,7 @@ import {
 } from "./queries";
 import { expectsStageUpdates, isRecommendationStopped } from "./recommendV2";
 import { STAGE_LINES, TIMED_LINES, addStage } from "./progressStages";
+import { QUICK_STARTS, type QuickStart } from "./quickStarts";
 import { timeOfDayOfHour } from "./slotTime";
 import { RegionSheet } from "./RegionSheet";
 import { DateTimeSheet } from "./DateTimeSheet";
@@ -532,6 +533,37 @@ export function CoursePopup() {
     }
   }
 
+  /* 빠른 시작 칩 — 서버를 거치지 않고 조건 카드를 바로 채운다.
+     말풍선(사용자 칩 → 안내)을 대화에 남겨서 지금 무엇이 채워졌고 무엇이 남았는지 보여 준다. */
+  function handleQuickStart(preset: QuickStart) {
+    const state = useCourseStore.getState();
+    if (state.phase !== "idle") return;
+    const patch = preset.slots(new Date());
+    patchSlots(patch);
+    // 지역을 채웠으면 채팅 응답으로 지역이 들어왔을 때와 똑같이 주소를 찾아 둔다(구 단위 제안에 쓴다)
+    if (patch.region != null) {
+      patchSlots({ regionPoint: null, regionAddress: null });
+      void resolveRegionAddress(patch.region);
+    }
+    const after = useCourseStore.getState();
+    const missing = missingRequired(after.slots, after.origin);
+    useCourseStore.setState((st) => ({
+      lines: [
+        ...st.lines,
+        { id: uid("msg"), role: "USER", content: preset.label },
+        {
+          id: uid("msg"),
+          role: "ASSISTANT",
+          content:
+            missing.length === 0
+              ? "조건을 채워 뒀어요. 아래 조건을 확인하고 추천받기를 눌러 주세요."
+              : `조건을 채워 뒀어요. 아직 비어 있는 조건(${missing.join(" · ")})은 아래 조건 카드에서 고르거나 말로 알려 주세요.`,
+        },
+      ],
+      options: [],
+    }));
+  }
+
   async function handleSend(preset?: string) {
     const current = useCourseStore.getState();
     const text = (preset ?? draft).trim();
@@ -787,10 +819,26 @@ export function CoursePopup() {
                   </p>
                 </div>
               )}
-              {lines.length === 0 && (
-                <div className="bubble bubble--bot">
-                  {INTRO_GREETING}
-                  <span className="bubble__hint">{INTRO_HINT}</span>
+              {/* 첫 안내 말풍선은 대화가 시작된 뒤에도 맨 위에 남는다(화면설계서). 위의 소개(아이콘 · 제목)와 아래의 빠른 시작은 첫 메시지 전에만 보인다 */}
+              <div className="bubble bubble--bot">
+                {INTRO_GREETING}
+                <span className="bubble__hint">{INTRO_HINT}</span>
+              </div>
+              {lines.length === 0 && phase === "idle" && (
+                <div className="qstart">
+                  <p className="qstart__title">빠른 시작</p>
+                  <div className="qstart__list">
+                    {QUICK_STARTS.map((q) => (
+                      <button
+                        key={q.label}
+                        className="chip"
+                        type="button"
+                        onClick={() => handleQuickStart(q)}
+                      >
+                        {q.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
               {lines.map((line) => (
