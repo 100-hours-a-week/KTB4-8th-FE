@@ -122,7 +122,7 @@ const PLACES: CatalogPlace[] = [
   },
   {
     id: "705",
-    name: "대림창고",
+    name: "성수동대림창고갤러리",
     category: "CAFE",
     region: "서울 성동구",
     emoji: "🏭",
@@ -131,18 +131,6 @@ const PLACES: CatalogPlace[] = [
     imageUrl: null,
     latitude: 37.5432,
     longitude: 127.0543,
-  },
-  {
-    id: "706",
-    name: "카페 온화",
-    category: "CAFE",
-    region: "서울 성동구",
-    emoji: "☕",
-    description: "조용한 창가 자리가 있는 디저트 카페",
-    googlePlaceId: "ChIJ_onhwa",
-    imageUrl: null,
-    latitude: 37.5451,
-    longitude: 127.0521,
   },
   // 홈의 "요즘 뜨는 곳"은 BE 더미 응답이고 id 가 be-place-N 이다(backend.ts). 저장 · 상세가 이어지도록 같은 id 를 둔다.
   // be-place-0(어라운드 성수) · be-place-2(보안여관 전시)는 위 카탈로그에 이미 같은 id 로 있어서 여기서는 뺐다.

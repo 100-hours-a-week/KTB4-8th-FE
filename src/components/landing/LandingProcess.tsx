@@ -84,7 +84,7 @@ export function LandingProcess() {
       characterBubble: "출발 준비 완료! 떠나자! 🧳",
       progressPercent: 100,
       progressLabel: "코스 구성 완료 (3곳)",
-      extraMeta: "어니언 ➔ 대림창고 ➔ 서울숲 (이동 18분)",
+      extraMeta: "성수율 카페 ➔ 어니언 성수 ➔ 서울숲 (이동 18분)",
     },
   ];
 

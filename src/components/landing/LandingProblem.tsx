@@ -34,7 +34,7 @@ export function LandingProblem() {
       <div className="max-w-6xl mx-auto px-5 sm:px-8">
         {/* 상단 타이틀 */}
         <ScrollReveal animation="fade-up">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="text-center max-w-4xl mx-auto mb-16">
             <span className="text-xs font-bold uppercase tracking-wider text-[#16a46b] bg-[#effaf4] dark:bg-[#152a1f] px-3 py-1 rounded-full border border-[#16a46b]/20">
               Why KeepGo
             </span>
@@ -45,9 +45,14 @@ export function LandingProblem() {
                 왜 우리는 늘 가보지 못했을까요?
               </span>
             </h2>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
-              매일 쏟아지는 핫플 영상에 &lsquo;좋아요&rsquo;는 늘어나지만, 현실
-              여행으로 이어지기까지는 너무 많은 수고가 필요했습니다.
+            {/* 데스크톱(lg 이상)은 한 줄, 그보다 좁으면 쉼표 뒤에서 두 줄로 나눈다. 폭 390px 미만 폰은 둘째 줄이 넘치지 않게 폭에 맞춰 글자를 조금 줄인다(둘째 문장이 약 25em, 여유를 두고 26으로 나눈다) */}
+            <p className="text-sm max-[389px]:text-[length:calc((100vw_-_40px)_/_26)] sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+              <span className="block lg:inline">
+                매일 쏟아지는 핫플 영상에 &lsquo;좋아요&rsquo;는 늘어나지만,
+              </span>{" "}
+              <span className="block lg:inline">
+                현실 여행으로 이어지기까지는 너무 많은 수고가 필요했습니다.
+              </span>
             </p>
           </div>
         </ScrollReveal>

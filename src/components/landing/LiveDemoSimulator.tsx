@@ -275,7 +275,7 @@ const DEMO_CANDIDATES: Candidate[] = [
   ]),
   demoCandidate("c2", "맛집 탐방 후 서울숲 산책", 300, [
     { name: "소문난 성수 감자탕", category: "RESTAURANT" },
-    { name: "어니언 성수", category: "DESSERT" },
+    { name: "도토리오븐", category: "DESSERT" },
     { name: "서울숲", category: "WALK" },
   ]),
 ];
