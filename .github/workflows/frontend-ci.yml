@@ -149,7 +149,9 @@ jobs:
           # 센트리에서 개발·운영 에러를 나눠 보려고 브랜치로 환경을 정한다 (main 은 production, 그 외는 dev)
           SENTRY_ENVIRONMENT: ${{ github.ref_name == 'main' && 'production' || 'dev' }}
           # V2 운영(ECS)은 main 이미지를 쓰므로 main 에서도 v2 채팅·보관함을 켠다. feat/v1(V1)만 끈 상태로 둔다
-          CHAT_V2: ${{ (github.ref_name == 'develop' || github.ref_name == 'main') && 'on' || '' }}
+          CHAT_V2: ${{ github.ref_name == 'develop' && 'on' || vars.PROD_CHAT_V2 }}
+          SYNC_V3: ${{ github.ref_name == 'develop' && 'on' || vars.PROD_SYNC_V3 }}
+          LANDING: ${{ github.ref_name == 'develop' && 'off' || '' }}
           WISHLIST_V2: ${{ (github.ref_name == 'develop' || github.ref_name == 'main') && 'on' || '' }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
@@ -177,6 +179,8 @@ jobs:
             --build-arg SENTRY_RELEASE="$GITHUB_SHA" \
             "${SECRET_ARGS[@]}" \
             --tag "$REGISTRY/$WEB_REPOSITORY:$GITHUB_SHA" \
+            --build-arg NEXT_PUBLIC_SYNC_V3="$SYNC_V3" \
+            --build-arg NEXT_PUBLIC_LANDING="$LANDING" \
             .
 
           if [[ "$GITHUB_REF" != refs/heads/develop ]]; then
