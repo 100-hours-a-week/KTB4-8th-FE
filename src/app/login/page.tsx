@@ -4,13 +4,14 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
 import { loginWithAccessToken } from "@/features/auth/session";
+import { HOME_PATH } from "@/lib/routes";
 
 /* 01 · 로그인 — 서비스 진입점. 인증되지 않은 모든 접근이 이 화면으로 유도된다.
    가입·로그인은 구글 OAuth 단일 수단이고, BE(Spring Security oauth2Login)가 전담한다.
    버튼은 BE 의 로그인 시작 경로로 브라우저를 통째로 이동시킬 뿐이다.
 
-   로그인 성공 후 BE(OidcLoginSuccessHandler)가 accessToken 을 쿼리로 붙여
-   앱 루트(/)로 리다이렉트한다 — 그 값을 받아 세션에 저장하는 쪽은 src/app/page.tsx 다.
+   로그인 성공 후 BE(OidcLoginSuccessHandler)가 accessToken 을 fragment(#accessToken=…)로 붙여
+   앱 루트(/)로 리다이렉트한다 — 그 값을 받아 세션에 저장하는 쪽은 src/app/page.tsx 다(읽는 규칙은 features/auth/loginRedirect.ts).
    Google Cloud Console 의 승인된 리디렉션 URI 에 BE 의 콜백 주소가 등록돼 있어야 동작한다. */
 export default function LoginPage() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function LoginPage() {
     const devToken = process.env.NEXT_PUBLIC_DEV_ACCESS_TOKEN;
     if (devToken) {
       loginWithAccessToken(devToken);
-      router.push("/home");
+      router.push(HOME_PATH);
       return;
     }
     // 첫 클릭 직후 비활성화하고, 이동 표시를 잠깐 보여준다(기능정의서 2-1)

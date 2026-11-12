@@ -776,6 +776,10 @@
   margin-top: 3px;
 }
 
+/* 카드를 감싸는 번짐 테두리(.gborder) — 바깥 여백은 카드 대신 이 래퍼가 갖는다 */
+.home__sync-wrap {
+  margin: var(--s-5) var(--s-5) 0;
+}
 .home__sync {
   margin: var(--s-5) var(--s-5) 0;
   /* 위쪽은 문구 묶음(배지 · 제목 · 설명)을 살짝 아래로 내리려고 6px 더 둔다 */
@@ -839,6 +843,7 @@
 }
 /* 분석 중 도넛 스피너는 배지 글자 크기와 비슷하게 */
 .home__sync-badge .spinner,
+.progress__steps .spinner,
 .ptr .spinner {
   /* 끊긴 원 대신, 꼬리는 투명하게 흐려지고 머리(위쪽 끝)는 진한 링.
      --ring 은 링 두께(머리 끝 동그라미 크기도 같다) */
@@ -863,6 +868,7 @@
 }
 /* 머리 끝을 둥글게 */
 .home__sync-badge .spinner::after,
+.progress__steps .spinner::after,
 .ptr .spinner::after {
   content: "";
   position: absolute;
@@ -873,6 +879,17 @@
   margin-left: calc(var(--ring) / -2);
   border-radius: 50%;
   background: currentColor;
+}
+/* 채팅 생성 진행 줄(✓ 자리)의 스피너 — 글자 높이에 맞춘 작은 크기 */
+.progress__steps .spinner {
+  --ring: 2px;
+  width: 12px;
+  height: 12px;
+  flex: none;
+  /* ✓ 글자(약 10px)보다 넓은 만큼을 덜어, 글이 ✓ 줄과 같은 위치에서 시작하게 한다 */
+  margin-right: -2px;
+  /* 위의 ".progress__steps span" 애니메이션(줄이 올라오는 효과)이 스피너까지 덮어쓰지 않게 다시 지정 */
+  animation: kg-spin 0.85s linear infinite;
 }
 /* 당겨서 새로고침의 흰 원 안에서는 더 크게 */
 .ptr .spinner {
@@ -1001,10 +1018,45 @@
   transform: translateY(-3px);
   box-shadow: var(--sh-2);
 }
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .placecard__photo {
   position: relative;
   overflow: hidden;
+  /* 회색 바탕 위로 은은한 빛줄기가 왼쪽에서 오른쪽으로 물결치는 스켈레톤 쉬머 */
+  background: linear-gradient(
+    90deg,
+    var(--surface-3) 0%,
+    var(--surface-3) 30%,
+    rgba(255, 255, 255, 0.65) 50%,
+    var(--surface-3) 70%,
+    var(--surface-3) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite ease-in-out;
+}
+/* 사진이 다 로드되면 애니메이션을 멈춰 CPU/GPU 절약 */
+.placecard__photo--loaded {
+  animation: none;
   background: var(--surface-3);
+}
+[data-theme="dark"] .placecard__photo {
+  background: linear-gradient(
+    90deg,
+    var(--surface-3) 0%,
+    var(--surface-3) 30%,
+    rgba(255, 255, 255, 0.12) 50%,
+    var(--surface-3) 70%,
+    var(--surface-3) 100%
+  );
+  background-size: 200% 100%;
 }
 /* 사진 칸에는 분류 색 그라데이션(.thumb::after)이 필요 없다 — 사진이 안 덮는 자리를 image_bg 색으로 채울 때 비쳐 보인다 */
 .placecard__photo::after {
@@ -1016,6 +1068,13 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: opacity 0.25s ease-out;
+}
+.placecard__photo:not(.placecard__photo--loaded) img {
+  opacity: 0;
+}
+.placecard__photo--loaded img {
+  opacity: 1;
 }
 /* 사진을 자르지 않고 통째로 보여 주는 장소(image_fit: "contain") — 남는 양옆은 뒤에 깔린 흐린 사진이 채운다 */
 .placecard__bg {
@@ -1397,6 +1456,22 @@
   font: var(--t-sm);
   color: var(--ink-3);
   margin-top: 6px;
+}
+
+/* 빠른 시작 — 첫 안내 말풍선 아래의 칩. 누르면 조건이 채워진다 */
+.qstart {
+  margin-top: var(--s-3);
+}
+.qstart__title {
+  font: var(--t-body);
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--s-2);
+}
+.qstart__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
 }
 
 .bubble {
@@ -2978,6 +3053,13 @@ button.me__row:hover {
 .wl__hours-status--off {
   color: var(--ink-3);
 }
+/* 오픈 2시간 전 — 곧 열린다는 뜻이라 회색(종료)과 구분되는 파란색 */
+.wl__hours-status--before {
+  color: #2f6fe4;
+}
+:root[data-theme="dark"] .wl__hours-status--before {
+  color: #7fa8ff;
+}
 .wl__hours-time {
   display: inline-flex;
   align-items: center;
@@ -4070,6 +4152,412 @@ a.wl__michelin:active {
   border-radius: 50%;
   background: rgba(23, 22, 27, 0.06);
   color: var(--ink-3);
+}
+
+/* ══ 보관함 · 선택 모드(내보내기 / 삭제) · ⋯ 메뉴 · 내보내기 시트 ═════════════════ */
+.moremenu {
+  position: relative;
+}
+.moremenu__pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  width: 232px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-3);
+}
+.moremenu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  text-align: left;
+  color: var(--ink);
+}
+.moremenu__item:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.moremenu__item b {
+  display: block;
+  font: var(--t-body);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.moremenu__item small {
+  display: block;
+  margin-top: 1px;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.moremenu__item.is-danger {
+  color: var(--danger);
+}
+.moremenu__item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.selhead {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+.selhead__cancel {
+  justify-self: start;
+  min-height: 38px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.selrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: var(--s-5);
+}
+/* 선택 원이 목록 각 항목의 원과 같은 세로줄에 오도록 — 목록 항목의 테두리(1px)와 안쪽 여백(--s-3)만큼 안쪽에서 시작한다 */
+.selrow__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 0 0 calc(var(--s-3) + 1px);
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+}
+.selrow__count {
+  font: var(--t-sm);
+  font-weight: 800;
+}
+.selbox {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--ink-4);
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.selbox.is-on {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.selbox.is-mixed {
+  border-color: var(--brand);
+}
+.selbox.is-mixed i {
+  display: block;
+  width: 10px;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--brand);
+}
+.selbox.is-danger.is-on {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+.selbox.is-danger.is-mixed {
+  border-color: var(--danger);
+}
+.selbox.is-danger.is-mixed i {
+  background: var(--danger);
+}
+.listitem--select.is-picked {
+  border-color: var(--brand);
+  background: var(--brand-50);
+}
+.listitem--select.is-picked.is-danger {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+.seg .chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* 탭바 자리를 덮는 아래쪽 실행 버튼 */
+.selact {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, var(--kg-pin, 0px));
+  z-index: 81;
+  width: 100%;
+  max-width: var(--phone-w);
+  padding: var(--s-3) var(--s-5) max(env(safe-area-inset-bottom), 18px);
+  background: var(--surface);
+  border-top: 1px solid var(--line-2);
+}
+
+/* 항목을 꾹 눌러 시작한 선택 모드 — 아래에 [내보내기] [삭제]를 나란히 둔다 */
+.selact--pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.selact--pair .btn {
+  min-width: 0;
+}
+.selact__hint {
+  grid-column: 1 / -1;
+  margin: 0 0 2px;
+  font: var(--t-xs);
+  font-weight: 600;
+  color: var(--warn);
+  text-align: center;
+}
+/* 터치 기기에서 꾹 누르기가 글자 선택 · 기기 기본 메뉴(미리보기)를 띄우지 않게 한다 */
+@media (pointer: coarse) {
+  .listitem {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+.xp {
+  padding: 2px 0 var(--s-2);
+}
+.xp__target {
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+}
+.xp__target b {
+  display: block;
+  font: var(--t-body);
+  font-weight: 800;
+}
+.xp__target span {
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.xp__chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin: var(--s-3) 0;
+  min-width: 0;
+}
+.xp__chips span {
+  flex: none;
+}
+.xp__chips .xp__chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xp__chips span {
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  font: var(--t-xs);
+  font-weight: 700;
+}
+.xp__label {
+  margin: var(--s-3) 0 6px;
+  font: var(--t-xs);
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.xp__check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font: var(--t-body);
+  font-weight: 600;
+}
+.xp__check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--brand);
+}
+.xp__check em {
+  margin-left: auto;
+  font: var(--t-xs);
+  font-style: normal;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.xp__fine {
+  margin: var(--s-3) 0 0;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.xp__warn {
+  margin: var(--s-3) 0 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--warn-bg);
+  color: var(--warn);
+  font: var(--t-xs);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.xp--done {
+  text-align: center;
+}
+.xp__okrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+.xp__okicon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--brand-50);
+  color: var(--brand);
+}
+.xp__okicon--sm {
+  width: 34px;
+  height: 34px;
+}
+.xp__title {
+  display: block;
+  font: var(--t-h3);
+  font-weight: 800;
+}
+.xp__filerow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+.xp__file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font: var(--t-xs);
+  font-weight: 600;
+}
+.xp__file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp__meta {
+  flex: none;
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.xp__where {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--brand-50);
+  color: var(--brand-ink);
+  font: var(--t-xs);
+  line-height: 1.55;
+}
+.xp__where svg {
+  flex: none;
+  margin-top: 2px;
+}
+.xp__where--one {
+  align-items: center;
+  margin-top: 10px;
+}
+.xp__where--one svg {
+  margin-top: 0;
+}
+.xp__actions {
+  display: grid;
+  gap: 8px;
+  margin-top: var(--s-3);
+}
+.xp__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.xp__pair.is-single {
+  grid-template-columns: 1fr;
+}
+.xp__pair .btn {
+  padding: 0 var(--s-2);
+  white-space: nowrap;
+}
+.xp__step {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.xp__step i {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--brand);
+  color: #fff;
+  font: 800 12px/1 var(--font);
+  font-style: normal;
+}
+.xp__step b {
+  display: block;
+  font: var(--t-sm);
+  font-weight: 700;
+}
+.xp__step span {
+  font: var(--t-xs);
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+.xp__note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: var(--s-3) 0 0;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--warn-bg);
+  color: var(--warn);
+  font: var(--t-xs);
+  line-height: 1.5;
+}
+.xp__link {
+  margin-top: 8px;
+  text-decoration: none;
+}
+.xp__note svg {
+  flex: none;
+  margin-top: 2px;
 }
 
 /* ══ 다크 모드 — 토큰으로 못 바꾸는 색(화면별) ═══════════════════════════ */

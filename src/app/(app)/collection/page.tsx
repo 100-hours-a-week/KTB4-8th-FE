@@ -39,6 +39,7 @@ import {
   ddayOf,
   describePeriod,
   eventStatus,
+  courseDurationMinutes,
   courseStopItems,
   fmtSaveDate,
   splitCategories,
@@ -714,8 +715,8 @@ function WishlistCourseRow({
     .join(" → ");
   const saved = fmtSaveDate(course.save_date);
   const sub = [
-    course.duration_hours != null
-      ? `총 소요 ${fmtDuration(course.duration_hours)}`
+    courseDurationMinutes(course) != null
+      ? `총 소요 ${fmtDuration(courseDurationMinutes(course))}`
       : "",
     saved ? `${saved} 저장` : "",
   ]

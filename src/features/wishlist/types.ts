@@ -189,8 +189,10 @@ export interface WishlistCourseSummary {
   name: string;
   /** 추천을 받은 지역 이름("용산역" 등) */
   address_sg: string | null;
-  /** 이름은 hours 지만 BE 가 총 소요시간(분)을 담아 준다 */
-  duration_hours: number | null;
+  /** 총 소요시간(분). BE 최신 버전의 이름 — 옛 서버는 duration_hours 로 준다 */
+  duration_minutes?: number | null;
+  /** 옛 이름(이름은 hours 지만 분 단위) — courseDurationMinutes 로 읽는다 */
+  duration_hours?: number | null;
   /** yyyy-MM-dd */
   save_date: string | null;
   /** 지금 BE 는 구성 요소 전체를 한 묶음(stop) 안에 담아 준다 */
@@ -218,7 +220,9 @@ export interface WishlistCourseDetailItem {
 export interface WishlistCourseDetail {
   course_id: number;
   name: string;
-  duration_hours: number | null;
+  /** 총 소요시간(분) — 이름 사정은 WishlistCourseSummary 와 같다 */
+  duration_minutes?: number | null;
+  duration_hours?: number | null;
   /** 상세는 묶음 하나(객체)로 온다. 예전엔 배열이었어서 둘 다 받는다 — courseStopItems 로 편다 */
   stops:
     | { count: number; items: WishlistCourseDetailItem[] }

@@ -20,7 +20,7 @@ export function BwChefMark({ size = 16 }: { size?: number }) {
   );
 }
 
-/** 상세의 수저 아이콘 — 흑수저는 검은 수저, 백수저는 흰 수저(검은 윤곽선). 제공받은 모양으로 만든 파일(public/icons/bw-spoon-*.png, 투명 배경, 높이 160px). 상세에서는 상징 아이콘(BwChefMark) 바로 오른쪽에 둔다 */
+/** 상세의 수저 아이콘 — 흑수저는 검은 수저, 백수저는 흰 수저(검은 윤곽선). 제공받은 모양으로 만든 파일(public/icons/bw-spoon-*.png, 투명 배경). 두 파일 모두 작게 써도 윤곽이 보이도록 원본 윤곽선 바깥에 후광 2px 를 더했다(흑수저는 흰 후광 — 다크 모드에서 보이게, 백수저는 검은 후광 — 라이트 모드에서 보이게). 색을 단색으로 바꾸지 말 것(높이 약 240px). 상세에서는 상징 아이콘(BwChefMark) 바로 오른쪽에 둔다 */
 export function BwSpoon({
   spoon,
   height = 24,

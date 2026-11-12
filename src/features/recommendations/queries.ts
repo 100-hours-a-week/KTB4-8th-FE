@@ -2,11 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_BASE, api, headers, toApiError } from "@/lib/api/client";
+import { idempotentFetch } from "@/lib/api/idempotency";
 import { CHAT_V2 } from "@/lib/constants";
 import { sleep } from "@/lib/format";
 import { sendChatMessageV2 } from "./chatV2";
 import { parseSlotDatetime } from "./slotTime";
-import { cancelRecommendationV2, requestRecommendationV2 } from "./recommendV2";
+import {
+  cancelRecommendationV2,
+  requestRecommendationV2,
+  type RecommendationStreamOptions,
+} from "./recommendV2";
 import type {
   AvailableMinutes,
   Candidate,
@@ -130,7 +135,7 @@ async function pollUntilComplete(chatId: string): Promise<ChatReply> {
 
 async function sendChatMessageV1(body: SendChatBody): Promise<ChatReply> {
   const path = "/user/chat-messages";
-  const res = await fetch(API_BASE + path, {
+  const res = await idempotentFetch(API_BASE + path, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify(body),
@@ -192,9 +197,9 @@ export function useUpdateSlot() {
     나중에 BE 가 비동기(202+폴링)로 바뀌면 생성(POST)과 폴링(GET)을 다시 분리하면 된다. */
 export function useRequestRecommendation() {
   return useMutation({
-    mutationFn: async () =>
+    mutationFn: async (opts?: RecommendationStreamOptions) =>
       CHAT_V2
-        ? requestRecommendationV2()
+        ? requestRecommendationV2(opts)
         : (await api.post<RecommendationRun>("/user/recommendation")).data,
   });
 }

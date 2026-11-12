@@ -10,7 +10,8 @@ import { Spinner } from "@/components/ui/Primitives";
 import { useCourseStore } from "@/features/recommendations/courseStore";
 import { hasNoSavedGuides } from "@/features/sync/queries";
 import {
-  useSyncProgress,
+  syncProgressNote,
+  useDisplayProgress,
   type SyncDemoMode,
   type SyncProgress,
 } from "@/features/sync/progress";
@@ -19,6 +20,7 @@ import { describeAddedObject } from "@/features/sync/newItems";
 import {
   defaultSyncDemo,
   useSyncStore,
+  type SyncFailReason,
   type SyncStatus,
 } from "@/features/sync/syncStore";
 import type { SyncResult } from "@/types/api";
@@ -53,7 +55,17 @@ function buildSyncCard(
   state: SyncState,
   result: SyncResult | null,
   progress: SyncProgress | null,
+  failReason: SyncFailReason = null,
 ): SyncCardModel {
+  // BE 가 알려 준 실제 진행: 영상을 가져오는 중이면 "불러오는 중", 분석이 시작되면 "AI 분석 중"
+  if (state === "pending" && progress?.real && progress.fetching) {
+    return {
+      badge: "불러오는 중",
+      title: "좋아요 영상을 불러오고 있어요.",
+      msg: "영상 수에 따라 시간이 걸릴 수 있어요.",
+      closable: false,
+    };
+  }
   if (state === "pending" && progress) {
     return {
       badge: "AI 분석 중",
@@ -110,7 +122,12 @@ function buildSyncCard(
     return {
       badge: "불러오기 실패",
       title: "좋아요 영상을 불러오지 못했어요.",
-      msg: "일시적인 문제로 실패했어요. 다시 시도해 주세요.",
+      msg:
+        failReason === "reauth"
+          ? "유튜브 연동이 안 돼 있거나 만료됐어요. 마이페이지에서 연동해 주세요."
+          : failReason === "busy"
+            ? "지금 요청이 몰려 있어요. 잠시 뒤 다시 시도해 주세요."
+            : "일시적인 문제로 실패했어요. 다시 시도해 주세요.",
       action: "sync",
       actionLabel: "다시 시도",
     };
@@ -194,6 +211,9 @@ export default function HomePage() {
   const syncResult = useSyncStore((st) => st.result);
   const syncStartedAt = useSyncStore((st) => st.startedAt);
   const syncFinishAt = useSyncStore((st) => st.finishAt);
+  const syncLive = useSyncStore((st) => st.live);
+  const syncLiveDone = useSyncStore((st) => st.liveDone);
+  const syncFailReason = useSyncStore((st) => st.failReason);
   const demoRef = useRef<SyncDemoMode | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const initDoneRef = useRef(false);
@@ -230,7 +250,7 @@ export default function HomePage() {
     // 그래서 진행률 더미가 켜져 있으면 BE 를 부르지 않고 가짜로 끝까지 진행시킨다(?syncDemo=fail 로 실패도 볼 수 있다).
     demoRef.current = defaultSyncDemo();
     if (params.get("startSync") === "1") {
-      router.replace("/home");
+      router.replace(window.location.pathname);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- URL 파라미터로 진입 시 동기화를 트리거하는 1회성 초기화
       void handleStartSync();
     }
@@ -263,11 +283,13 @@ export default function HomePage() {
     });
   }, []);
 
-  const progress = useSyncProgress(
+  const progress = useDisplayProgress(
     syncState === "pending" ? syncStartedAt : null,
     syncFinishAt,
+    syncState === "pending" ? syncLive : null,
+    syncLiveDone,
   );
-  const sync = buildSyncCard(syncState, syncResult, progress);
+  const sync = buildSyncCard(syncState, syncResult, progress, syncFailReason);
 
   function closeOverlay() {
     setOverlay(null);
@@ -279,85 +301,85 @@ export default function HomePage() {
       <PullIndicator {...pullState} />
       <div className="scroll">
         {!dismissed && sync && (
-          <div
-            className={`card card--dark home__sync${sync.badge ? " home__sync--badged" : ""}`}
-          >
-            {sync.closable !== false && (
-              <button
-                className="home__sync-close"
-                type="button"
-                aria-label="닫기"
-                data-ptr-ignore
-                onClick={() => {
-                  setDismissed(true);
-                  if (syncState === "done" || syncState === "empty") {
-                    dismissLastSync(syncState, syncResult);
-                  }
-                  useSyncStore.getState().dismiss();
-                }}
-              >
-                <Icon name="close" size={15} />
-              </button>
-            )}
-            {sync.badge && (
-              <p
-                className={`home__sync-badge${syncState === "failed" ? " home__sync-badge--error" : ""}`}
-              >
-                {syncState === "pending" ? (
-                  <Spinner />
-                ) : syncState === "failed" ? (
-                  <Icon name="alert" size={13} />
-                ) : syncState === "empty" ? (
-                  <Icon name="search" size={13} />
-                ) : (
-                  <Icon name="sparkle" size={13} />
-                )}
-                <span>{sync.badge}</span>
-              </p>
-            )}
-            <p className="home__sync-title">{sync.title}</p>
-            <p className="home__sync-msg">{sync.msg}</p>
-            {progress && (
-              <>
-                <div
-                  className="home__sync-bar"
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progress.percent}
+          /* 랜딩의 예시 카드와 같은 번짐 테두리. 라이트 모드는 흰 카드(home__sync--themed) */
+          <div className="gborder home__sync-wrap">
+            <div
+              className={`card card--dark home__sync home__sync--themed${sync.badge ? " home__sync--badged" : ""}`}
+              style={{ margin: 0 }}
+            >
+              {sync.closable !== false && (
+                <button
+                  className="home__sync-close"
+                  type="button"
+                  aria-label="닫기"
+                  data-ptr-ignore
+                  onClick={() => {
+                    setDismissed(true);
+                    if (syncState === "done" || syncState === "empty") {
+                      dismissLastSync(syncState, syncResult);
+                    }
+                    useSyncStore.getState().dismiss();
+                  }}
                 >
-                  <i style={{ width: `${progress.percent}%` }} />
-                </div>
-                <p className="home__sync-eta">
-                  <Icon name="clock" size={13} />
-                  <span>
-                    {progress.capped
-                      ? "조금만 더 기다려 주세요"
-                      : "영상 수에 따라 시간이 걸려요"}
-                  </span>
+                  <Icon name="close" size={15} />
+                </button>
+              )}
+              {sync.badge && (
+                <p
+                  className={`home__sync-badge${syncState === "failed" ? " home__sync-badge--error" : ""}`}
+                >
+                  {syncState === "pending" ? (
+                    <Spinner />
+                  ) : syncState === "failed" ? (
+                    <Icon name="alert" size={13} />
+                  ) : syncState === "empty" ? (
+                    <Icon name="search" size={13} />
+                  ) : (
+                    <Icon name="sparkle" size={13} />
+                  )}
+                  <span>{sync.badge}</span>
                 </p>
-              </>
-            )}
-            {sync.action === "sync" && (
-              <button
-                className="btn btn--yt btn--block"
-                type="button"
-                onClick={() => void handleStartSync()}
-              >
-                {syncState !== "failed" && <YouTubeMark size={24} />}
-                <span>{sync.actionLabel}</span>
-              </button>
-            )}
-            {sync.action === "course" && (
-              <button
-                className="btn btn--block"
-                type="button"
-                onClick={() => openCourse(true)}
-              >
-                <Icon name="sparkle" size={18} />
-                <span>{sync.actionLabel}</span>
-              </button>
-            )}
+              )}
+              <p className="home__sync-title">{sync.title}</p>
+              <p className="home__sync-msg">{sync.msg}</p>
+              {progress && (
+                <>
+                  <div
+                    className="home__sync-bar"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={progress.percent}
+                  >
+                    <i style={{ width: `${progress.percent}%` }} />
+                  </div>
+                  <p className="home__sync-eta">
+                    <Icon name="clock" size={13} />
+                    <span>{syncProgressNote(progress)}</span>
+                  </p>
+                </>
+              )}
+              {sync.action === "sync" && (
+                <button
+                  className="btn btn--yt btn--block"
+                  type="button"
+                  onClick={() => void handleStartSync()}
+                >
+                  {syncState !== "failed" && <YouTubeMark size={24} />}
+                  <span>{sync.actionLabel}</span>
+                </button>
+              )}
+              {sync.action === "course" && (
+                <button
+                  className="btn btn--block"
+                  type="button"
+                  onClick={() => openCourse(true)}
+                >
+                  <Icon name="sparkle" size={18} />
+                  <span>{sync.actionLabel}</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 

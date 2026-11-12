@@ -11,6 +11,7 @@ import {
   ONBOARDING_CATEGORIES,
 } from "@/lib/constants";
 import type { Category } from "@/types/api";
+import { HOME_PATH } from "@/lib/routes";
 
 /* 03 · 온보딩 — 최초 가입(isNewUser = true)일 때만 진입한다.
    인트로 3슬라이드(스와이프 가능) → 관심사 선택(3개 이상) → 가입 완료.
@@ -25,8 +26,8 @@ interface Slide {
 }
 
 const ROUTE_STOPS: [string, string][] = [
-  ["카페 온화", "☕️ 카페 · 출발지에서 12분"],
-  ["대림창고", "🖼️ 전시 · 도보 7분"],
+  ["성수율 카페", "☕️ 카페 · 출발지에서 12분"],
+  ["성수동대림창고갤러리", "🖼️ 전시 · 도보 7분"],
   ["성수연방", "🎟️ 팝업 · 도보 5분"],
 ];
 
@@ -301,7 +302,7 @@ export default function OnboardingPage() {
 
   function finish(opts?: { startSync?: boolean }) {
     setCategories(selected);
-    router.replace(opts?.startSync ? "/home?startSync=1" : "/home");
+    router.replace(opts?.startSync ? `${HOME_PATH}?startSync=1` : HOME_PATH);
   }
 
   if (step < SLIDES.length) {
