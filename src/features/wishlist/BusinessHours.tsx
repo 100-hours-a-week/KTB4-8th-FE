@@ -14,16 +14,25 @@ const minutes = (hhmm: string) => {
   return Number(h) * 60 + Number(m);
 };
 
-export type OpenStatus = "open" | "break" | "closed" | "off";
+export type OpenStatus = "open" | "break" | "closed" | "before" | "off";
 
-/** 지금 영업 중인지. 쉬는 날이면 "off", 영업시간 밖이면 "closed", 브레이크타임이면 "break". 자정을 넘기는 시간(22:00 ~ 02:00)도 본다. */
+/** 문을 열기 이만큼(분) 전부터는 "영업 종료" 대신 "영업 전"으로 보여 준다 */
+const BEFORE_OPEN_MINUTES = 120;
+
+/** 지금 영업 중인지. 쉬는 날이면 "off", 영업시간 밖이면 "closed"(오픈 2시간 전부터는 "before"), 브레이크타임이면 "break". 자정을 넘기는 시간(22:00 ~ 02:00)도 본다. */
 export function openStatus(today: BusinessHoursDay, now: Date): OpenStatus {
   if (today.closed) return "off";
   const t = now.getHours() * 60 + now.getMinutes();
   const open = minutes(today.open);
   const close = minutes(today.close);
   const inside = close > open ? t >= open && t < close : t >= open || t < close;
-  if (!inside) return "closed";
+  if (!inside) {
+    // 오픈까지 남은 시간 — 자정을 넘기는 영업시간(22:00 ~ 02:00)이어도 같은 식으로 센다
+    const untilOpen = (open - t + 1440) % 1440;
+    return untilOpen > 0 && untilOpen <= BEFORE_OPEN_MINUTES
+      ? "before"
+      : "closed";
+  }
   if (
     today.break &&
     t >= minutes(today.break.start) &&
@@ -38,6 +47,7 @@ const STATUS_LABEL: Record<OpenStatus, string> = {
   open: "영업 중",
   break: "브레이크타임",
   closed: "영업 종료",
+  before: "영업 전",
   off: "휴무",
 };
 

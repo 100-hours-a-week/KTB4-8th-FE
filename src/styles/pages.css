@@ -3053,6 +3053,13 @@ button.me__row:hover {
 .wl__hours-status--off {
   color: var(--ink-3);
 }
+/* 오픈 2시간 전 — 곧 열린다는 뜻이라 회색(종료)과 구분되는 파란색 */
+.wl__hours-status--before {
+  color: #2f6fe4;
+}
+:root[data-theme="dark"] .wl__hours-status--before {
+  color: #7fa8ff;
+}
 .wl__hours-time {
   display: inline-flex;
   align-items: center;
