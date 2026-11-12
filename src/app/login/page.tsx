@@ -10,8 +10,8 @@ import { HOME_PATH } from "@/lib/routes";
    가입·로그인은 구글 OAuth 단일 수단이고, BE(Spring Security oauth2Login)가 전담한다.
    버튼은 BE 의 로그인 시작 경로로 브라우저를 통째로 이동시킬 뿐이다.
 
-   로그인 성공 후 BE(OidcLoginSuccessHandler)가 accessToken 을 쿼리로 붙여
-   앱 루트(/)로 리다이렉트한다 — 그 값을 받아 세션에 저장하는 쪽은 src/app/page.tsx 다.
+   로그인 성공 후 BE(OidcLoginSuccessHandler)가 accessToken 을 fragment(#accessToken=…)로 붙여
+   앱 루트(/)로 리다이렉트한다 — 그 값을 받아 세션에 저장하는 쪽은 src/app/page.tsx 다(읽는 규칙은 features/auth/loginRedirect.ts).
    Google Cloud Console 의 승인된 리디렉션 URI 에 BE 의 콜백 주소가 등록돼 있어야 동작한다. */
 export default function LoginPage() {
   const router = useRouter();
