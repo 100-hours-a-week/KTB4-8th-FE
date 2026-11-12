@@ -60,14 +60,11 @@ export function LandingHero({ onStartLogin }: LandingHeroProps) {
                 onClick={onStartLogin}
                 className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-[#16a46b] hover:bg-[#0e8a58] text-white font-bold text-base shadow-xl shadow-[#16a46b]/30 hover:shadow-2xl hover:shadow-[#16a46b]/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3 group"
               >
-                {/* Google Icon */}
-                <svg
-                  className="w-5 h-5 fill-current shrink-0"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
-                </svg>
-                <span>Google 계정으로 10초 만에 시작하기</span>
+                {/* 좁은 화면에서 줄이 바뀌어야 하면 "Google 계정으로 / 10초 만에 시작하기" 사이에서만 바뀐다 */}
+                <span className="text-center">
+                  <span className="inline-block">Google 계정으로</span>{" "}
+                  <span className="inline-block">10초 만에 시작하기</span>
+                </span>
                 <span className="text-emerald-200 group-hover:translate-x-1 transition-transform">
                   →
                 </span>
