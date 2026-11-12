@@ -776,6 +776,10 @@
   margin-top: 3px;
 }
 
+/* 카드를 감싸는 번짐 테두리(.gborder) — 바깥 여백은 카드 대신 이 래퍼가 갖는다 */
+.home__sync-wrap {
+  margin: var(--s-5) var(--s-5) 0;
+}
 .home__sync {
   margin: var(--s-5) var(--s-5) 0;
   /* 위쪽은 문구 묶음(배지 · 제목 · 설명)을 살짝 아래로 내리려고 6px 더 둔다 */
