@@ -23,6 +23,7 @@ import {
   CATEGORY_ORDER,
   CHAT_COUNT_SHOW_AT,
   MAX_CHAT_MESSAGE,
+  SHOW_ERROR_DETAIL,
   TIME_OF_DAY_LABEL,
 } from "@/lib/constants";
 import { nearestRegion, searchRegions } from "@/lib/address/regionDb";
@@ -468,9 +469,10 @@ export function CoursePopup() {
           d.status >= 500
             ? "서버에서 처리하지 못했어요. 보관함에 담긴 장소가 적거나 일시적인 문제일 수 있어요. 잠시 뒤 다시 시도해 주세요."
             : d.text,
-        code: d.status
-          ? `${d.status} · ${d.code}${d.traceId ? ` · ${d.traceId}` : ""}`
-          : undefined,
+        code:
+          SHOW_ERROR_DETAIL && d.status
+            ? `${d.status} · ${d.code}${d.traceId ? ` · ${d.traceId}` : ""}`
+            : undefined,
         actionLabel: retryable ? "다시 시도" : undefined,
         onAction: retryable ? () => void requestRecommendation() : undefined,
       });
@@ -570,7 +572,7 @@ export function CoursePopup() {
     if (!text || current.phase !== "idle") return;
     if (text.length > MAX_CHAT_MESSAGE) {
       // 서버까지 가면 500 으로 실패하니 보내기 전에 막는다
-      toast.info(`메시지는 ${MAX_CHAT_MESSAGE}자까지 보낼 수 있어요.`);
+      toast.warn(`메시지는 ${MAX_CHAT_MESSAGE}자까지 보낼 수 있어요.`);
       return;
     }
 
