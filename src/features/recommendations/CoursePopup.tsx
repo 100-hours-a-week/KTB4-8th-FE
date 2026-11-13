@@ -52,6 +52,7 @@ import { expectsStageUpdates, isRecommendationStopped } from "./recommendV2";
 import { STAGE_LINES, TIMED_LINES, addStage } from "./progressStages";
 import { QUICK_STARTS, type QuickStart } from "./quickStarts";
 import { timeOfDayOfHour } from "./slotTime";
+import { useSavedHomeItems } from "@/features/home/savedHomeItems";
 import { RegionSheet } from "./RegionSheet";
 import { DateTimeSheet } from "./DateTimeSheet";
 import { AvailableSheet } from "./AvailableSheet";
@@ -228,6 +229,8 @@ export function CoursePopup() {
   const options = useCourseStore((s) => s.options);
   const origin = useCourseStore((s) => s.origin);
   const slots = useCourseStore((s) => s.slots);
+  // 홈에서 책갈피로 담은 장소가 있는지 — 코스 추천이 "장소 없음"으로 막힐 때 안내 문구를 가른다
+  const hasLocalSaved = Object.keys(useSavedHomeItems().saved).length > 0;
   const done = useCourseStore((s) => s.done);
   const patchSlots = useCourseStore((s) => s.patchSlots);
   const reset = useCourseStore((s) => s.reset);
@@ -426,9 +429,14 @@ export function CoursePopup() {
       // v2 추천은 BE 가 보관함의 장소 · 이벤트 중에서만 후보를 고른다 — 보관함이 비어 있으면 요청해도 503 만 돌아오므로 먼저 알려 준다
       if (CHAT_V2 && (await hasNoSavedGuides()) === true) {
         useCourseStore.setState({ phase: "idle" });
+        // 홈에서 책갈피로 담은 장소는 이 브라우저에만 있어서 BE 가 모른다 — 담은 게 있는 사용자는 왜 "없다"고 하는지 알 수 있게 따로 안내한다
         setRecNotice({
-          title: "보관함에 담은 장소가 없어요",
-          text: "코스는 보관함에 담긴 장소 · 이벤트로 만들어요. 좋아요 영상을 불러오거나 장소를 담은 뒤 다시 시도해 주세요.",
+          title: hasLocalSaved
+            ? "추천에 쓸 수 있는 장소가 없어요"
+            : "보관함에 담은 장소가 없어요",
+          text: hasLocalSaved
+            ? "홈에서 담은 장소는 이 브라우저에만 저장돼서 코스 추천에는 쓰이지 않아요. 코스는 좋아요 영상에서 불러온 장소 · 이벤트로 만들어요. 영상을 불러온 뒤 다시 시도해 주세요."
+            : "코스는 보관함에 담긴 장소 · 이벤트로 만들어요. 좋아요 영상을 불러오거나 장소를 담은 뒤 다시 시도해 주세요.",
           actionLabel: "좋아요 영상 불러오기",
           onAction: () => handleGoHome({ startSync: true }),
         });
