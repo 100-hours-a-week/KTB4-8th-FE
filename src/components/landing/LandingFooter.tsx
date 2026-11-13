@@ -2,11 +2,8 @@
 
 import React from "react";
 import { KeepGoLogo } from "../brand/KeepGoLogo";
+import { LEGAL_CONTACT_FORM_URL as INQUIRY_FORM_URL } from "@/features/legal/content";
 import type { PolicyType } from "./PolicyModal";
-
-/** 문의하기 — 구글 폼(새 탭) */
-const INQUIRY_FORM_URL =
-  "https://docs.google.com/forms/d/e/1FAIpQLSdOuhlmfDMjTOuZSHCtsIf6GmHNfjjQYk27uHuvcvEEgP2GcQ/viewform";
 
 interface LandingFooterProps {
   onOpenPolicy: (type: PolicyType) => void;

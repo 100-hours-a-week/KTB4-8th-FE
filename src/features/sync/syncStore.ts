@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { toast } from "@/components/ui/Toast";
+import { toast, useToastStore } from "@/components/ui/Toast";
 import {
   CHAT_V2,
   SYNC_PROGRESS_DUMMY,
@@ -11,7 +11,7 @@ import {
 import { sleep } from "@/lib/format";
 import { isHomePath } from "@/lib/routes";
 import type { SyncResult } from "@/types/api";
-import { saveLastSync, type LastSync } from "./lastResult";
+import { dismissLastSync, saveLastSync, type LastSync } from "./lastResult";
 import {
   countNewItems,
   describeAddedObject,
@@ -120,101 +120,39 @@ export function defaultSyncDemo(): SyncDemoMode | null {
   );
 }
 
-/** 토스트의 "보관함 보기" 같은 이동 — 라우터는 컴포넌트 안에서만 쓸 수 있어 SyncHost 가 등록한다 */
-let navigate: ((href: string) => void) | null = null;
-export function setSyncNavigator(fn: ((href: string) => void) | null) {
-  navigate = fn;
-}
-
 const onHome = () => isHomePath(window.location.pathname);
 
-/** 끝났을 때의 안내. 홈에서는 카드가 결과를 보여 주므로 토스트를 겹쳐 띄우지 않는다(완료만 예외). */
+/** 홈이 아닌 화면에 남기는 결과 막대의 내용 — 닫거나 홈으로 가기 전까지 보여 준다(토스트는 5초 만에 사라져 놓치기 쉽다) */
+export interface SyncBar {
+  state: Finished;
+  result: SyncResult | null;
+  reason: SyncFailReason;
+}
+
+/** 끝났을 때의 안내. 홈에서는 위쪽 카드가 결과를 보여 주므로 막대를 띄우지 않는다(완료 토스트만 예외).
+    그 밖의 화면에서는 결과 막대를 남긴다. */
 function notifyFinished(
   result: Finished,
-  retry: () => void,
   summary: SyncResult | null = null,
   reason: SyncFailReason = null,
+  startToastId?: number,
 ) {
-  const home = onHome();
-  const toCollection = {
-    actionLabel: "보관함 보기",
-    onAction: () => navigate?.("/collection"),
-  };
-  if (result === "done") {
+  if (onHome()) {
+    if (result !== "done") return;
     // 새로 담긴 개수를 셀 수 있었다면 개수로 알려 준다(못 셌으면 일반 문구)
     const places = summary?.addedPlaces;
     const events = summary?.addedEvents;
     const counted = places != null && events != null;
     const added = counted ? describeAddedObject(places, events) : "";
-    if (home)
-      toast.ok(
-        added ? `${added} 담았어요.` : "좋아요 영상을 불러왔어요.",
-        "완료",
-      );
-    else
-      toast.show({
-        tone: "ok",
-        title: added
-          ? `${added} 담았어요`
-          : counted
-            ? "좋아요 영상 정리가 끝났어요"
-            : "좋아요 영상을 정리했어요",
-        text: added
-          ? "좋아요 영상 정리가 끝났어요."
-          : counted
-            ? "새로 담긴 장소와 이벤트는 없었어요."
-            : "찾은 장소와 이벤트를 보관함에 담았어요.",
-        duration: 5000,
-        ...toCollection,
-      });
+    toast.ok(
+      added ? `${added} 담았어요.` : "좋아요 영상을 불러왔어요.",
+      "완료",
+    );
     return;
   }
-  if (home) return;
-  if (result === "empty") {
-    toast.show({
-      tone: "warn",
-      title: "찾은 장소가 없어요",
-      text: "장소가 나오는 쇼츠에 좋아요를 누른 뒤 다시 불러와 보세요.",
-      duration: 5000,
-      actionLabel: "다시 불러오기",
-      onAction: retry,
-    });
-  } else if (result === "slow") {
-    toast.show({
-      tone: "info",
-      title: "분석이 계속되고 있어요",
-      text: "영상이 많아 시간이 더 걸려요. 잠시 뒤 보관함에서 확인해 주세요.",
-      duration: 5000,
-      ...toCollection,
-    });
-  } else if (reason === "reauth") {
-    toast.show({
-      tone: "error",
-      title: "유튜브 연동이 필요해요",
-      text: "연동이 안 돼 있거나 만료됐어요. 마이페이지에서 유튜브를 연동한 뒤 불러와 주세요.",
-      duration: 6000,
-      actionLabel: "마이페이지",
-      onAction: () => navigate?.("/mypage/data-sources"),
-    });
-  } else if (reason === "busy") {
-    toast.show({
-      tone: "warn",
-      title: "지금 요청이 몰려 있어요",
-      text: "서버가 바빠서 시작하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
-      duration: 5000,
-      actionLabel: "다시 시도",
-      onAction: retry,
-    });
-  } else {
-    toast.show({
-      tone: "error",
-      title: "불러오지 못했어요",
-      text: "일시적인 문제예요. 다시 시도해 주세요.",
-      duration: 5000,
-      actionLabel: "다시 시도",
-      onAction: retry,
-    });
-  }
+  // 시작할 때 띄운 "다른 화면을 봐도 계속돼요" 토스트는 이제 필요 없다 — 결과 막대와 겹쳐 보이지 않게 치운다
+  if (startToastId != null) useToastStore.getState().remove(startToastId);
+  useSyncStore.setState({ bar: { state: result, result: summary, reason } });
 }
 
 interface SyncStore {
@@ -232,6 +170,8 @@ interface SyncStore {
   liveDone: boolean;
   /** 실패했다면 BE 가 알려 준 원인 */
   failReason: SyncFailReason;
+  /** 홈이 아닌 화면에서 끝났을 때 남기는 결과 막대 — 새로 시작하면 지운다 */
+  bar: SyncBar | null;
   /** 시작한다. 이미 진행 중이면 요청을 보내지 않고 안내만 띄운 뒤 false 를 돌려준다.
       demo: 지정하면 그 값(null 이면 실제 BE 호출), 생략하면 defaultSyncDemo() */
   start: (opts?: { demo?: SyncDemoMode | null }) => Promise<boolean>;
@@ -241,6 +181,8 @@ interface SyncStore {
   hydrate: (state: LastSync["state"], result: SyncResult | null) => void;
   /** 결과 카드를 닫는다(진행 중에는 닫을 수 없다) */
   dismiss: () => void;
+  /** 결과 막대를 닫는다 — 홈 카드도 같이 닫은 것으로 남겨, 홈에 가도 같은 결과가 다시 뜨지 않게 한다 */
+  closeBar: () => void;
 }
 
 export const useSyncStore = create<SyncStore>((set, get) => ({
@@ -252,6 +194,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   live: null,
   liveDone: false,
   failReason: null,
+  bar: null,
 
   start: async (opts) => {
     if (get().status === "pending") {
@@ -272,10 +215,13 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       live: null,
       liveDone: false,
       failReason: null,
+      bar: null,
     });
-    toast.info("다른 화면을 봐도 계속돼요.", "분석을 시작했어요");
+    const startToastId = toast.info(
+      "다른 화면을 봐도 계속돼요.",
+      "분석을 시작했어요",
+    );
 
-    const retry = () => void get().start(opts);
     try {
       // 새로 담긴 개수를 세려고 시작 전 보관함을 기록해 둔다 — 오래 걸리면 개수를 포기한다.
       // 가짜 진행은 센 값이 없어 건너뛴다. v1 동기화(youtube-analyze)는 v2 보관함에 담는지 알 수 없어 v2 흐름일 때만 센다.
@@ -348,7 +294,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       });
       saveLastSync(state, result);
       if (addedKeys.length > 0) useNewItemsStore.getState().add(addedKeys);
-      notifyFinished(state, retry, result);
+      notifyFinished(state, result, null, startToastId);
     } catch (err) {
       if (unloading) return true;
       clearPending();
@@ -365,7 +311,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         liveDone: false,
         failReason,
       });
-      notifyFinished(state, retry, null, failReason);
+      notifyFinished(state, null, failReason, startToastId);
     }
     return true;
   },
@@ -395,7 +341,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       if (s.status !== "pending" || !s.restored) return;
       clearPending();
       set({ status: "slow", startedAt: null, finishAt: null });
-      notifyFinished("slow", () => void get().start());
+      notifyFinished("slow");
     }, remaining);
   },
 
@@ -407,5 +353,14 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   dismiss: () => {
     if (get().status === "pending") return;
     set({ status: "idle", result: null });
+  },
+
+  closeBar: () => {
+    const { bar } = get();
+    if (!bar) return;
+    if (bar.state === "done" || bar.state === "empty")
+      dismissLastSync(bar.state, bar.result);
+    set({ bar: null });
+    get().dismiss();
   },
 }));

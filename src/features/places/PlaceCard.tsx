@@ -55,7 +55,7 @@ export function PlaceCard({ place, rank, onOpen }: PlaceCardProps) {
     try {
       if (next) {
         await saveItem.mutateAsync({ itemType: "PLACE", itemId: place.id });
-        toast.ok("보관함에 담았어요.", "저장 완료");
+        toast.ok("보관함에 담았어요.");
       } else {
         // 보관함 목록에서 이 장소의 행을 찾아 삭제한다(개별 삭제 API가 itemId 가 아니라 보관함 행 id 를 받는다)
         const r = await api.get<CollectionItem[]>(
@@ -66,7 +66,7 @@ export function PlaceCard({ place, rank, onOpen }: PlaceCardProps) {
           (x) => x.item && String(x.item.id) === String(place.id),
         );
         if (row) await deleteItem.mutateAsync(row.id);
-        toast.info("보관함에서 삭제했어요.");
+        toast.ok("보관함에서 삭제했어요.");
       }
     } catch (err) {
       qc.setQueryData<Place>(placeKeys.detail(place.id), (old) =>

@@ -209,6 +209,8 @@ export type EmptyReason =
 export interface SyncResult {
   videoCount: number | null;
   placeCount: number | null;
+  /** YouTube 에서 가져온 좋아요 영상 수(BE v3 만 알려 준다). "영상은 있는데 분석할 영상이 0개"와 "영상 자체가 0개"를 구분하는 데 쓴다 */
+  fetchedCount?: number | null;
   /** 이번 불러오기로 보관함에 새로 담긴 장소 · 이벤트 수 — 불러오기 전후 보관함을 견줘 FE 가 센다(못 세면 없다) */
   addedPlaces?: number | null;
   addedEvents?: number | null;

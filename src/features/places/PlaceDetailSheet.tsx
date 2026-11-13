@@ -70,7 +70,7 @@ export function PlaceDetailSheet({
         );
         if (row) await deleteItem.mutateAsync(row.id);
         setSaved(false);
-        toast.info("보관함에서 삭제했어요.");
+        toast.ok("보관함에서 삭제했어요.");
       }
       // 홈 카드 · 더보기 목록이 들고 있는 이 장소의 캐시도 같이 지워서 바로 반영되게 한다.
       void qc.invalidateQueries({ queryKey: placeKeys.detail(place.id) });
@@ -97,7 +97,7 @@ export function PlaceDetailSheet({
             <button
               className="btn btn--ghost"
               type="button"
-              onClick={() => toast.info("준비 중인 기능입니다.")}
+              onClick={() => toast.info("준비 중인 기능이에요.")}
             >
               <Icon name="map" size={18} />
               <span>지도에서 보기</span>

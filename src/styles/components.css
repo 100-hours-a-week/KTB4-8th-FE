@@ -782,7 +782,11 @@
 }
 /* 불러오기 진행 막대(.rsbar)가 떠 있으면 토스트가 막대를 가리지 않게 그 위로 올린다(SyncHost 가 body 에 표시) */
 body[data-sync-bar] .toasts:not(.toasts--top):not(.toasts--login) {
-  bottom: calc(var(--tabbar-h) + 16px + 76px + env(safe-area-inset-bottom));
+  /* 막대는 탭바 위 12px 에 떠 있다 — 막대 높이(--syncbar-h)만큼 더 올리고 12px 띄운다 */
+  bottom: calc(
+    var(--tabbar-h) + 12px + var(--syncbar-h, 64px) + 12px +
+      env(safe-area-inset-bottom)
+  );
 }
 .toasts--top {
   /* 화면 맨 위 — 코스 추천 창의 채팅을 가리지 않게 제목 줄 위쪽에 붙인다 */
@@ -803,11 +807,14 @@ body[data-sync-bar] .toasts:not(.toasts--top):not(.toasts--login) {
   align-items: flex-start;
   gap: var(--s-3);
   padding: 13px var(--s-4);
-  border-radius: var(--r-md);
-  background: rgba(23, 22, 27, 0.94);
-  backdrop-filter: blur(12px);
+  /* 결과 막대(.rsbar)와 같은 유리 질감 — 모서리 16px, 반투명 + 흐림, 얇은 테두리 */
+  border-radius: 16px;
+  background: rgba(23, 22, 27, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
   color: #fff;
-  box-shadow: var(--sh-3);
+  box-shadow: 0 8px 28px rgba(23, 22, 27, 0.28);
   animation: kg-rise 0.2s var(--e-out) both;
   pointer-events: auto;
 }
@@ -819,14 +826,15 @@ body[data-sync-bar] .toasts:not(.toasts--top):not(.toasts--login) {
   margin-top: 1px;
   opacity: 0.95;
 }
+/* 색이 있는 토스트는 글자가 읽히도록 안내(검정)보다 조금 덜 투명하게 하고, 색은 조금 더 짙게 쓴다 */
 .toast--error {
-  background: rgba(200, 42, 42, 0.95);
+  background: rgba(185, 35, 35, 0.8);
 }
 .toast--warn {
-  background: rgba(170, 108, 2, 0.95);
+  background: rgba(150, 95, 0, 0.8);
 }
 .toast--ok {
-  background: rgba(10, 132, 88, 0.95);
+  background: rgba(8, 120, 80, 0.8);
 }
 .toast__body {
   flex: 1;

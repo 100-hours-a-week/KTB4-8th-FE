@@ -41,7 +41,7 @@ export function AdCard({ ad, onOpenEvent }: AdCardProps) {
 
   function handleClick() {
     if (e) onOpenEvent(e.id);
-    else toast.info("준비 중인 기능입니다.");
+    else toast.info("준비 중인 기능이에요.");
   }
 
   return (

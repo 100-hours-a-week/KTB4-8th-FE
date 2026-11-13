@@ -844,6 +844,7 @@
 /* 분석 중 도넛 스피너는 배지 글자 크기와 비슷하게 */
 .home__sync-badge .spinner,
 .progress__steps .spinner,
+.rsbar .spinner,
 .ptr .spinner {
   /* 끊긴 원 대신, 꼬리는 투명하게 흐려지고 머리(위쪽 끝)는 진한 링.
      --ring 은 링 두께(머리 끝 동그라미 크기도 같다) */
@@ -869,6 +870,7 @@
 /* 머리 끝을 둥글게 */
 .home__sync-badge .spinner::after,
 .progress__steps .spinner::after,
+.rsbar .spinner::after,
 .ptr .spinner::after {
   content: "";
   position: absolute;
@@ -940,6 +942,12 @@
   position: relative;
   /* 진행바 · 남은 시간 묶음을 카드 바닥에서 살짝 위로 올린다 */
   margin-bottom: 6px;
+}
+/* 진행률 숫자 — 카드 아래 줄 오른쪽 끝. 글자 크기 · 색은 왼쪽 "영상 분석됨" 문구와 같다 */
+.home__sync-pct {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .home__sync .btn {
   margin-top: auto;
@@ -2624,34 +2632,79 @@ button.me__row:hover {
   padding: var(--s-4) var(--s-5) var(--s-5);
 }
 
-/* 이용약관 · 개인정보 처리방침 — 본문이 정해지기 전의 준비 중 화면 */
-.legal__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 120px var(--s-8) 0;
-  text-align: center;
+/* 이용약관 · 개인정보 처리방침 본문 */
+.legal__doc {
+  padding: var(--s-5) var(--s-5) var(--s-10);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
 }
-.legal__empty-ico {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+.legal__rev {
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.legal__notice {
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  border: 1px solid var(--brand-100);
+  border-radius: var(--r-md);
   background: var(--brand-50);
-  color: var(--brand);
+  font: var(--t-sm);
+  color: var(--ink-2);
 }
-.legal__empty-title {
-  margin-top: 6px;
+.legal__notice-title {
+  margin-bottom: 4px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.legal__sec {
+  margin-top: var(--s-6);
+}
+.legal__h {
+  margin-bottom: 8px;
   font: var(--t-h3);
   letter-spacing: var(--tr-h3);
   color: var(--ink);
 }
-.legal__empty-sub {
+.legal__p {
+  margin-top: var(--s-3);
   font: var(--t-sm);
-  line-height: 1.6;
-  color: var(--ink-3);
+  line-height: 1.65;
+}
+.legal__h + .legal__p,
+.legal__doc > .legal__p {
+  margin-top: 0;
+}
+.legal__doc > .legal__rev + .legal__p,
+.legal__notice + .legal__p {
+  margin-top: var(--s-4);
+}
+.legal__sub {
+  margin-top: var(--s-4);
+  font: var(--t-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+.legal__ul {
+  margin-top: var(--s-2);
+  padding-left: 18px;
+  list-style: disc;
+  font: var(--t-sm);
+  line-height: 1.65;
+}
+.legal__ul li + li {
+  margin-top: 4px;
+}
+.legal__ul + .legal__p {
+  margin-top: var(--s-3);
+}
+.legal__doc strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+.legal__doc a {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: underline;
 }
 
 /* 데이터 출처 */
@@ -4071,10 +4124,20 @@ a.wl__michelin:active {
   white-space: nowrap;
 }
 .rsbar__sub {
-  margin-top: 2px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
   font-size: 11.5px;
   line-height: 1.45;
   opacity: 0.78;
+}
+/* 진행률 숫자 — 설명 줄 오른쪽 끝. 크기 · 색은 왼쪽 문구와 같고 굵기만 살짝 더 두껍다 */
+.rsbar__pct {
+  flex: none;
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .rsbar__bar {
   height: 4px;
@@ -4093,6 +4156,88 @@ a.wl__michelin:active {
 .rsbar .spinner {
   width: 16px;
   height: 16px;
+}
+
+/* 끝난 뒤 남는 결과 막대 — 진행 중 막대와 같은 자리 · 모양. 설명은 문장마다 한 줄, 오른쪽에 작은 버튼 */
+.rsbar--ok {
+  --tone: #4fd69c;
+}
+.rsbar--warn {
+  --tone: #f2b84c;
+}
+.rsbar--info {
+  --tone: #7db5ff;
+}
+.rsbar--error {
+  --tone: #ff8a7a;
+}
+.rsbar__ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--tone);
+  color: #17161b;
+}
+.rsbar__x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.rsbar__x:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+.rsbar__body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.rsbar__msg {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  opacity: 0.78;
+}
+.rsbar__msg > span {
+  display: block;
+}
+.rsbar__act {
+  flex: none;
+  /* 글자를 버튼 정중앙에 — 높이를 정하고 flex 로 가운데 맞춘다(줄 높이 1) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 12px;
+  /* 라이트: 회색 유리 — 반투명 흰색 + 얇은 테두리, 막대 위에서 은은하게 */
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #f3f4f6;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+/* 다크: 진회색 유리 — 흰 버튼이 눈부시지 않게 어두운 회색을 반투명으로 깐다 */
+:root[data-theme="dark"] .rsbar__act {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(58, 61, 68, 0.78);
+  color: #e6e8ec;
+}
+.rsbar__act:active {
+  opacity: 0.85;
 }
 
 /* 코스 추천 실패 안내 — 조건 카드 위에 닫을 때까지 남는다 */
