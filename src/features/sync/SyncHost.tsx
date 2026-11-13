@@ -75,13 +75,19 @@ export function SyncHost() {
         <span className="rsbar__eta">다른 화면을 봐도 계속돼요</span>
       </div>
       <p className="rsbar__sub">
-        {progress && !progress.fetching
-          ? progress.real
-            ? syncProgressNote(progress)
-            : progress.capped
-              ? "영상이 많아 시간이 더 걸리고 있어요."
-              : "영상 속 장소와 이벤트를 찾고 있어요."
-          : "영상 수에 따라 시간이 걸릴 수 있어요."}
+        <span>
+          {progress && !progress.fetching
+            ? progress.real
+              ? syncProgressNote(progress)
+              : progress.capped
+                ? "영상이 많아 시간이 더 걸리고 있어요."
+                : "영상 속 장소와 이벤트를 찾고 있어요."
+            : "영상 수에 따라 시간이 걸릴 수 있어요."}
+        </span>
+        {/* BE v3 가 알려 준 실제 진행률일 때만 숫자를 보여 준다(홈 카드와 같은 조건) */}
+        {progress?.real && !progress.fetching && (
+          <span className="rsbar__pct">{progress.percent}%</span>
+        )}
       </p>
       {progress && (
         <div className="rsbar__bar">

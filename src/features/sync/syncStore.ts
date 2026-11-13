@@ -17,6 +17,7 @@ import {
   describeAddedObject,
   useNewItemsStore,
 } from "./newItems";
+import { syncEmptyCopy } from "./emptyCopy";
 import { snapshotSavedKeys } from "./snapshot";
 import {
   FINISH_TOTAL_MS,
@@ -171,10 +172,11 @@ function notifyFinished(
   }
   if (home) return;
   if (result === "empty") {
+    const copy = syncEmptyCopy(summary);
     toast.show({
       tone: "warn",
-      title: "찾은 장소가 없어요",
-      text: "장소가 나오는 쇼츠에 좋아요를 누른 뒤 다시 불러와 보세요.",
+      title: copy.toastTitle,
+      text: copy.msg,
       duration: 5000,
       actionLabel: "다시 불러오기",
       onAction: retry,

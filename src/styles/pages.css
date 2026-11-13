@@ -844,6 +844,7 @@
 /* 분석 중 도넛 스피너는 배지 글자 크기와 비슷하게 */
 .home__sync-badge .spinner,
 .progress__steps .spinner,
+.rsbar .spinner,
 .ptr .spinner {
   /* 끊긴 원 대신, 꼬리는 투명하게 흐려지고 머리(위쪽 끝)는 진한 링.
      --ring 은 링 두께(머리 끝 동그라미 크기도 같다) */
@@ -869,6 +870,7 @@
 /* 머리 끝을 둥글게 */
 .home__sync-badge .spinner::after,
 .progress__steps .spinner::after,
+.rsbar .spinner::after,
 .ptr .spinner::after {
   content: "";
   position: absolute;
@@ -940,6 +942,12 @@
   position: relative;
   /* 진행바 · 남은 시간 묶음을 카드 바닥에서 살짝 위로 올린다 */
   margin-bottom: 6px;
+}
+/* 진행률 숫자 — 카드 아래 줄 오른쪽 끝. 글자 크기 · 색은 왼쪽 "영상 분석됨" 문구와 같다 */
+.home__sync-pct {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .home__sync .btn {
   margin-top: auto;
@@ -4116,10 +4124,20 @@ a.wl__michelin:active {
   white-space: nowrap;
 }
 .rsbar__sub {
-  margin-top: 2px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
   font-size: 11.5px;
   line-height: 1.45;
   opacity: 0.78;
+}
+/* 진행률 숫자 — 설명 줄 오른쪽 끝. 크기 · 색은 왼쪽 문구와 같고 굵기만 살짝 더 두껍다 */
+.rsbar__pct {
+  flex: none;
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .rsbar__bar {
   height: 4px;
