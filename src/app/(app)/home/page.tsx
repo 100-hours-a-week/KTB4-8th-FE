@@ -91,13 +91,18 @@ function buildSyncCard(
     const added = counted
       ? describeAddedObject(result.addedPlaces ?? 0, result.addedEvents ?? 0)
       : "";
+    // 새로 담긴 게 없다면 실패가 아니라는 것과 이유(새로 좋아요한 영상이 없으면 담길 것도 없다)를 알려 준다.
+    // "이미 다 담겨 있어요"라고 단정하지 않는 건, 재사용인지 분석했는데 장소가 없었던 건지 FE 가 구분할 수 없어서다.
+    const nothingNew = counted && !added;
     // 개수(영상 · 장소 수)는 BE 에 진행률 · 결과 조회 API 가 생기면 보여 준다 — 그 전에는 숫자 없는 문구만 쓴다
     return {
-      title: "좋아요 영상을 정리했어요.",
+      title: nothingNew
+        ? "새로 담긴 곳은 없어요."
+        : "좋아요 영상을 정리했어요.",
       msg: added
         ? `${added} 보관함에 담았어요.`
         : counted
-          ? "새로 담긴 장소와 이벤트는 없었어요."
+          ? "새로 좋아요한 영상이 없으면 담길 장소도 없어요. 보관함의 장소로 코스를 만들 수 있어요."
           : "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
       action: "course",
       actionLabel: "코스 추천받기",

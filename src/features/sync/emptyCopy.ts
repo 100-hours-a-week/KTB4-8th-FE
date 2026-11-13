@@ -21,7 +21,9 @@ export interface SyncEmptyCopy {
   toastTitle: string;
 }
 
-const RETRY_HINT = "장소가 나오는 쇼츠에 좋아요를 누른 뒤 다시 불러와 보세요.";
+/* 안내 문구는 한 문장씩 줄이 나뉘어 보이도록(결과 막대 · 홈 카드) 문장 단위로 짧게 쓴다 */
+const RETRY_HINT =
+  "장소가 나오는 쇼츠에 좋아요를 눌러 보세요. 그 뒤 다시 불러올 수 있어요.";
 
 export function syncEmptyKind(result: SyncResult | null): SyncEmptyKind {
   const fetched = result?.fetchedCount;
@@ -38,7 +40,7 @@ export function syncEmptyCopy(result: SyncResult | null): SyncEmptyCopy {
       kind,
       badge: "좋아요한 영상 없음",
       title: "좋아요한 영상이 없어요.",
-      msg: `유튜브에서 ${RETRY_HINT}`,
+      msg: RETRY_HINT,
       toastTitle: "좋아요한 영상이 없어요",
     };
   }
@@ -47,7 +49,7 @@ export function syncEmptyCopy(result: SyncResult | null): SyncEmptyCopy {
       kind,
       badge: "분석할 영상 없음",
       title: "분석할 수 있는 영상이 없어요.",
-      msg: `좋아요한 영상 ${result?.fetchedCount}개를 찾았지만, 3분 이하의 공개 영상만 분석할 수 있어요.`,
+      msg: `좋아요한 영상 ${result?.fetchedCount}개를 찾았어요. 3분 이하의 공개 영상만 분석할 수 있어요.`,
       toastTitle: "분석할 수 있는 영상이 없어요",
     };
   }
