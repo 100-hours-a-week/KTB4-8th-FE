@@ -2624,34 +2624,79 @@ button.me__row:hover {
   padding: var(--s-4) var(--s-5) var(--s-5);
 }
 
-/* 이용약관 · 개인정보 처리방침 — 본문이 정해지기 전의 준비 중 화면 */
-.legal__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 120px var(--s-8) 0;
-  text-align: center;
+/* 이용약관 · 개인정보 처리방침 본문 */
+.legal__doc {
+  padding: var(--s-5) var(--s-5) var(--s-10);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
 }
-.legal__empty-ico {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+.legal__rev {
+  font: var(--t-xs);
+  color: var(--ink-3);
+}
+.legal__notice {
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  border: 1px solid var(--brand-100);
+  border-radius: var(--r-md);
   background: var(--brand-50);
-  color: var(--brand);
+  font: var(--t-sm);
+  color: var(--ink-2);
 }
-.legal__empty-title {
-  margin-top: 6px;
+.legal__notice-title {
+  margin-bottom: 4px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.legal__sec {
+  margin-top: var(--s-6);
+}
+.legal__h {
+  margin-bottom: 8px;
   font: var(--t-h3);
   letter-spacing: var(--tr-h3);
   color: var(--ink);
 }
-.legal__empty-sub {
+.legal__p {
+  margin-top: var(--s-3);
   font: var(--t-sm);
-  line-height: 1.6;
-  color: var(--ink-3);
+  line-height: 1.65;
+}
+.legal__h + .legal__p,
+.legal__doc > .legal__p {
+  margin-top: 0;
+}
+.legal__doc > .legal__rev + .legal__p,
+.legal__notice + .legal__p {
+  margin-top: var(--s-4);
+}
+.legal__sub {
+  margin-top: var(--s-4);
+  font: var(--t-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+.legal__ul {
+  margin-top: var(--s-2);
+  padding-left: 18px;
+  list-style: disc;
+  font: var(--t-sm);
+  line-height: 1.65;
+}
+.legal__ul li + li {
+  margin-top: 4px;
+}
+.legal__ul + .legal__p {
+  margin-top: var(--s-3);
+}
+.legal__doc strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+.legal__doc a {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: underline;
 }
 
 /* 데이터 출처 */
