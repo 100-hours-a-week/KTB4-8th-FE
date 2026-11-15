@@ -49,7 +49,8 @@ export function syncEmptyCopy(result: SyncResult | null): SyncEmptyCopy {
       kind,
       badge: "분석할 영상 없음",
       title: "분석할 수 있는 영상이 없어요.",
-      msg: `좋아요한 영상 ${result?.fetchedCount}개를 찾았어요. 3분 이하의 공개 영상만 분석할 수 있어요.`,
+      // 첫 문장(찾은 영상 수) 뒤에서 줄을 바꾼다 — 홈 카드는 .home__sync-msg 의 pre-line 으로, 결과 막대는 문장 나누기로 줄이 나뉜다
+      msg: `좋아요한 영상 ${result?.fetchedCount}개를 찾았어요.\n공개된 3분 이하 쇼츠만 분석할 수 있어요.`,
       toastTitle: "분석할 수 있는 영상이 없어요",
     };
   }
