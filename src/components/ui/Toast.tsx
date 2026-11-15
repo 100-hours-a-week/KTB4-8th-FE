@@ -64,7 +64,7 @@ function show(t: Partial<ToastItem> & { text: string }) {
     text: t.text,
     code: t.code,
     traceId: t.traceId,
-    duration: t.duration ?? 2600,
+    duration: t.duration ?? 3200,
     actionLabel: t.actionLabel,
     onAction: t.onAction,
   });
@@ -110,7 +110,7 @@ export const toast = {
           ? `${d.status} · ${d.code}`
           : undefined,
       traceId: SHOW_ERROR_DETAIL ? d.traceId : undefined,
-      duration: opts.duration || 3400,
+      duration: opts.duration || 4000,
       actionLabel: opts.onRetry ? "다시 시도" : undefined,
       onAction: opts.onRetry,
     });
