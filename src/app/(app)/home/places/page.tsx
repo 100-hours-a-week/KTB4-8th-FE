@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppBar } from "@/components/ui/AppBar";
 import { Empty } from "@/components/ui/Primitives";
 import { HomePlaceCard } from "@/features/home/HomePlaceCard";
 import { HOME_DUMMY_PLACES } from "@/features/home/dummyPlaces";
+import { makePerfPlaces, usePerfLab } from "@/features/home/perfLab";
+import { VirtualPlaceGrid } from "@/features/home/VirtualPlaceGrid";
 import { EventFilterSheet } from "@/features/wishlist/EventFilterSheet";
 import { FilterButton } from "@/features/wishlist/FilterButton";
 import {
@@ -22,7 +24,8 @@ import { WishlistDetailSheet } from "@/features/wishlist/WishlistDetailSheet";
    이벤트 전체보기(/home/events)와 같은 모양: 앱바(뒤로가기 · 제목)가 있는 별도 페이지이고, 카드는 2열로 위아래 스크롤한다.
    카드마다 사진과 정보(이름 · 지역 · 분류)가 같이 보인다. 홈 가로 넘김과 같은 순서이고 번호가 붙는다.
    위쪽 "카테고리 · 지역" 버튼은 보관함 장소 탭과 같은 필터 — 거르더라도 번호는 홈의 순서 그대로 둔다.
-   그 왼쪽의 "2026 미쉐린" · "흑백요리사" 칩은 켜고 끄는 필터이고, 카테고리 · 지역 필터와 함께(둘 다 맞는 곳만) 적용된다. */
+   그 왼쪽의 "2026 미쉐린" · "흑백요리사" 칩은 켜고 끄는 필터이고, 카테고리 · 지역 필터와 함께(둘 다 맞는 곳만) 적용된다.
+   장소가 많아져도 느려지지 않도록 화면에 보이는 줄만 그린다(VirtualPlaceGrid). 성능 측정 빌드(perfLab)에서는 ?n= · ?virt=off 로 바꿔 볼 수 있다. */
 
 export default function HomePlacesPage() {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -31,20 +34,39 @@ export default function HomePlacesPage() {
   const [onlyMichelin, setOnlyMichelin] = useState(false);
   const [onlyBwChef, setOnlyBwChef] = useState(false);
 
+  const lab = usePerfLab();
+  const places = useMemo(
+    () => (lab.count ? makePerfPlaces(lab.count) : HOME_DUMMY_PLACES),
+    [lab.count],
+  );
   const facts = useMemo(
-    () => HOME_DUMMY_PLACES.map((p) => placeFacts(p.category, p.address_sg)),
-    [],
+    () => places.map((p) => placeFacts(p.category, p.address_sg)),
+    [places],
   );
   const categories = useMemo(() => placeCategoryOptions(facts), [facts]);
   const regions = useMemo(() => regionOptions(facts), [facts]);
-  const shown = HOME_DUMMY_PLACES.map((place, i) => ({
-    place,
-    rank: i + 1,
-    pass:
-      matchesEvent(facts[i], filter) &&
-      (!onlyMichelin || !!resolveMichelin(place.name, place.extra.michelin)) &&
-      (!onlyBwChef || !!place.bw_chef),
-  })).filter((x) => x.pass);
+
+  // 필터를 바꾸면 목록이 달라지니 맨 위부터 보여 준다(처음 열 때는 그대로 둔다)
+  const filterMounted = useRef(false);
+  useEffect(() => {
+    if (!filterMounted.current) {
+      filterMounted.current = true;
+      return;
+    }
+    window.scrollTo({ top: 0 });
+  }, [filter, onlyMichelin, onlyBwChef]);
+
+  const shown = places
+    .map((place, i) => ({
+      place,
+      rank: i + 1,
+      pass:
+        matchesEvent(facts[i], filter) &&
+        (!onlyMichelin ||
+          !!resolveMichelin(place.name, place.extra.michelin)) &&
+        (!onlyBwChef || !!place.bw_chef),
+    }))
+    .filter((x) => x.pass);
 
   return (
     <>
@@ -88,6 +110,8 @@ export default function HomePlacesPage() {
             title="조건에 맞는 장소가 없어요."
             message="카테고리나 지역을 바꿔 보세요."
           />
+        ) : lab.virtual ? (
+          <VirtualPlaceGrid items={shown} onOpen={setOpenId} />
         ) : (
           <div className="evgrid">
             {shown.map(({ place, rank }) => (
@@ -115,7 +139,7 @@ export default function HomePlacesPage() {
         <WishlistDetailSheet
           kind="place"
           id={openId}
-          preset={HOME_DUMMY_PLACES.find((p) => p.id === openId)}
+          preset={places.find((p) => p.id === openId)}
           onClose={() => setOpenId(null)}
         />
       )}
