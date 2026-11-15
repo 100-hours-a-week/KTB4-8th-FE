@@ -28,7 +28,7 @@ export default function MapPage() {
             <>
               저장한 장소를 지도에서 탐색하는 기능은
               <br />
-              v3에서 제공할 예정이에요.
+              v4에서 제공할 예정이에요.
             </>
           }
         />

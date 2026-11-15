@@ -828,13 +828,13 @@ body[data-sync-bar] .toasts:not(.toasts--top):not(.toasts--login) {
 }
 /* 색이 있는 토스트는 글자가 읽히도록 안내(검정)보다 조금 덜 투명하게 하고, 색은 조금 더 짙게 쓴다 */
 .toast--error {
-  background: rgba(185, 35, 35, 0.8);
+  background: rgba(185, 35, 35, 0.65);
 }
 .toast--warn {
-  background: rgba(150, 95, 0, 0.8);
+  background: rgba(150, 95, 0, 0.65);
 }
 .toast--ok {
-  background: rgba(8, 120, 80, 0.8);
+  background: rgba(8, 120, 80, 0.65);
 }
 .toast__body {
   flex: 1;
@@ -845,6 +845,8 @@ body[data-sync-bar] .toasts:not(.toasts--top):not(.toasts--login) {
   font-weight: 700;
 }
 .toast__msg {
+  /* 문구 안의 줄바꿈(\n)은 그대로 보여 준다 */
+  white-space: pre-line;
   font: var(--t-xs);
   opacity: 0.88;
   margin-top: 3px;

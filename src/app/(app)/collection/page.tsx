@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppBar } from "@/components/ui/AppBar";
+import { confirm } from "@/components/ui/Confirm";
 import { Icon } from "@/components/ui/Icon";
 import { Empty, Skeleton, Spinner, Thumb } from "@/components/ui/Primitives";
 import { toast } from "@/components/ui/Toast";
@@ -30,9 +31,11 @@ import { HOME_DUMMY_EVENTS } from "@/features/home/dummyEvents";
 import { HOME_DUMMY_PLACES } from "@/features/home/dummyPlaces";
 import { useSavedHomeItems } from "@/features/home/savedHomeItems";
 import {
+  useDeleteWishlistItems,
   useWishlistCourses,
   useWishlistEvents,
   useWishlistPlaces,
+  type WishlistKind,
 } from "@/features/wishlist/queries";
 import {
   daysUntilStart,
@@ -46,10 +49,22 @@ import {
   primaryCategory,
 } from "@/features/wishlist/format";
 import { EventFilterSheet } from "@/features/wishlist/EventFilterSheet";
+import { FilterButton } from "@/features/wishlist/FilterButton";
+import { MoreMenu } from "@/features/wishlist/MoreMenu";
+import {
+  SelectAllRow,
+  SelectBox,
+  SelectionActionBar,
+  SelectionHeader,
+} from "@/features/wishlist/SelectionChrome";
+import { useLongPress } from "@/features/wishlist/useLongPress";
+import {
+  useCollectionSelection,
+  type SelectableItem,
+} from "@/features/wishlist/useCollectionSelection";
 import { resolveItemEmoji } from "@/features/wishlist/itemEmoji";
 import {
   eventFacts,
-  filterLabel,
   matchesEvent,
   NO_FILTER,
   courseFacts,
@@ -196,7 +211,7 @@ function CollectionContent() {
     ? (wishlistCoursesQuery.data?.pages.flatMap((p) => p.courses) ?? [])
     : [];
   // 홈에서 담은 이벤트(FE 더미) — 최근에 담은 것이 위. BE 보관함에 같은 이름이 있으면 BE 쪽만 보여 준다
-  const homeSaved = useSavedHomeItems().saved;
+  const { saved: homeSaved, remove: removeHomeSaved } = useSavedHomeItems();
   const beEventNames = new Set(wishlistEvents.map((e) => e.name));
   const savedHomeEventList =
     tab === "ALL" || tab === "EVENT"
@@ -307,6 +322,153 @@ function CollectionContent() {
     shownRows.length;
   const hasAny = rows.length + wishlistCount > 0;
 
+  /* 선택 모드(삭제) — 장소 · 이벤트 · 코스 탭에서만 쓴다.
+     선택 대상은 지금 목록에 보이는 항목(필터를 걸었다면 걸러진 결과)이다. */
+  const selectTab = WISHLIST_V2;
+  const placeItems: SelectableItem[] = [
+    ...shownHomePlaces.map((p) => ({
+      key: `home-${p.id}`,
+      kind: "homePlace" as const,
+      id: p.id,
+    })),
+    ...shownWishlistPlaces.map((p) => ({
+      key: `wl-${p.place_id}`,
+      kind: "place" as const,
+      id: String(p.place_id),
+    })),
+  ];
+  const eventItems: SelectableItem[] = [
+    ...shownHomeEvents.map((e) => ({
+      key: `home-${e.id}`,
+      kind: "homeEvent" as const,
+      id: e.id,
+    })),
+    ...shownWishlistEvents.map((e) => ({
+      key: `wle-${e.event_id}`,
+      kind: "event" as const,
+      id: String(e.event_id),
+    })),
+  ];
+  const courseItems: SelectableItem[] = shownWishlistCourses.map((c) => ({
+    key: `wlc-${c.course_id}`,
+    kind: "course" as const,
+    id: String(c.course_id),
+  }));
+  const selectableItems: SelectableItem[] = !selectTab
+    ? []
+    : tab === "PLACE"
+      ? placeItems
+      : tab === "EVENT"
+        ? eventItems
+        : tab === "COURSE"
+          ? courseItems
+          : [...placeItems, ...eventItems, ...courseItems];
+  // 뒤쪽 페이지가 있는 목록(BE 보관함)은 체크박스를 켤 때 끝까지 불러온 뒤 고른다
+  const pagers =
+    tab === "PLACE"
+      ? [wishlist]
+      : tab === "EVENT"
+        ? [wishlistEventsQuery]
+        : tab === "COURSE"
+          ? [wishlistCoursesQuery]
+          : [wishlist, wishlistEventsQuery, wishlistCoursesQuery];
+  const selection = useCollectionSelection({
+    items: selectableItems,
+    hasNext: pagers.some((q) => !!q.hasNextPage),
+    fetching: pagers.some((q) => q.isFetchingNextPage),
+    failed: pagers.some((q) => q.isFetchNextPageError),
+    fetchNext: () => {
+      const next = pagers.find((q) => q.hasNextPage && !q.isFetchNextPageError);
+      if (next) void next.fetchNextPage();
+    },
+  });
+  const selecting = selection.mode !== null && selectTab;
+  const deleteItems = useDeleteWishlistItems();
+  const [deleting, setDeleting] = useState(false);
+
+  /** 선택 모드일 때는 행을 누르면 선택·해제, 아니면 평소처럼 상세를 연다 */
+  const pick = (key: string, open: () => void) =>
+    selecting
+      ? {
+          onOpen: () => selection.toggle(key),
+          select: {
+            checked: selection.isPicked(key),
+            danger: selection.mode === "delete",
+          },
+        }
+      : {
+          onOpen: open,
+          // 꾹 누르면 삭제할 항목을 고르는 선택 모드가 시작되고 그 항목이 먼저 선택된다
+          onLongPress: selectTab
+            ? () => selection.start("delete", key)
+            : undefined,
+        };
+
+  async function runDelete() {
+    const chosen = selection.selected;
+    if (chosen.length === 0) return;
+    const ok = await confirm({
+      title: `선택한 ${chosen.length}개를 보관함에서 삭제할까요?`,
+      message: "삭제하면 되돌릴 수 없어요.",
+      ok: "삭제",
+      danger: true,
+    });
+    if (!ok) return;
+    setDeleting(true);
+    const failedKeys: string[] = [];
+    try {
+      // 홈에서 담은 예시 항목은 이 브라우저에만 있어서 바로 뺀다
+      for (const it of chosen) {
+        if (it.kind === "homePlace" || it.kind === "homeEvent")
+          removeHomeSaved(it.id);
+      }
+      const groups: WishlistKind[] = ["place", "event", "course"];
+      for (const kind of groups) {
+        const targets = chosen.filter((c) => c.kind === kind);
+        if (targets.length === 0) continue;
+        try {
+          const { failed } = await deleteItems.mutateAsync({
+            kind,
+            ids: targets.map((t) => t.id),
+          });
+          for (const t of targets)
+            if (failed.includes(t.id)) failedKeys.push(t.key);
+        } catch {
+          for (const t of targets) failedKeys.push(t.key);
+        }
+      }
+    } finally {
+      setDeleting(false);
+    }
+    if (failedKeys.length === 0) {
+      toast.ok(`${chosen.length}개를 삭제했어요.`);
+      selection.cancel();
+    } else {
+      toast.error(
+        `${failedKeys.length}개를 삭제하지 못했어요. 다시 시도해 주세요.`,
+      );
+      selection.keepOnly(failedKeys);
+    }
+  }
+
+  const moreMenu =
+    WISHLIST_V2 && hasAny && !isLoading && !loadFailed ? (
+      <MoreMenu
+        items={[
+          {
+            key: "delete",
+            label: "삭제",
+            desc: "선택한 항목을 보관함에서 삭제",
+            icon: "trash",
+            danger: true,
+            disabledReason:
+              selectableItems.length === 0 ? "삭제할 항목이 없어요" : undefined,
+            onSelect: () => selection.start("delete"),
+          },
+        ]}
+      />
+    ) : undefined;
+
   function openRow(row: CollectionItem) {
     const name =
       row.itemType === "COURSE"
@@ -319,7 +481,11 @@ function CollectionContent() {
 
   return (
     <>
-      <AppBar back title="보관함" />
+      {selecting && selection.mode ? (
+        <SelectionHeader mode={selection.mode} onCancel={selection.cancel} />
+      ) : (
+        <AppBar back title="보관함" action={moreMenu} />
+      )}
 
       <div style={{ padding: "0 var(--s-5)" }}>
         <div className="seg">
@@ -329,6 +495,7 @@ function CollectionContent() {
               className="chip"
               type="button"
               aria-pressed={tab === t.key}
+              disabled={selecting && tab !== t.key}
               onClick={() => setTab(t.key)}
             >
               {t.label}
@@ -342,23 +509,74 @@ function CollectionContent() {
             onOpen={() => setOverlay({ name: "eventFilter", id: "" })}
           />
         )}
-        {courseFiltering && hasAny && !isLoading && (
-          <div className="evf__row evf__row--end">
-            <FilterButton
-              filter={courseFilter}
-              placeholder="지역"
-              onOpen={() => setOverlay({ name: "courseFilter", id: "" })}
-            />
-          </div>
+        {selecting && filtering && hasAny && !isLoading && (
+          <SelectAllRow
+            state={selection.allState}
+            count={selection.selected.length}
+            loading={selection.loadingAll}
+            danger={selection.mode === "delete"}
+            onToggle={selection.toggleAll}
+          />
         )}
-        {placeFiltering && hasAny && !isLoading && (
-          <div className="evf__row evf__row--end">
-            <FilterButton
-              filter={placeFilter}
-              onOpen={() => setOverlay({ name: "placeFilter", id: "" })}
-            />
-          </div>
+        {selecting && tab === "ALL" && hasAny && !isLoading && (
+          <SelectAllRow
+            state={selection.allState}
+            count={selection.selected.length}
+            loading={selection.loadingAll}
+            danger={selection.mode === "delete"}
+            onToggle={selection.toggleAll}
+          />
         )}
+        {courseFiltering &&
+          hasAny &&
+          !isLoading &&
+          (selecting ? (
+            <SelectAllRow
+              state={selection.allState}
+              count={selection.selected.length}
+              loading={selection.loadingAll}
+              danger={selection.mode === "delete"}
+              onToggle={selection.toggleAll}
+            >
+              <FilterButton
+                filter={courseFilter}
+                placeholder="지역"
+                onOpen={() => setOverlay({ name: "courseFilter", id: "" })}
+              />
+            </SelectAllRow>
+          ) : (
+            <div className="evf__row evf__row--end">
+              <FilterButton
+                filter={courseFilter}
+                placeholder="지역"
+                onOpen={() => setOverlay({ name: "courseFilter", id: "" })}
+              />
+            </div>
+          ))}
+        {placeFiltering &&
+          hasAny &&
+          !isLoading &&
+          (selecting ? (
+            <SelectAllRow
+              state={selection.allState}
+              count={selection.selected.length}
+              loading={selection.loadingAll}
+              danger={selection.mode === "delete"}
+              onToggle={selection.toggleAll}
+            >
+              <FilterButton
+                filter={placeFilter}
+                onOpen={() => setOverlay({ name: "placeFilter", id: "" })}
+              />
+            </SelectAllRow>
+          ) : (
+            <div className="evf__row evf__row--end">
+              <FilterButton
+                filter={placeFilter}
+                onOpen={() => setOverlay({ name: "placeFilter", id: "" })}
+              />
+            </div>
+          ))}
       </div>
 
       <div className="scroll scroll--pad">
@@ -442,7 +660,9 @@ function CollectionContent() {
                   description: p.description,
                   extra: p.extra,
                 })}
-                onOpen={() => setOverlay({ name: "homePlace", id: p.id })}
+                {...pick(`home-${p.id}`, () =>
+                  setOverlay({ name: "homePlace", id: p.id }),
+                )}
               />
             ))}
             {shownWishlistPlaces.map((p) => (
@@ -454,9 +674,9 @@ function CollectionContent() {
                 addressSg={p.address_sg}
                 sub={p.description || ""}
                 emoji={wishlistEmoji(p)}
-                onOpen={() =>
-                  setOverlay({ name: "wishlistPlace", id: String(p.place_id) })
-                }
+                {...pick(`wl-${p.place_id}`, () =>
+                  setOverlay({ name: "wishlistPlace", id: String(p.place_id) }),
+                )}
               />
             ))}
             {showsPlaces && (
@@ -485,7 +705,9 @@ function CollectionContent() {
                     description: e.description,
                     extra: e.extra,
                   })}
-                  onOpen={() => setOverlay({ name: "homeEvent", id: e.id })}
+                  {...pick(`home-${e.id}`, () =>
+                    setOverlay({ name: "homeEvent", id: e.id }),
+                  )}
                 />
               );
             })}
@@ -503,12 +725,12 @@ function CollectionContent() {
                   opensIn={daysUntilStart(e.start_date)}
                   ended={eventStatus(e.start_date, e.end_date) === "ended"}
                   emoji={wishlistEmoji(e)}
-                  onOpen={() =>
+                  {...pick(`wle-${e.event_id}`, () =>
                     setOverlay({
                       name: "wishlistEvent",
                       id: String(e.event_id),
-                    })
-                  }
+                    }),
+                  )}
                 />
               );
             })}
@@ -524,12 +746,12 @@ function CollectionContent() {
               <WishlistCourseRow
                 key={`wlc-${c.course_id}`}
                 course={c}
-                onOpen={() =>
+                {...pick(`wlc-${c.course_id}`, () =>
                   setOverlay({
                     name: "wishlistCourse",
                     id: String(c.course_id),
-                  })
-                }
+                  }),
+                )}
               />
             ))}
             {showsCourses && (
@@ -550,6 +772,20 @@ function CollectionContent() {
           </div>
         )}
       </div>
+
+      {selecting && (
+        <SelectionActionBar
+          label={
+            selection.selected.length === 0
+              ? "삭제할 항목을 선택해 주세요"
+              : `${selection.selected.length}개 삭제`
+          }
+          disabled={selection.selected.length === 0}
+          danger
+          busy={deleting}
+          onRun={() => void runDelete()}
+        />
+      )}
 
       {overlay?.name === "place" && (
         <PlaceDetailSheet
@@ -705,10 +941,15 @@ function AutoLoadMore({
 function WishlistCourseRow({
   course,
   onOpen,
+  onLongPress,
+  select,
 }: {
   course: WishlistCourseSummary;
   onOpen: () => void;
+  onLongPress?: () => void;
+  select?: RowSelect;
 }) {
+  const press = useLongPress(onLongPress);
   const names = courseStopItems(course.stops)
     .sort((a, b) => a.sequence - b.sequence)
     .map((i) => i.name)
@@ -723,7 +964,19 @@ function WishlistCourseRow({
     .filter(Boolean)
     .join(" · ");
   return (
-    <button className="listitem press" type="button" onClick={onOpen}>
+    <button
+      className={rowClass(select)}
+      type="button"
+      onClick={onOpen}
+      {...press}
+      {...rowA11y(select)}
+    >
+      {select && (
+        <SelectBox
+          state={select.checked ? "on" : "off"}
+          danger={select.danger}
+        />
+      )}
       <span className="listitem__ico">
         <Icon name="route" size={22} />
       </span>
@@ -732,12 +985,24 @@ function WishlistCourseRow({
         <p className="listitem__meta">{names}</p>
         {sub && <p className="listitem__sub">{sub}</p>}
       </div>
-      <span style={{ color: "var(--ink-4)" }}>
-        <Icon name="chevron" size={16} />
-      </span>
+      {!select && (
+        <span style={{ color: "var(--ink-4)" }}>
+          <Icon name="chevron" size={16} />
+        </span>
+      )}
     </button>
   );
 }
+
+/** 선택 모드의 행 — 체크 표시와 접근성 속성 */
+interface RowSelect {
+  checked: boolean;
+  danger: boolean;
+}
+const rowClass = (select?: RowSelect) =>
+  `listitem press${select ? " listitem--select" : ""}${select?.checked ? (select.danger ? " is-picked is-danger" : " is-picked") : ""}`;
+const rowA11y = (select?: RowSelect) =>
+  select ? { role: "checkbox" as const, "aria-checked": select.checked } : {};
 
 /** 보관함 한 행 — 프로토타입 js/components/cards.js 의 listItem() 을 그대로 옮겼다.
     아이콘/썸네일이 46px로 같은 크기를 쓰도록 코스 행도 thumb--sq 와 같은 .listitem__ico 를 쓴다. */
@@ -844,31 +1109,6 @@ const STATUS_CHIPS: { key: StatusFilter; label: string }[] = [
   { key: "ENDED", label: "종료" },
 ];
 
-/** "카테고리 · 지역" 필터 버튼 — 고르면 "팝업 · 성동구"처럼 고른 값이 버튼에 표시된다(이벤트 · 장소 탭 공통) */
-function FilterButton({
-  filter,
-  placeholder = "카테고리 · 지역",
-  onOpen,
-}: {
-  filter: EventFilter;
-  placeholder?: string;
-  onOpen: () => void;
-}) {
-  const label = filterLabel(filter);
-  return (
-    <button
-      className={`evf__btn${label ? " is-on" : ""}`}
-      type="button"
-      aria-haspopup="dialog"
-      onClick={onOpen}
-    >
-      <Icon name="sliders" size={15} />
-      <span>{label || placeholder}</span>
-      <Icon name="chevronDown" size={14} />
-    </button>
-  );
-}
-
 /** 이벤트 탭 필터 줄 — 왼쪽은 진행 상태 칩, 오른쪽은 카테고리 · 지역을 고르는 버튼(고르면 "팝업 · 성동구"처럼 표시) */
 function EventFilterBar({
   filter,
@@ -911,7 +1151,11 @@ function WishlistRow({
   emoji,
   isNew,
   onOpen,
+  onLongPress,
+  select,
 }: {
+  select?: RowSelect;
+  onLongPress?: () => void;
   name: string;
   category: string;
   addressSg: string;
@@ -926,12 +1170,25 @@ function WishlistRow({
   emoji?: string | null;
   onOpen: () => void;
 }) {
+  const press = useLongPress(onLongPress);
   const cat = primaryCategory(category);
   const meta = [splitCategories(category).join(" · "), addressSg]
     .filter(Boolean)
     .join(" · ");
   return (
-    <button className="listitem press" type="button" onClick={onOpen}>
+    <button
+      className={rowClass(select)}
+      type="button"
+      onClick={onOpen}
+      {...press}
+      {...rowA11y(select)}
+    >
+      {select && (
+        <SelectBox
+          state={select.checked ? "on" : "off"}
+          danger={select.danger}
+        />
+      )}
       {cat || emoji ? (
         <Thumb className="thumb--sq" category={cat ?? "ETC"} glyph={emoji} />
       ) : (

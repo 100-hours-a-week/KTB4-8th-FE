@@ -7,20 +7,25 @@ import { Spinner } from "@/components/ui/Primitives";
 /* 홈 "좋아요 영상 불러오기" 카드 — 실제 앱 홈의 카드(home/page.tsx 의 .home__sync)와
    같은 클래스 · 같은 문구를 써서, 로그인 뒤 실제로 보이는 모양 그대로 보여 준다.
    (실제 불러오기를 시작하지는 않는다 — 화면 안에서만 움직이는 예시)
+   스트리밍(BE v3)이 적용된 카드 그대로다: 시작 → 불러오는 중(영상을 가져오는 동안, 진행률 없음)
+   → AI 분석 중("N / M 영상 분석됨" · 진행률 %) → 완료(담긴 장소 · 이벤트 수).
    랜딩에서는 화면 모드를 따른다: 다크는 앱과 같은 어두운 카드, 라이트는 흰 카드(home__sync--themed, globals.css). */
 
-/** start: 시작하기 · loading: 불러오는 중 · analyzing: AI 분석 중(진행바) · done: 완료 */
+/** start: 시작하기 · loading: 불러오는 중(영상을 가져오는 중) · analyzing: AI 분석 중(진행바 · 분석한 영상 수 · %) · done: 완료 */
 export type SyncCardPhase = "start" | "loading" | "analyzing" | "done";
 
 export function SyncCardView({
   phase,
   percent = 0,
+  total = 120,
   onStart,
   style,
 }: {
   phase: SyncCardPhase;
-  /** loading · analyzing 일 때 진행바(0~100) */
+  /** loading · analyzing 일 때 진행바(0~100). 불러오는 중에는 0 */
   percent?: number;
+  /** analyzing 일 때 "N / total 영상 분석됨"의 total (N 은 percent 에서 계산) */
+  total?: number;
   /** "좋아요 영상 불러오기" 버튼을 눌렀을 때 */
   onStart?: () => void;
   /** 카드 높이를 고정할 때 */
@@ -28,6 +33,7 @@ export function SyncCardView({
 }) {
   const badged = phase !== "done";
   const closable = phase === "start" || phase === "done";
+  const analyzed = Math.round((percent / 100) * total);
 
   return (
     <div
@@ -70,7 +76,7 @@ export function SyncCardView({
           "유튜브에서 좋아요한 영상을 불러와 시작해 보세요."}
         {phase === "loading" && "영상 수에 따라 시간이 걸릴 수 있어요."}
         {phase === "analyzing" && "영상 속 장소와 이벤트를 찾고 있어요."}
-        {phase === "done" && "찾은 장소와 이벤트로 코스를 만들어 드릴게요."}
+        {phase === "done" && "장소 42곳 · 이벤트 6개를 보관함에 담았어요."}
       </p>
 
       {(phase === "loading" || phase === "analyzing") && (
@@ -88,9 +94,13 @@ export function SyncCardView({
             <Icon name="clock" size={13} />
             <span>
               {phase === "loading"
-                ? "좋아요한 영상 목록을 가져오는 중이에요"
-                : "영상 수에 따라 시간이 걸려요"}
+                ? "유튜브에서 영상을 가져오고 있어요"
+                : `${analyzed} / ${total} 영상 분석됨`}
             </span>
+            {/* 분석이 시작된 뒤(BE 가 실시간으로 알려 준 진행률)에만 숫자를 보여 준다 */}
+            {phase === "analyzing" && (
+              <span className="home__sync-pct">{percent}%</span>
+            )}
           </p>
         </>
       )}
@@ -116,11 +126,12 @@ export function SyncCardView({
 }
 
 const START_HOLD_MS = 2200;
+const LOADING_MS = 1200;
 const ANALYZING_MS = 4200;
 const DONE_HOLD_MS = 3000;
 
-/* "How it works" 1단계용 — 시작 → AI 분석 중(진행바가 차오름) → 완료를 자동 반복하고,
-   버튼을 누르면 바로 분석 중으로 넘어간다. */
+/* "How it works" 1단계용 — 시작 → 불러오는 중 → AI 분석 중(진행바가 차오름) → 완료를 자동 반복하고,
+   버튼을 누르면 바로 불러오는 중으로 넘어간다. */
 export function SyncCardPreview({ className = "" }: { className?: string }) {
   const [phase, setPhase] = useState<SyncCardPhase>("start");
   const [percent, setPercent] = useState(0);
@@ -132,8 +143,13 @@ export function SyncCardPreview({ className = "" }: { className?: string }) {
     if (phase === "start") {
       timer.current = window.setTimeout(() => {
         setPercent(0);
-        setPhase("analyzing");
+        setPhase("loading");
       }, START_HOLD_MS);
+    } else if (phase === "loading") {
+      timer.current = window.setTimeout(
+        () => setPhase("analyzing"),
+        LOADING_MS,
+      );
     } else if (phase === "done") {
       timer.current = window.setTimeout(() => setPhase("start"), DONE_HOLD_MS);
     }
@@ -166,7 +182,7 @@ export function SyncCardPreview({ className = "" }: { className?: string }) {
           percent={percent}
           onStart={() => {
             setPercent(0);
-            setPhase("analyzing");
+            setPhase("loading");
           }}
         />
       </div>

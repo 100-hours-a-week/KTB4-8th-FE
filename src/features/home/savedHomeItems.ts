@@ -24,8 +24,9 @@ function noticeLocalOnlyOnce() {
   toast.show({
     tone: "info",
     title: "이 브라우저에만 저장돼요",
-    text: "홈에서 담은 장소는 아직 서버에 저장되지 않아요. 다른 기기에서는 보이지 않고, 코스 추천에도 쓰이지 않아요.",
-    duration: 5200,
+    // 첫 문장이 끝나면 줄을 바꾼다(.toast__msg 의 pre-line)
+    text: "홈에서 담은 장소는 아직 서버에 저장되지 않아요.\n다른 기기에서는 보이지 않고, 코스 추천에도 쓰이지 않아요.",
+    duration: 5000,
   });
 }
 
