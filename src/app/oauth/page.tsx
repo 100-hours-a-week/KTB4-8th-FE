@@ -25,12 +25,12 @@ export default function OauthPage() {
     sessionStorage.removeItem(GOOGLE_STATE_KEY);
 
     if (params.get("error") || !code) {
-      toast.warn("로그인을 취소했어요.");
+      toast.info("로그인을 취소했어요.");
       router.replace("/login");
       return;
     }
     if (!expected || params.get("state") !== expected) {
-      toast.warn("인증 정보가 올바르지 않아요. 다시 로그인해 주세요.");
+      toast.error("인증 정보가 올바르지 않아요. 다시 로그인해 주세요.");
       router.replace("/login");
       return;
     }

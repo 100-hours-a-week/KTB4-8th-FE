@@ -1,7 +1,14 @@
 "use client";
 
-import { LegalPlaceholder } from "@/features/user/LegalPlaceholder";
+import { AppBar } from "@/components/ui/AppBar";
+import { TERMS } from "@/features/legal/content";
+import { LegalDocView } from "@/features/legal/LegalDocView";
 
 export default function TermsPage() {
-  return <LegalPlaceholder title="이용약관" />;
+  return (
+    <>
+      <AppBar back title="이용약관" />
+      <LegalDocView doc={TERMS} />
+    </>
+  );
 }

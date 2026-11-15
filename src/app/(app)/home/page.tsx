@@ -15,6 +15,7 @@ import {
   type SyncDemoMode,
   type SyncProgress,
 } from "@/features/sync/progress";
+import { syncEmptyCopy } from "@/features/sync/emptyCopy";
 import { dismissLastSync, loadLastSync } from "@/features/sync/lastResult";
 import { describeAddedObject } from "@/features/sync/newItems";
 import {
@@ -90,23 +91,30 @@ function buildSyncCard(
     const added = counted
       ? describeAddedObject(result.addedPlaces ?? 0, result.addedEvents ?? 0)
       : "";
+    // 새로 담긴 게 없다면 실패가 아니라는 것과 이유(새로 좋아요한 영상이 없으면 담길 것도 없다)를 알려 준다.
+    // "이미 다 담겨 있어요"라고 단정하지 않는 건, 재사용인지 분석했는데 장소가 없었던 건지 FE 가 구분할 수 없어서다.
+    const nothingNew = counted && !added;
     // 개수(영상 · 장소 수)는 BE 에 진행률 · 결과 조회 API 가 생기면 보여 준다 — 그 전에는 숫자 없는 문구만 쓴다
     return {
-      title: "좋아요 영상을 정리했어요.",
+      title: nothingNew
+        ? "새로 담긴 곳은 없어요."
+        : "좋아요 영상을 정리했어요.",
       msg: added
         ? `${added} 보관함에 담았어요.`
         : counted
-          ? "새로 담긴 장소와 이벤트는 없었어요."
+          ? "새로 좋아요한 영상이 없으면 담길 장소도 없어요. 보관함의 장소로 코스를 만들 수 있어요."
           : "찾은 장소와 이벤트로 코스를 만들어 드릴게요.",
       action: "course",
       actionLabel: "코스 추천받기",
     };
   }
   if (state === "empty") {
+    // 영상이 0개인지, 영상은 있는데 분석할 수 있는 영상이 0개인지에 따라 안내가 다르다
+    const copy = syncEmptyCopy(result);
     return {
-      badge: "찾은 장소 없음",
-      title: "좋아요 영상에서 장소를 찾지 못했어요.",
-      msg: "장소가 나오는 쇼츠에 좋아요를 누른 뒤 다시 불러와 보세요.",
+      badge: copy.badge,
+      title: copy.title,
+      msg: copy.msg,
       action: "sync",
       actionLabel: "다시 불러오기",
     };
@@ -269,11 +277,20 @@ export default function HomePage() {
     // 새로고침 직전에 분석 중이었다면 그 상태를 되살린다 — 이때는 저장된 결과보다 진행 중이 먼저다
     store.restorePending();
     // 이미 진행 중이거나 이번 방문 중에 끝난 결과가 있으면 스토어의 상태를 그대로 보여 준다
-    if (useSyncStore.getState().status !== "idle") return;
+    const status = useSyncStore.getState().status;
+    if (status !== "idle") {
+      // 결과 카드를 닫았는지는 화면 안의 상태라 홈에 들어올 때마다 초기값(안 닫힘)으로 돌아간다.
+      // 스토어에 결과가 이미 되살려져 있어도(앞서 한 번 다녀오며 되살린 것) 저장된 "닫음" 기록을 따라야 한다.
+      // 새로 불러오기를 끝내면 saveLastSync 가 dismissed 를 false 로 되돌려 카드가 다시 보인다.
+      if (status === "done" || status === "empty") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 때 저장된 닫음 기록을 화면 상태로 옮기는 1회성 복원
+        setDismissed(!!loadLastSync()?.dismissed);
+      }
+      return;
+    }
     const last = loadLastSync();
     if (last) {
       store.hydrate(last.state, last.result);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 때 저장된 결과를 화면 상태로 옮기는 1회성 복원
       setDismissed(last.dismissed);
       return;
     }
@@ -356,6 +373,12 @@ export default function HomePage() {
                   <p className="home__sync-eta">
                     <Icon name="clock" size={13} />
                     <span>{syncProgressNote(progress)}</span>
+                    {/* BE v3 가 알려 준 실제 진행률일 때만 숫자를 보여 준다(가짜 진행률에는 붙이지 않는다) */}
+                    {progress.real && !progress.fetching && (
+                      <span className="home__sync-pct">
+                        {progress.percent}%
+                      </span>
+                    )}
                   </p>
                 </>
               )}

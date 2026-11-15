@@ -201,3 +201,58 @@ export function useAddWishlistCourse() {
     onSuccess: () => qc.invalidateQueries({ queryKey: wishlistKeys.courses }),
   });
 }
+
+export type WishlistKind = "place" | "event" | "course";
+
+const DELETE_PATH: Record<WishlistKind, (id: string) => string> = {
+  place: (id) => `/outing-wishlist/places/${encodeURIComponent(id)}`,
+  event: (id) => `/outing-wishlist/events/${encodeURIComponent(id)}`,
+  course: (id) => `/outing-wishlist/outing-courses/${encodeURIComponent(id)}`,
+};
+
+const LIST_KEY = {
+  place: wishlistKeys.places,
+  event: wishlistKeys.events,
+  course: wishlistKeys.courses,
+} as const;
+
+/** 여러 항목을 한 번에 삭제한다(BE 에 일괄 삭제 API 가 없어 한 건씩 보내되 3건씩 동시에).
+    일부가 실패해도 나머지는 지우고, 실패한 ID 를 돌려준다. 목록은 모두 끝난 뒤 한 번만 다시 받는다. */
+export function useDeleteWishlistItems() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      kind,
+      ids,
+    }: {
+      kind: WishlistKind;
+      ids: string[];
+    }) => {
+      const failed: string[] = [];
+      let next = 0;
+      async function worker() {
+        while (next < ids.length) {
+          const id = ids[next++];
+          try {
+            await deleteEntry(DELETE_PATH[kind](id));
+          } catch {
+            failed.push(id);
+          }
+        }
+      }
+      await Promise.all(
+        Array.from({ length: Math.min(3, ids.length) }, () => worker()),
+      );
+      return { failed };
+    },
+    onSuccess: ({ failed }, { kind, ids }) => {
+      // 지운 항목의 상세는 다시 불러오지 않고(404) 캐시에서 지운다
+      for (const id of ids) {
+        if (!failed.includes(id)) {
+          qc.removeQueries({ queryKey: [...LIST_KEY[kind], id] });
+        }
+      }
+      return qc.invalidateQueries({ queryKey: LIST_KEY[kind], exact: true });
+    },
+  });
+}

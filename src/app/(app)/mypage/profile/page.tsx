@@ -300,7 +300,7 @@ function PhotoSheet({
       const blob = await imageToBlob(file);
       setPicked(URL.createObjectURL(blob));
       setPendingLocal({ kind: "upload", blob, filename: file.name });
-      toast.ok("사진을 불러왔어요. 확인 후 변경을 눌러주세요.");
+      toast.ok("사진을 불러왔어요. 확인 후 변경을 눌러 주세요.");
     } catch (err) {
       const msg =
         err instanceof Error && err.message === "TOO_LARGE"
@@ -308,7 +308,12 @@ function PhotoSheet({
           : err instanceof Error && err.message === "IMAGE_ONLY"
             ? "이미지 파일만 선택할 수 있어요."
             : "사진을 불러오지 못했어요. 다른 파일로 시도해 주세요.";
-      toast.error(msg);
+      // 파일을 바꾸면 되는 문제(용량 · 형식)는 주의, 그 밖에는 실패로 보여 준다
+      const fixable =
+        err instanceof Error &&
+        (err.message === "TOO_LARGE" || err.message === "IMAGE_ONLY");
+      if (fixable) toast.warn(msg);
+      else toast.error(msg);
     }
   }
 

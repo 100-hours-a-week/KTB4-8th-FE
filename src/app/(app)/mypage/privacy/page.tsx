@@ -1,7 +1,14 @@
 "use client";
 
-import { LegalPlaceholder } from "@/features/user/LegalPlaceholder";
+import { AppBar } from "@/components/ui/AppBar";
+import { PRIVACY } from "@/features/legal/content";
+import { LegalDocView } from "@/features/legal/LegalDocView";
 
 export default function PrivacyPage() {
-  return <LegalPlaceholder title="개인정보 처리방침" />;
+  return (
+    <>
+      <AppBar back title="개인정보 처리방침" />
+      <LegalDocView doc={PRIVACY} />
+    </>
+  );
 }

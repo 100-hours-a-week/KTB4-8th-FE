@@ -156,3 +156,26 @@ export const sleep = (ms: number) =>
 export function uid(prefix = "id") {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
 }
+
+/** 두 좌표 사이의 직선거리(m) — 도로를 따라가는 실제 거리가 아니라 지도 위의 가장 짧은 거리다 */
+export function distanceMeters(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+) {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const h =
+    Math.sin(rad(b.lat - a.lat) / 2) ** 2 +
+    Math.cos(rad(a.lat)) *
+      Math.cos(rad(b.lat)) *
+      Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(h));
+}
+
+/** 직선거리 표기 — 1km 미만은 100m 단위, 10km 미만은 소수 첫째 자리, 그 이상은 정수 km ("약 800m" · "약 1.2km" · "약 31km") */
+export function fmtDistance(meters: number) {
+  if (!Number.isFinite(meters) || meters < 0) return "";
+  if (meters < 1000)
+    return `약 ${Math.max(100, Math.round(meters / 100) * 100)}m`;
+  const km = meters / 1000;
+  return `약 ${km < 10 ? km.toFixed(1) : Math.round(km)}km`;
+}

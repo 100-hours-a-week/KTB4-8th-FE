@@ -94,8 +94,12 @@ export function toLiveProgress(
     분석할 영상이 하나도 없었다면 "찾은 게 없음"으로 바로 알 수 있다. */
 export function toSyncResult(last: LiveSyncProgress): SyncResult {
   if (last.target === 0 || last.fetched === 0)
-    return { videoCount: 0, placeCount: 0 };
-  return { videoCount: last.target ?? last.analyzed, placeCount: null };
+    return { videoCount: 0, placeCount: 0, fetchedCount: last.fetched };
+  return {
+    videoCount: last.target ?? last.analyzed,
+    placeCount: null,
+    fetchedCount: last.fetched,
+  };
 }
 
 /** 동기화를 시작하고 끝날 때까지 이벤트를 읽는다. 진행 상태가 올 때마다 onProgress 를 부른다.

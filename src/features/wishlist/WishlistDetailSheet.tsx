@@ -234,7 +234,7 @@ export function WishlistDetailSheet({
   async function handleTogglePreset(p: HomeDummyEvent | HomeDummyPlace) {
     if (!presetSavedAt) {
       homeSaved.toggle(p.id);
-      toast.ok("보관함에 담았어요.", "저장 완료");
+      toast.ok("보관함에 담았어요.");
       return;
     }
     if (removeClosesSheet) {
@@ -247,7 +247,7 @@ export function WishlistDetailSheet({
       if (!ok) return;
     }
     homeSaved.remove(p.id);
-    toast.info("보관함에서 삭제했어요.");
+    toast.ok("보관함에서 삭제했어요.");
     if (removeClosesSheet) onClose();
   }
 
@@ -269,7 +269,7 @@ export function WishlistDetailSheet({
     if (!ok) return;
     try {
       await deleteItem.mutateAsync(id);
-      toast.info("보관함에서 삭제했어요.");
+      toast.ok("보관함에서 삭제했어요.");
       onClose();
     } catch (err) {
       toast.fromError(err);

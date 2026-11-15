@@ -403,16 +403,18 @@ export function describe(err: unknown): Described {
       silent: false,
       code: "UNKNOWN",
       status: 0,
-      title: "오류",
+      title: "문제가 생겼어요",
     };
   }
   const rule = UI[err.code] || {
     tone: "error" as Tone,
+    title: "문제가 생겼어요",
     text: err.problem.detail,
   };
   let text = rule.text;
+  // 서버가 재시도 시간을 주면 그 시간으로 한 번만 안내한다(본문의 "잠시 후"를 대신한다)
   if (rule.effect === "RETRY_AFTER" && err.retryAfterSeconds) {
-    text += ` ${err.retryAfterSeconds}초 후 다시 시도해 주세요.`;
+    text = `${err.retryAfterSeconds}초 뒤에 다시 시도해 주세요.`;
   }
   const first = err.problem.errors?.[0];
   if (err.code === "USER_VALIDATION_FAILED" && first) text = first.message;
@@ -423,7 +425,7 @@ export function describe(err: unknown): Described {
     silent: !!rule.silent,
     code: err.code,
     status: err.status,
-    title: err.problem.title,
+    title: rule.title,
     traceId: err.problem.traceId,
     field: first?.field,
   };

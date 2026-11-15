@@ -8,6 +8,7 @@ import { useOverlayStore } from "./overlay-store";
 import { useCourseStore } from "@/features/recommendations/courseStore";
 import { describe, isApiError } from "@/lib/api/client";
 import type { Tone } from "@/lib/api/problems";
+import { SHOW_ERROR_DETAIL } from "@/lib/constants";
 
 /* 토스트 — 오류 코드 기반 안내의 기본 표시 수단.
    시트·모달 위에서도 항상 보이도록 가장 높은 층에 그리고,
@@ -63,7 +64,7 @@ function show(t: Partial<ToastItem> & { text: string }) {
     text: t.text,
     code: t.code,
     traceId: t.traceId,
-    duration: t.duration ?? 2600,
+    duration: t.duration ?? 3200,
     actionLabel: t.actionLabel,
     onAction: t.onAction,
   });
@@ -104,9 +105,12 @@ export const toast = {
       tone: d.tone,
       title: d.title,
       text: d.text,
-      code: isApiError(err) ? `${d.status} · ${d.code}` : undefined,
-      traceId: d.traceId,
-      duration: opts.duration || 3400,
+      code:
+        SHOW_ERROR_DETAIL && isApiError(err)
+          ? `${d.status} · ${d.code}`
+          : undefined,
+      traceId: SHOW_ERROR_DETAIL ? d.traceId : undefined,
+      duration: opts.duration || 4000,
       actionLabel: opts.onRetry ? "다시 시도" : undefined,
       onAction: opts.onRetry,
     });

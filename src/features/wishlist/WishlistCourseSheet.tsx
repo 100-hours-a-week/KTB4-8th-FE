@@ -9,8 +9,15 @@ import { toast } from "@/components/ui/Toast";
 import { confirm } from "@/components/ui/Confirm";
 import { CATEGORY_BY_LABEL } from "@/lib/api/backend";
 import { fmtDuration } from "@/lib/format";
-import { courseDurationMinutes, courseStopItems, fmtSaveDate } from "./format";
+import {
+  courseDurationMinutes,
+  courseStopItems,
+  fmtSaveDate,
+  naverMapCourseStopUrl,
+} from "./format";
 import { useDeleteWishlistCourse, useWishlistCourse } from "./queries";
+import { openNaverCourseRoute, toRoutePoint } from "./naverRoute";
+import { useWalkingRoute } from "@/features/recommendations/walkingRoute";
 import type { CandidateComponent } from "@/types/api";
 
 /* 보관한 코스 상세 — BE v2(GET /outing-wishlist/outing-courses/{courseId}).
@@ -19,7 +26,13 @@ import type { CandidateComponent } from "@/types/api";
    장소별 이동시간은 duration_minutes 로 온다(없으면 문구를 뺀다). */
 const CourseMap = dynamic(
   () => import("@/features/recommendations/CourseMap").then((m) => m.CourseMap),
-  { ssr: false },
+  {
+    ssr: false,
+    // 지도 코드를 받는 동안 빈 칸 대신 지도 자리를 미리 잡아 두어 화면이 밀리지 않게 한다
+    loading: () => (
+      <div className="route route--live route--skeleton" aria-hidden="true" />
+    ),
+  },
 );
 
 export interface WishlistCourseSheetProps {
@@ -52,6 +65,22 @@ export function WishlistCourseSheet({
   // 구성 요소(장소 · 이벤트)를 순서대로 한 줄로 펴고, 지도·목록이 같이 쓰는 모양으로 바꾼다
   const items = courseStopItems(course?.stops).sort(
     (a, b) => a.sequence - b.sequence,
+  );
+  // 길찾기 버튼용 — 장소마다 좌표를 아는 경우에만 만든다
+  const routePoints = items.map((it) =>
+    toRoutePoint(it.name, it.coordinate?.lat, it.coordinate?.lng),
+  );
+  const knownRoutePoints = routePoints.filter(
+    (p): p is NonNullable<typeof p> => p !== null,
+  );
+  // 장소 사이의 도보 경로(못 받으면 null — 지도는 직선 점선으로 대신한다)
+  const walkPath = useWalkingRoute(
+    items.map((it) =>
+      typeof it.coordinate?.lat === "number" &&
+      typeof it.coordinate?.lng === "number"
+        ? { lat: it.coordinate.lat, lng: it.coordinate.lng }
+        : null,
+    ),
   );
   const components: CandidateComponent[] = items.map((it, i) => ({
     sequence: i + 1,
@@ -100,15 +129,28 @@ export function WishlistCourseSheet({
         course && (
           <div className="wl__foot">
             {saved && <p className="pdetail__saved">최초 저장일 {saved}</p>}
-            <button
-              className="btn btn--soft btn--block"
-              type="button"
-              disabled={deleteCourse.isPending}
-              onClick={() => void handleDelete()}
-            >
-              <Icon name="trash" size={18} />
-              <span>보관함에서 삭제</span>
-            </button>
+            {/* 코스 추천 상세처럼 길찾기가 왼쪽, 삭제가 오른쪽 */}
+            <div className="wl__foot-row">
+              {knownRoutePoints.length >= 2 && (
+                <button
+                  className="btn btn--ghost"
+                  type="button"
+                  onClick={() => openNaverCourseRoute(knownRoutePoints)}
+                >
+                  <Icon name="route" size={18} />
+                  <span>길찾기</span>
+                </button>
+              )}
+              <button
+                className="btn btn--soft btn--block"
+                type="button"
+                disabled={deleteCourse.isPending}
+                onClick={() => void handleDelete()}
+              >
+                <Icon name="trash" size={18} />
+                <span>보관함에서 삭제</span>
+              </button>
+            </div>
           </div>
         )
       }
@@ -128,7 +170,7 @@ export function WishlistCourseSheet({
       )}
       {course && (
         <>
-          <CourseMap components={components} />
+          <CourseMap components={components} walkPath={walkPath} />
           <div className="stats">
             <div className="stat">
               <p className="stat__key">구성</p>
@@ -146,7 +188,24 @@ export function WishlistCourseSheet({
               <div className="step" key={it.stop_id}>
                 <span className="step__no">{i + 1}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span className="step__name">{it.name}</span>
+                  <span className="step__name">
+                    {it.name}
+                    {/* 이름 오른쪽 지도 아이콘을 누르면 네이버 지도에서 이 장소를 연다(이름 + 추천 지역으로 검색) */}
+                    <a
+                      className="step__maplink"
+                      href={naverMapCourseStopUrl(
+                        it.name,
+                        area,
+                        it.type === "event",
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${it.name} 네이버 지도에서 보기`}
+                      title="네이버 지도에서 보기"
+                    >
+                      <Icon name="map" size={15} />
+                    </a>
+                  </span>
                   <span className="step__meta">
                     {categoryLabel(components[i].category)}
                     {it.type === "event" && " · 이벤트"}

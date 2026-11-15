@@ -205,6 +205,9 @@ export type Effect = "RELOGIN" | "FIELD" | "RETRY" | "RETRY_AFTER";
 
 export interface UiRule {
   tone: Tone;
+  /** 토스트 제목 — 서버가 주는 제목(…합니다.) 대신 우리 말투로 보여 준다 */
+  title: string;
+  /** 본문. RETRY_AFTER 오류는 서버가 초를 주면 "N초 뒤에 다시 시도해 주세요."로 바뀐다 */
   text: string;
   effect?: Effect;
   silent?: boolean;
@@ -213,127 +216,155 @@ export interface UiRule {
 export const UI: Record<string, UiRule> = {
   MALFORMED_REQUEST: {
     tone: "error",
-    text: "요청 형식이 올바르지 않아요. 입력값을 확인해 주세요.",
+    title: "요청을 처리할 수 없어요",
+    text: "입력값을 확인해 주세요.",
   },
   INVALID_RECOMMENDATION_RUN_ID: {
     tone: "error",
+    title: "추천을 이어갈 수 없어요",
     text: "추천 요청 정보를 찾을 수 없어요. 다시 추천받아 주세요.",
   },
   AUTHENTICATION_REQUIRED: {
     tone: "error",
+    title: "다시 로그인",
     text: "로그인이 만료되었어요. 다시 로그인해 주세요.",
     effect: "RELOGIN",
   },
   REFRESH_TOKEN_REQUIRED: {
     tone: "error",
+    title: "다시 로그인",
     text: "세션을 갱신할 수 없어요. 다시 로그인해 주세요.",
     effect: "RELOGIN",
   },
   CSRF_VALIDATION_FAILED: {
     tone: "error",
+    title: "다시 로그인",
     text: "요청 출처를 확인할 수 없어요. 다시 로그인해 주세요.",
     effect: "RELOGIN",
   },
   RECOMMENDATION_ACCESS_DENIED: {
     tone: "error",
+    title: "볼 수 없는 추천이에요",
     text: "이 추천 결과를 볼 권한이 없어요.",
   },
   PLACE_NOT_FOUND: {
     tone: "warn",
+    title: "장소를 찾을 수 없어요",
     text: "삭제되었거나 없는 장소예요.",
   },
   EVENT_NOT_FOUND: {
     tone: "warn",
+    title: "이벤트를 찾을 수 없어요",
     text: "종료되었거나 없는 이벤트예요.",
   },
   COURSE_NOT_FOUND: {
     tone: "warn",
+    title: "코스를 찾을 수 없어요",
     text: "삭제된 코스예요. 보관함을 새로고침할게요.",
   },
   ADVERTISEMENT_NOT_FOUND: {
     tone: "warn",
+    title: "광고를 찾을 수 없어요",
     text: "종료된 광고예요.",
   },
   OUTING_ITEM_NOT_FOUND: {
     tone: "warn",
+    title: "항목을 찾을 수 없어요",
     text: "이미 삭제된 항목이에요.",
   },
   ANALYSIS_RUN_NOT_FOUND: {
     tone: "warn",
+    title: "찾을 수 없어요",
     text: "분석 작업을 찾을 수 없어요.",
   },
   COLLECTION_NOT_FOUND: {
     tone: "warn",
+    title: "찾을 수 없어요",
     text: "공유 보관함을 찾을 수 없어요.",
   },
   COLLECTION_ACCESS_DENIED: {
     tone: "error",
+    title: "접근할 수 없어요",
     text: "이 공유 보관함의 구성원이 아니에요.",
   },
   INVITATION_EXPIRED: {
     tone: "warn",
-    text: "초대 링크가 만료되었어요. 새 링크를 요청해 주세요.",
+    title: "초대 링크가 만료됐어요",
+    text: "새 링크를 요청해 주세요.",
   },
   RECOMMENDATION_RUN_NOT_FOUND: {
     tone: "warn",
-    text: "추천 결과가 만료되었어요. 조건을 다시 확인해 주세요.",
+    title: "추천 결과가 만료됐어요",
+    text: "조건을 다시 확인해 주세요.",
   },
   SYNC_ALREADY_IN_PROGRESS: {
     tone: "warn",
-    text: "이미 동기화가 진행 중이에요. 완료된 뒤 다시 시도해 주세요.",
+    title: "이미 불러오는 중이에요",
+    text: "완료된 뒤 다시 시도해 주세요.",
   },
   RECOMMENDATION_NOT_COMPLETED: {
     tone: "info",
+    title: "추천을 만들고 있어요",
     text: "추천을 만들고 있어요.",
     silent: true,
   },
   USER_VALIDATION_FAILED: {
     tone: "error",
+    title: "입력이 올바르지 않아요",
     text: "입력값을 확인해 주세요.",
     effect: "FIELD",
   },
   COLLECTION_VALIDATION_FAILED: {
     tone: "error",
+    title: "보관함에 담지 못했어요",
     text: "보관함에 추가할 수 없는 항목이에요.",
   },
   RECOMMENDATION_LIMIT_EXCEEDED: {
     tone: "warn",
-    text: "추천 요청이 너무 잦아요.",
+    title: "요청이 너무 잦아요",
+    text: "잠시 후 다시 시도해 주세요.",
     effect: "RETRY_AFTER",
   },
   TOKEN_REFRESH_LIMIT_EXCEEDED: {
     tone: "warn",
+    title: "요청이 너무 많아요",
     text: "잠시 후 다시 시도해 주세요.",
     effect: "RETRY_AFTER",
   },
   INTERNAL_SERVER_ERROR: {
     tone: "error",
+    title: "문제가 생겼어요",
     text: "일시적인 오류예요. 잠시 후 다시 시도해 주세요.",
     effect: "RETRY",
   },
   YOUTUBE_SERVICE_FAILURE: {
     tone: "error",
-    text: "YouTube와 연결하지 못했어요.",
+    title: "YouTube에 연결하지 못했어요",
+    text: "잠시 후 다시 시도해 주세요.",
     effect: "RETRY",
   },
   AUTHENTICATION_SERVICE_UNAVAILABLE: {
     tone: "error",
-    text: "인증 서비스를 이용할 수 없어요.",
+    title: "로그인 서비스를 쓸 수 없어요",
+    text: "잠시 후 다시 시도해 주세요.",
     effect: "RETRY_AFTER",
   },
   CHAT_SERVICE_UNAVAILABLE: {
     tone: "error",
-    text: "AI 분석 서비스가 혼잡해요.",
+    title: "AI 분석이 혼잡해요",
+    text: "잠시 후 다시 시도해 주세요.",
     effect: "RETRY_AFTER",
   },
   RECOMMENDATION_SERVICE_UNAVAILABLE: {
     tone: "error",
-    text: "추천 서비스를 이용할 수 없어요.",
+    title: "추천 서비스를 쓸 수 없어요",
+    text: "잠시 후 다시 시도해 주세요.",
     effect: "RETRY_AFTER",
   },
   YOUTUBE_SERVICE_TIMEOUT: {
     tone: "error",
-    text: "YouTube 응답이 지연되고 있어요.",
+    title: "YouTube 응답이 늦어요",
+    text: "잠시 후 다시 시도해 주세요.",
     effect: "RETRY",
   },
 };

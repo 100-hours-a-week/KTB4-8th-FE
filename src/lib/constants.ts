@@ -106,6 +106,14 @@ export const SYNC_PROGRESS_DUMMY =
     워크플로의 --build-arg 가 필요하다(인프라 담당 파일). 로컬에서는 .env.local 에 NEXT_PUBLIC_LANDING=off 를 둔다. */
 export const LANDING_ENABLED = process.env.NEXT_PUBLIC_LANDING !== "off";
 
+/** 오류 토스트 · 안내에 상태 코드(404 · PLACE_NOT_FOUND)와 추적 번호를 보여 줄지.
+    개발자가 원인을 찾을 때만 필요해서 운영에서는 숨긴다 — 로컬 개발(next dev)은 늘 켜져 있고,
+    dev 서버처럼 운영 빌드로 올라가는 환경은 NEXT_PUBLIC_SHOW_ERROR_DETAIL=on 일 때만 켠다(값이 없으면 숨김).
+    NEXT_PUBLIC_* 는 빌드 시점에 고정되므로, dev 서버용 빌드에 넘기려면 Dockerfile 의 ARG 와 워크플로의 --build-arg 가 필요하다(인프라 담당 파일). */
+export const SHOW_ERROR_DETAIL =
+  process.env.NODE_ENV !== "production" ||
+  process.env.NEXT_PUBLIC_SHOW_ERROR_DETAIL === "on";
+
 /** 좋아요 영상 불러오기를 BE v3(POST /api/v3/member/youtube-sync, SSE)로 한다 — 분석한 영상 수 · 진행률이 실시간으로 온다.
     켜면 가짜 진행률(SYNC_PROGRESS_DUMMY) 대신 실제 값을 쓰고, v3 가 없는 서버(404 등)면 예전 v2 방식 + 가짜 진행률로 돌아간다.
     BE v3 가 배포돼 있을 때만 on 으로 켠다. */
