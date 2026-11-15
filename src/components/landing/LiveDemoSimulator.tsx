@@ -38,7 +38,13 @@ const CARD_WIDTH = 350;
 /** 2 · 3단계 화면의 최대 너비 */
 const WIDE_WIDTH = 392;
 
+/** 데모에서 분석하는 영상 수(1단계 카드 · 2단계 화면이 같은 숫자를 쓴다) */
+const TOTAL_VIDEOS = 120;
+
 const SYNC_START_MS = 2000;
+/** 영상을 가져오는 동안(진행률 없음) */
+const SYNC_FETCH_MS = 1200;
+/** 분석이 진행되는 동안(진행바 · "N / M 영상 분석됨") */
 const SYNC_LOADING_MS = 2600;
 const ANALYZE_MS = 5200;
 const ANALYZE_HOLD_MS = 700;
@@ -53,15 +59,15 @@ function useLatest<T>(value: T) {
   return ref;
 }
 
-/* 1단계 — 쇼츠 수집: 시작하기 → 불러오는 중 */
+/* 1단계 — 쇼츠 수집: 시작하기 → 불러오는 중 → AI 분석 중(스트리밍으로 진행률이 차오름) */
 function SyncStage({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<SyncCardPhase>("start");
-  // 불러오는 중에도 진행바가 차오른다(실제 앱의 불러오기 카드와 같다)
+  // 분석 중에는 진행바가 차오른다(실제 앱의 불러오기 카드와 같다)
   const [percent, setPercent] = useState(0);
   const done = useLatest(onDone);
 
   useEffect(() => {
-    if (phase !== "loading") return;
+    if (phase !== "analyzing") return;
     const startedAt = performance.now();
     const id = window.setInterval(() => {
       const t = Math.min(1, (performance.now() - startedAt) / SYNC_LOADING_MS);
@@ -76,12 +82,17 @@ function SyncStage({ onDone }: { onDone: () => void }) {
       () => setPhase("loading"),
       SYNC_START_MS,
     );
+    const toAnalyzing = window.setTimeout(
+      () => setPhase("analyzing"),
+      SYNC_START_MS + SYNC_FETCH_MS,
+    );
     const finish = window.setTimeout(
       () => done.current(),
-      SYNC_START_MS + SYNC_LOADING_MS,
+      SYNC_START_MS + SYNC_FETCH_MS + SYNC_LOADING_MS,
     );
     return () => {
       window.clearTimeout(toLoading);
+      window.clearTimeout(toAnalyzing);
       window.clearTimeout(finish);
     };
   }, [done]);
@@ -92,6 +103,7 @@ function SyncStage({ onDone }: { onDone: () => void }) {
       <SyncCardView
         phase={phase}
         percent={percent}
+        total={TOTAL_VIDEOS}
         onStart={() => {
           setPercent(0);
           setPhase("loading");
@@ -125,7 +137,6 @@ const CANDIDATES = [
     verifyAt: 92,
   },
 ];
-const TOTAL_VIDEOS = 120;
 
 /* 2단계 — AI 분석: 영상에서 장소를 추출하고, 이름 · 주소 · 위치를 검증한다(일치율은 예시) */
 function AnalyzeStage({ onDone }: { onDone: () => void }) {

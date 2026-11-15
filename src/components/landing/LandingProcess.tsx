@@ -50,9 +50,9 @@ export function LandingProcess() {
       ],
       pose: "detect",
       characterBubble: "간판이랑 자막에서 장소 발견! 🔍",
-      progressPercent: 88,
-      progressLabel: "영상 분석 진행률 88% (장소 42곳 감지)",
-      extraMeta: "Gemini 1.5 Flash 멀티모달 실시간 처리",
+      progressPercent: 100,
+      progressLabel: "영상 분석 완료 (장소 42곳 감지)",
+      extraMeta: "Gemini 멀티모달 실시간 처리",
     },
     {
       step: "03",
