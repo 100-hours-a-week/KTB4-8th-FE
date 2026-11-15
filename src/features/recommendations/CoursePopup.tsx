@@ -63,6 +63,7 @@ import {
   type RelaxSuggestion,
 } from "./CandidatesSheet";
 import { CandidateDetailSheet } from "./CandidateDetailSheet";
+import { preloadCourseMap } from "./preloadCourseMap";
 import type {
   Candidate,
   Category,
@@ -310,6 +311,12 @@ export function CoursePopup() {
   const recommend = useRequestRecommendation();
   const cancelRecommendation = useCancelRecommendation();
   const generating = phase === "creating";
+  // 추천을 만드는 동안과 코스 목록이 보일 때 지도를 미리 받아 둔다 — 코스 상세가 바로 뜨게
+  const viewName = view?.name;
+  useEffect(() => {
+    if (generating || viewName === "candidates" || viewName === "detail")
+      preloadCourseMap();
+  }, [generating, viewName]);
   // 메시지를 한 번이라도 보냈는지 — CondCard 를 강제로 띄우는 fallback 에 쓴다
   const firstMessageSent = lines.some((l) => l.role === "USER");
 
@@ -1042,6 +1049,7 @@ export function CoursePopup() {
         <CandidateDetailSheet
           candidate={view.candidate}
           slots={slots}
+          origin={origin}
           onClose={() => setView({ name: "candidates", result: view.result })}
           onBack={() => setView({ name: "candidates", result: view.result })}
           onAdded={handleAdded}

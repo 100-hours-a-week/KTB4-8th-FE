@@ -118,6 +118,21 @@ export function OriginPinPicker({ onClose, onSaved }: OriginPinPickerProps) {
     }, LOOKUP_DEBOUNCE_MS);
   }, []);
 
+  /** 지도를 프로그램으로 옮긴다(현재 위치 등). 지도가 멈추는 idle 이벤트에 기대지 않고 중심 좌표와 정보 조회를 바로 갱신한다.
+      예전에는 setCenter 만 하고 idle 을 기다렸는데, 시트가 열리며 크기가 바뀌는 중(resizing)에는 idle 을 무시하고 ResizeObserver 가
+      "예전 중심"으로 되돌려서, 위치가 아주 빨리 오면(캐시된 위치) 현재 위치로 안 가고 처음 위치에 남았다. */
+  const moveTo = useCallback(
+    (lat: number, lng: number) => {
+      const map = mapRef.current;
+      if (!map) return;
+      const target = new naver.maps.LatLng(lat, lng);
+      centerRef.current = target;
+      map.setCenter(target);
+      scheduleLookup(lat, lng);
+    },
+    [scheduleLookup],
+  );
+
   useEffect(() => {
     let cancelled = false;
     permissionState().then((state) => {
@@ -206,7 +221,7 @@ export function OriginPinPicker({ onClose, onSaved }: OriginPinPickerProps) {
           currentPosition()
             .then((pos) => {
               if (cancelled) return;
-              map?.setCenter(new ns.maps.LatLng(pos.latitude, pos.longitude));
+              moveTo(pos.latitude, pos.longitude);
             })
             .catch(() => {
               /* 권한 거부·실패는 조용히 넘어간다 — 지도를 직접 움직이면 된다 */
@@ -232,7 +247,7 @@ export function OriginPinPicker({ onClose, onSaved }: OriginPinPickerProps) {
         /* SDK 내부 정리 실패는 무시 */
       }
     };
-  }, [container, start, scheduleLookup]);
+  }, [container, start, scheduleLookup, moveTo]);
 
   async function moveToCurrentLocation() {
     const map = mapRef.current;
@@ -241,8 +256,7 @@ export function OriginPinPicker({ onClose, onSaved }: OriginPinPickerProps) {
     setNotice(null);
     try {
       const pos = await currentPosition();
-      // 이동이 끝나면 idle 이 발생해 정보 조회가 이어진다
-      map.setCenter(new naver.maps.LatLng(pos.latitude, pos.longitude));
+      moveTo(pos.latitude, pos.longitude);
     } catch (err) {
       const code = (err as { code?: number } | null)?.code;
       if (code === 1) {

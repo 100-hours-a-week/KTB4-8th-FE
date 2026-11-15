@@ -17,6 +17,7 @@ import {
   type DdayLevel,
 } from "@/lib/format";
 import { useCourseStore } from "@/features/recommendations/courseStore";
+import { preloadCourseMap } from "@/features/recommendations/preloadCourseMap";
 import {
   countNewItems,
   describeAdded,
@@ -354,6 +355,11 @@ function CollectionContent() {
     kind: "course" as const,
     id: String(c.course_id),
   }));
+  // 보관한 코스가 보이면 코스 상세의 지도를 미리 받아 둔다(상세를 열 때 지도가 바로 뜨게)
+  const hasCourseRows = courseItems.length > 0;
+  useEffect(() => {
+    if (hasCourseRows) preloadCourseMap();
+  }, [hasCourseRows]);
   const selectableItems: SelectableItem[] = !selectTab
     ? []
     : tab === "PLACE"

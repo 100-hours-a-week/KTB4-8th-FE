@@ -32,6 +32,9 @@ export default function RootLayout({
       <head>
         {/* 저장된 화면 모드(라이트/다크/시스템)를 첫 화면을 그리기 전에 적용해 깜빡임을 막는다 */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* 코스 지도 스크립트 · 인증 서버에 미리 연결해 둔다(지도가 뜨기까지의 연결 시간을 줄인다) */}
+        <link rel="preconnect" href="https://oapi.map.naver.com" />
+        <link rel="dns-prefetch" href="https://nrbe.pstatic.net" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
