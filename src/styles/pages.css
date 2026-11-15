@@ -854,15 +854,17 @@
   height: 14px;
   border: 0;
   background: conic-gradient(from 0deg, transparent 0%, currentColor 100%);
+  /* 안쪽 구멍 경계를 1px 폭으로 부드럽게 잇는다 — 딱 끊으면 마스크가 계단 모양으로 그려져서
+     작은 크기(14px)에서 구멍 안쪽이 꽃잎처럼 울퉁불퉁해 보인다 */
   -webkit-mask: radial-gradient(
     farthest-side,
-    transparent calc(100% - var(--ring)),
-    #000 calc(100% - var(--ring))
+    transparent calc(100% - var(--ring) - 0.6px),
+    #000 calc(100% - var(--ring) + 0.4px)
   );
   mask: radial-gradient(
     farthest-side,
-    transparent calc(100% - var(--ring)),
-    #000 calc(100% - var(--ring))
+    transparent calc(100% - var(--ring) - 0.6px),
+    #000 calc(100% - var(--ring) + 0.4px)
   );
   position: relative;
   animation-duration: 0.85s;
