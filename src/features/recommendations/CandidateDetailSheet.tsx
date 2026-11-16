@@ -27,7 +27,7 @@ import {
 import { useAddCourseItem } from "./queries";
 import { FitZoom } from "./FitZoom";
 import { OriginSwitch } from "./OriginSwitch";
-import { useWalkingRoute } from "./walkingRoute";
+import { useWalkingRouteState } from "./walkingRoute";
 import { hasOriginCoordinates, type Origin, type Slots } from "./courseStore";
 import type { Candidate } from "@/types/api";
 
@@ -79,7 +79,7 @@ export function CandidateDetailSheet({
     : null;
 
   // 장소 사이의 도보 경로(못 받으면 null — 지도는 직선 점선으로 대신한다)
-  const walkPath = useWalkingRoute(
+  const { path: walkPath, loading: walkLoading } = useWalkingRouteState(
     candidate.components.map((c) =>
       typeof c.latitude === "number" && typeof c.longitude === "number"
         ? { lat: c.latitude, lng: c.longitude }
@@ -173,6 +173,7 @@ export function CandidateDetailSheet({
         origin={originPoint}
         includeOrigin={includeOrigin}
         walkPath={walkPath}
+        walkPending={walkLoading}
       />
       {/* 순위 · 소요시간 카드와 이동 순서는 시트 높이에 안 들어가면 글자 · 번호 원 · 간격을 같은 비율로 줄여 스크롤 없이 보이게 한다(FitZoom) */}
       <FitZoom>
