@@ -35,6 +35,22 @@ export function naverMapUrl(
   return naverMapSearchUrl(name, addressRoad);
 }
 
+/** 보관한 코스의 장소를 네이버 지도에서 여는 주소 — 코스 상세 응답에는 네이버 장소 ID 도 주소도 없어서 이름으로 검색한다.
+    같은 이름의 지점이 여러 곳일 수 있어(예: "쌤쌤쌤" 용산점 · 광화문점 · 롯데월드몰점) 추천받은 지역("용산")을 이름 뒤에 붙인다.
+    지역은 다음 경우에는 붙이지 않는다 — 이름에 이미 지점명("~점")이 있거나, 이름에 그 지역이 들어 있거나, 이벤트(이름이 곧 행사명이라 지역이 오히려 검색을 흐린다).
+    BE 가 코스 상세에 도로명 주소를 내려주면 지역 대신 그 주소를 붙이는 쪽이 더 정확하다. */
+export function naverMapCourseStopUrl(
+  name: string,
+  region?: string | null,
+  isEvent = false,
+) {
+  const trimmed = name.trim();
+  const area = region?.trim();
+  const useRegion =
+    !!area && !isEvent && !trimmed.endsWith("점") && !trimmed.includes(area);
+  return naverMapUrl(trimmed, useRegion ? area : null);
+}
+
 function naverMapSearchUrl(name: string, addressRoad?: string | null) {
   const query = [name, addressRoad].filter(Boolean).join(" ");
   return `https://map.naver.com/p/search/${encodeURIComponent(query)}`;

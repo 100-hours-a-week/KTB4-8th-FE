@@ -2158,6 +2158,36 @@
   flex: 1;
   min-width: 0;
 }
+/* "출발지 포함" 스위치 — 앱의 .switch__track 을 작게 쓴다 */
+.originsw {
+  flex: none;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.originsw .switch__track {
+  /* 글자(11px)보다 조금 작게. 한글 글자는 줄 상자 중앙보다 살짝 위에 앉아서, 눈으로 보이는 글자 중앙에 맞추려고 1px 올린다 */
+  width: 20px;
+  height: 12px;
+  top: -1px;
+}
+.originsw .switch__track::after {
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+}
+.originsw[role="switch"][aria-checked="true"] .switch__track::after {
+  transform: translateX(8px);
+}
 .cand__name {
   display: block;
   font: var(--t-h3);
@@ -2232,9 +2262,26 @@
 }
 
 /* 실제 지도(Leaflet)를 붙였을 때 */
+.route.route--live {
+  /* 코스 경로가 더 크게 들어오도록 기본(172px)보다 조금 높게 */
+  height: 188px;
+}
 .route--live {
   padding: 0;
   background: var(--surface-2);
+  /* 폰에서 지도 위의 두 손가락 확대 · 한 손가락 이동을 브라우저(페이지 확대 · 시트 스크롤)가 가로채지 않고 지도가 받게 한다 */
+  touch-action: none;
+}
+/* 지도 코드 · 타일을 받는 동안 지도 자리에 보이는 흐린 움직임(.skeleton 과 같은 모양) */
+.route--live.route--skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-3) 25%,
+    var(--surface-2) 45%,
+    var(--surface-3) 65%
+  );
+  background-size: 260% 100%;
+  animation: kg-shimmer 1.4s var(--e-io) infinite;
 }
 .route--live::before {
   display: none;
@@ -2250,6 +2297,93 @@
   font-size: 10px;
   background: rgba(255, 255, 255, 0.78);
 }
+/* 코스 지도의 확대 · 축소 버튼 — 지도 오른쪽 아래 구석에 오른쪽 · 아래 여백을 같게(8px) 둔다.
+   NAVER 로고는 지도 옵션(logoControlOptions)으로 왼쪽 아래로 옮겨서 버튼과 겹치지 않는다 */
+.coursemap {
+  position: relative;
+}
+/* 거리 눈금 — 확대 · 축소할 때만 나타났다 사라진다. 왼쪽 아래의 NAVER 로고 · 출처 줄 바로 위에 놓는다 */
+.coursemap__scale {
+  position: absolute;
+  left: 10px;
+  bottom: 26px;
+  z-index: 4;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s var(--e-out, ease);
+  color: #222;
+  font: 700 11px/1 var(--font);
+  /* 지도 위에서 읽히도록 흰 테두리 */
+  text-shadow:
+    0 0 3px #fff,
+    0 0 3px #fff,
+    0 0 3px #fff;
+}
+.coursemap__scale.is-on {
+  opacity: 1;
+}
+.coursemap__scale i {
+  display: block;
+  height: 6px;
+  box-sizing: border-box;
+  border: 2px solid #222;
+  border-top: 0;
+  filter: drop-shadow(0 0 2px #fff);
+  transition: width 0.15s ease;
+}
+/* NAVER 로고(왼쪽 아래)를 조금 오른쪽으로 — SDK 가 로고 링크에 인라인 margin(0 5px 7px 12px)을 주므로
+   !important 로 왼쪽 여백만 12px → 18px 로 키운다(크기 · 색은 그대로, 가리지 않는다) */
+.route--live a[href*="notice/legal.html"] {
+  margin-left: 18px !important;
+}
+/* 도보 경로 출처 표기(OpenStreetMap 데이터) — 지도 왼쪽 아래, NAVER 로고(왼쪽 아래, 폭 약 42px) 바로 오른쪽 */
+.coursemap__credit {
+  position: absolute;
+  left: 70px; /* 로고 왼쪽 여백 18 + 로고 폭 45 + 간격 7 */
+  bottom: 7px; /* 로고(높이 10, 아래 여백 7)와 세로 중앙을 맞춘다 */
+  z-index: 4;
+  color: #333;
+  font: 600 10px/1 var(--font);
+  text-decoration: none;
+  /* 지도 위에서 읽히도록 흰 테두리 */
+  text-shadow:
+    0 0 3px #fff,
+    0 0 3px #fff,
+    0 0 3px #fff;
+}
+.coursemap__credit:hover {
+  text-decoration: underline;
+}
+.coursemap__zoom {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--sh-sm, 0 1px 6px rgba(0, 0, 0, 0.14));
+}
+.coursemap__zoom button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 500 18px/1 var(--font);
+}
+.coursemap__zoom button + button {
+  border-top: 1px solid var(--line);
+}
+.coursemap__zoom button:active {
+  background: var(--surface-2);
+}
 .route__marker {
   background: transparent;
   border: 0;
@@ -2259,6 +2393,63 @@
   display: grid;
   width: 30px;
   height: 30px;
+}
+/* 출발지 핀 — 장소 번호 핀(초록)과 구분되게 짙은 색 + "출발" */
+/* 지도 핀(물방울) — 끝(아래 가운데)이 좌표. 숫자는 머리 안. 선(zIndex 1~2)보다 위(10 이상)에 그린다 */
+.route__pin.route__pin--dot {
+  position: relative;
+  display: block;
+  width: 96px;
+  height: 60px;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+/* 지도 점 — 작은 동그라미(숫자). 얇고 어두운 테두리와 살짝 번지는 경계 */
+.route__pin--dot b {
+  position: absolute;
+  left: 35.5px; /* (96 - 25) / 2 */
+  top: 0;
+  display: block;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  /* 원과 글자는 안쪽 SVG 가 그린다(CourseMap 의 dotHtml). 여기서는 기본 번호 원(.route__pin, 30px)과 같은 초록 그림자를 25px 에 맞게 줄여 둘렀다 */
+  font: 700 12px/1 var(--font);
+  /* 얇고 어두운 테두리는 SVG 원이 그리고, 여기서는 그 경계가 살짝 번지는 빛과 아래 초록 그림자를 둘렀다 */
+  box-shadow:
+    0 0 1.2px 0.6px rgba(8, 70, 45, 0.3),
+    0 6px 16px rgba(22, 164, 107, 0.28);
+}
+.route__pin--dot b svg {
+  display: block;
+}
+.route__pin--dot.route__pin--origin b {
+  box-shadow:
+    0 0 1.2px 0.6px rgba(23, 22, 27, 0.35),
+    0 4px 9px rgba(23, 22, 27, 0.3);
+}
+/* 장소 이름 — 충분히 확대했을 때(.route--labels)만. 네이버 지도 글자처럼 흰 테두리 */
+.route__pinlabel {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 28px;
+  display: none;
+  text-align: center;
+  color: #222;
+  font: 700 11px/1.2 var(--font);
+  font-style: normal;
+  word-break: keep-all;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 2px #fff,
+    0 0 3px #fff,
+    0 0 3px #fff;
+}
+.route--labels .route__pinlabel {
+  display: block;
 }
 
 .stats {
@@ -2328,11 +2519,34 @@
   z-index: 1;
   box-shadow: 0 4px 10px rgba(255, 90, 54, 0.3);
 }
+/* 이동 순서 맨 앞의 출발지 — 장소 번호(초록)와 구분되게 짙은 색 */
+.step__no--origin {
+  background: #17161b;
+  box-shadow: 0 4px 10px rgba(23, 22, 27, 0.25);
+}
 .step__name {
   display: block;
   font: var(--t-h3);
   letter-spacing: var(--tr-h3);
   font-size: 15px;
+}
+/* 장소 이름 오른쪽 지도 아이콘 — 누르면 네이버 지도가 열린다(눌리는 영역은 아이콘보다 넓게) */
+.step__maplink {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px 0 -4px 2px;
+  border-radius: 50%;
+  color: var(--ink-4);
+  vertical-align: middle;
+  transition:
+    background var(--d-base) var(--e-io),
+    color var(--d-base) var(--e-io);
+}
+.step__maplink:hover {
+  background: var(--surface-2);
+  color: var(--brand-600);
 }
 .step__meta {
   display: block;
@@ -3300,6 +3514,18 @@ button.me__row:hover {
   font: var(--t-xs);
   color: var(--ink-3);
 }
+/* 코스 상세 하단 — 길찾기(왼쪽, 글자만큼) + 보관함에서 삭제 · 이 코스 추가하기(오른쪽, 남는 폭). 보관한 코스 상세와 코스 추천 상세가 같이 쓴다 */
+.wl__foot-row {
+  display: flex;
+  gap: 10px;
+}
+.wl__foot-row > .btn {
+  flex: none;
+}
+.wl__foot-row > .btn--block {
+  flex: 1;
+  min-width: 0;
+}
 /* 보관한 장소 상세는 저장일과 버튼 위의 구분선을 두지 않는다 */
 .sheet:has(.wl__foot) .sheet__foot {
   border-top: 0;
@@ -3474,7 +3700,9 @@ button.me__row:hover {
    지도 위 정중앙에 핀을 고정하고, 사용자가 지도를 밀어 위치를 맞춘다(OriginPinPicker).
    시트는 full 이라 본문이 세로 flex 이고, 지도가 남는 높이를 모두 쓰고 주소 카드가 아래에 붙는다.
    핀 끝(점)이 지도 중심이라서 .pinmap__pin 은 크기 0 의 기준점이고,
-   말풍선과 줄기는 그 위쪽으로 그린다. 핀은 터치를 받지 않아 지도 드래그를 막지 않는다. */
+   말풍선과 줄기는 그 위쪽으로 그린다. 핀은 터치를 받지 않아 지도 드래그를 막지 않는다.
+   네이버 지도는 다크 모드에서도 밝은 지도라서, 지도 위에 얹는 핀 · 말풍선 · 현재 위치 버튼은
+   테마 색(--ink)을 쓰지 않고 항상 같은 어두운 색 · 흰 글자로 둔다(다크 모드에서 --ink 가 밝아져 글자가 안 보였다). */
 .pinmap {
   position: relative;
   flex: 1;
@@ -3512,7 +3740,7 @@ button.me__row:hover {
 .pinmap__bubble {
   padding: 7px 14px;
   border-radius: 8px;
-  background: var(--ink);
+  background: #17161b;
   color: #fff;
   font: var(--t-h3);
   font-size: 14px;
@@ -3523,7 +3751,7 @@ button.me__row:hover {
 .pinmap__stem {
   width: 2px;
   height: 14px;
-  background: var(--ink);
+  background: #17161b;
 }
 .pinmap__dot {
   position: absolute;
@@ -3532,7 +3760,7 @@ button.me__row:hover {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--ink);
+  background: #17161b;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9);
   transition:
     transform 0.18s var(--e-out),
@@ -3559,12 +3787,12 @@ button.me__row:hover {
   border: 0;
   border-radius: 50%;
   background: #fff;
-  color: var(--ink);
+  color: #17161b;
   box-shadow: 0 2px 10px rgba(20, 18, 26, 0.22);
   cursor: pointer;
 }
 .pinmap__locate:disabled {
-  color: var(--ink-4);
+  color: #9b99a3;
   cursor: default;
 }
 .pinmap__addr {
