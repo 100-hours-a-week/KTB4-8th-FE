@@ -6,6 +6,7 @@ import { Empty } from "@/components/ui/Primitives";
 import { CATEGORY_EMOJI, TIME_OF_DAY_LABEL } from "@/lib/constants";
 import { courseTime, fmtDate } from "@/lib/format";
 import type { Slots } from "./courseStore";
+import { usePrefetchWalkingRoutes } from "./walkingRoute";
 import type {
   AvailableMinutes,
   Candidate,
@@ -90,6 +91,16 @@ export function CandidatesSheet({
   onGoHome,
 }: CandidatesSheetProps) {
   const candidates = result.candidates ?? [];
+  // 후보를 누르기 전에 도보 경로를 미리 받아 둔다 — 누르자마자 직선이 아니라 도보 경로로 그려진다
+  usePrefetchWalkingRoutes(
+    candidates.map((c) =>
+      c.components.map((comp) =>
+        typeof comp.latitude === "number" && typeof comp.longitude === "number"
+          ? { lat: comp.latitude, lng: comp.longitude }
+          : null,
+      ),
+    ),
+  );
   const dateLabel = slots.date
     ? fmtDate(new Date(`${slots.date}T00:00:00+09:00`))
     : "";

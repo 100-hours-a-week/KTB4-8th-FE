@@ -168,6 +168,7 @@ export function CourseMap({
   origin,
   includeOrigin = false,
   walkPath = null,
+  walkPending = false,
 }: {
   components: CandidateComponent[];
   origin?: MapOrigin | null;
@@ -175,6 +176,8 @@ export function CourseMap({
   includeOrigin?: boolean;
   /** 장소 사이의 도보 경로(첫 장소 → 마지막 장소). 있으면 실선으로 그리고, 없으면 장소 사이를 직선 점선으로 잇는다 */
   walkPath?: { lat: number; lng: number }[] | null;
+  /** 도보 경로를 아직 받는 중 — 받는 동안은 직선 점선을 그리지 않는다(직선이 먼저 보였다가 도보 경로로 바뀌는 깜빡임을 막는다). 못 받으면 그때 직선으로 대신한다 */
+  walkPending?: boolean;
 }) {
   const points: MapPoint[] = components
     .filter(
@@ -196,6 +199,9 @@ export function CourseMap({
   const includeRef = useRef(includeOrigin);
   // 도보 경로가 늦게 도착해도 지도를 새로 만들지 않고 선만 바꾼다
   const walkRef = useRef(walkPath);
+  const walkPendingRef = useRef(walkPending);
+  // 장소 사이 직선 점선을 보일지 다시 정하는 함수(지도가 만들어진 뒤에만 있다)
+  const syncStopsRef = useRef<(() => void) | null>(null);
   const applyWalkRef = useRef<
     ((path: { lat: number; lng: number }[] | null) => void) | null
   >(null);
@@ -328,6 +334,11 @@ export function CourseMap({
             : null;
         let walkLine: naver.maps.Polyline | null = null;
         let walkLatLngs: naver.maps.LatLng[] = [];
+        // 직선 점선은 도보 경로가 없고 받는 중도 아닐 때만 보인다
+        const syncStopsLine = () => {
+          stopsLine?.setMap(walkLine || walkPendingRef.current ? null : map!);
+        };
+        syncStopsRef.current = syncStopsLine;
 
         points.forEach((p, i) => {
           new ns.maps.Marker({
@@ -430,10 +441,8 @@ export function CourseMap({
               strokeLineJoin: "round",
               zIndex: 2,
             });
-            stopsLine?.setMap(null);
-          } else {
-            stopsLine?.setMap(map!);
           }
+          syncStopsLine();
           // 도보 경로가 나중에 도착했을 때, 이미 보이는 범위 안이면 지도를 다시 맞추지 않는다 — 지도가 한 번 더 움직이며 확대되는 것처럼 보이지 않게
           const inView = () => {
             try {
@@ -487,6 +496,7 @@ export function CourseMap({
       mapRef.current = null;
       fitRef.current = null;
       applyWalkRef.current = null;
+      syncStopsRef.current = null;
       detachDoubleTap?.();
       resizeObserver?.disconnect();
       if (revealTimer) window.clearTimeout(revealTimer);
@@ -515,6 +525,12 @@ export function CourseMap({
     walkRef.current = walkPath;
     applyWalkRef.current?.(walkPath);
   }, [walkPath]);
+
+  // 도보 경로를 받는 중인지가 바뀌면 직선 점선만 다시 정한다(지도 범위는 건드리지 않는다)
+  useEffect(() => {
+    walkPendingRef.current = walkPending;
+    syncStopsRef.current?.();
+  }, [walkPending]);
 
   // "출발지 포함" 스위치가 바뀌면 지도 범위만 다시 맞춘다
   useEffect(() => {
