@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { loadNaverMaps } from "@/lib/naverMaps";
+import { isNaverGl, loadNaverMaps, zoomShift } from "@/lib/naverMaps";
 import type { CandidateComponent } from "@/types/api";
+import { tightenPlan, type Pad } from "./fitTighten";
 
 /* 코스 상세 지도 — 네이버 지도 API v3.
    이 파일은 CandidateDetailSheet 에서 next/dynamic({ ssr: false }) 으로만 불러온다.
@@ -30,8 +31,17 @@ export interface MapOrigin {
    그보다 짧은 "깔끔한 값"(1 · 2 · 5 · 10 · 20 · 50 … m)을 고르고 그 길이만큼 선을 그린다. */
 const SCALE_MAX_PX = 80;
 const SCALE_HIDE_MS = 1600;
+/** 래스터 지도에서 fitBounds 뒤에 한 단계 더 확대해 봐도 되는지 볼 때 쓰는 줄인 여백(px) — 점(지름 25px)이 잘리지 않을 만큼만 둔다 */
+const TIGHT_PAD: Pad = { top: 22, right: 42, bottom: 42, left: 30 };
+/** 타일이 안 와도 지도를 보여 주는 최대 대기(느린 망 · 이벤트가 안 오는 환경 대비) */
+const REVEAL_MAX_MS = 1200;
+/** 같은 화면의 타일이 캐시에 있어 소식이 먼저 온 경우 보여 주기까지 기다리는 시간 */
+const REVEAL_CACHED_MS = 200;
+/* 눈금 후보 — 1 · 2 · 3 · 5 · 7 이 한 묶음. GL 지도는 + · − 가 반 단계(약 1.41배)씩 움직여서
+   1km · 700m · 500m · 300m · 200m · 100m · 70m · 50m … 처럼 촘촘하게 이어진다(래스터 지도는 한 단계가 2배라 일부를 건너뛴다) */
 const SCALE_STEPS = [
-  1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000,
+  1, 2, 3, 5, 7, 10, 20, 30, 50, 70, 100, 200, 300, 500, 700, 1000, 2000, 3000,
+  5000, 7000, 10000, 20000, 30000, 50000,
 ];
 
 /** meters: SCALE_MAX_PX 가 실제로 몇 m 인지. 눈금 길이(px)와 글자를 돌려준다 */
@@ -125,8 +135,13 @@ const DOT = 25;
 /** 지도의 경로선(도보 경로 · 출발지 점선) 색과 투명도 */
 const ROUTE_COLOR = "#16A46B";
 const ROUTE_OPACITY = 0.9;
-/** 이 확대 단계 이상일 때 장소 이름을 보여 준다 */
+/** 이 확대 단계 이상일 때 장소 이름을 보여 준다(래스터 지도 기준 — GL 지도에서는 zoomShift() 만큼 옮겨 쓴다) */
 const LABEL_ZOOM = 16;
+/** 지도에 맞출 때 확대 한도 · 장소가 하나일 때 확대 단계(래스터 지도 기준) */
+const FIT_MAX_ZOOM = 17;
+const SINGLE_ZOOM = 15;
+/** + · − 버튼이 한 번에 움직이는 단계 — 래스터 지도는 정수 단계뿐이라 1, GL 지도는 반 단계씩 촘촘하게 */
+const GL_ZOOM_STEP = 0.5;
 let dotSeq = 0;
 function dotHtml(label: string, name: string, origin = false) {
   /* 원과 글자를 한 SVG 로 그린다(지하철 노선 배지와 같은 방식). HTML 글자는 줄 높이 · 소수 위치 때문에 원 안에서
@@ -200,6 +215,8 @@ export function CourseMap({
     let map: naver.maps.Map | null = null;
     // 두 번 탭 확대용 터치 감지를 걷어 내는 함수
     let detachDoubleTap: (() => void) | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+    let revealTimer = 0;
     const listeners: naver.maps.MapEventListener[] = [];
 
     loadNaverMaps()
@@ -216,7 +233,9 @@ export function CourseMap({
 
         map = new ns.maps.Map(containerRef.current, {
           center: latlngs[0],
-          zoom: 15,
+          zoom: SINGLE_ZOOM + zoomShift(),
+          // 벡터(GL) 지도를 켠 경우(주소 뒤 ?mapgl=on) 소수점 확대가 된다. 기기가 WebGL 을 못 쓰면 SDK 가 알아서 기본 지도로 돌아간다
+          ...(isNaverGl() ? { gl: true } : {}),
           zoomControl: false,
           // NAVER 로고를 왼쪽 아래로 — 오른쪽 아래 구석은 확대 · 축소 버튼이 쓴다
           logoControl: true,
@@ -233,6 +252,12 @@ export function CourseMap({
         // 확대 · 축소가 일어나면 거리 눈금을 보여 주고 잠깐 뒤 숨긴다. 처음 그려질 때(fitBounds)의 확대는 건너뛴다
         const mapEl = containerRef.current;
         let ready = false;
+        let fitted = false;
+        let tilesBeforeFit = false;
+        const reveal = () => {
+          ready = true;
+          setMapReady(true);
+        };
         const showScale = () => {
           if (!ready || !map || !mapEl) return;
           try {
@@ -259,23 +284,25 @@ export function CourseMap({
         // 충분히 확대했을 때만 장소 이름(.route--labels)을 보여 준다
         const updateLabels = () => {
           if (!map || !mapEl) return;
-          mapEl.classList.toggle("route--labels", map.getZoom() >= LABEL_ZOOM);
+          mapEl.classList.toggle(
+            "route--labels",
+            map.getZoom() >= LABEL_ZOOM + zoomShift(),
+          );
         };
         listeners.push(
           ns.maps.Event.addListener(map, "zoom_changed", showScale),
           ns.maps.Event.addListener(map, "zooming", showScale),
           ns.maps.Event.addListener(map, "zoom_changed", updateLabels),
           ns.maps.Event.addListener(map, "zooming", updateLabels),
-          map.addListenerOnce("idle", () => {
-            ready = true;
-            setMapReady(true);
+          // 코스에 맞춘 화면의 타일이 다 올 때까지 지도를 감춰 둔다(흐린 움직임이 대신 보인다).
+          // 예전에는 처음 idle 에서 바로 보여 줘서, 타일이 오기 전의 회색 네모가 그대로 보였다
+          ns.maps.Event.addListener(map, "tilesloaded", () => {
+            if (fitted) reveal();
+            else tilesBeforeFit = true;
           }),
         );
-        // idle 이 안 오는 환경 대비
-        window.setTimeout(() => {
-          ready = true;
-          setMapReady(true);
-        }, 1500);
+        // 타일 소식이 안 오거나 느린 망이어도 지도는 보여 준다
+        revealTimer = window.setTimeout(reveal, REVEAL_MAX_MS);
 
         // 도보 경로(실선)와 출발지 구간(점선)은 같은 색 · 투명도로 그린다(번호 원과 같은 초록)
         const dashed = {
@@ -328,6 +355,36 @@ export function CourseMap({
           });
         }
 
+        /* 래스터 지도는 확대 단계가 정수뿐이라, fitBounds 가 빠듯하면 한 단계 낮은 쪽을 골라 지도가 절반 넘게 비는 때가 있다.
+           (GL 지도는 소수점 단계로 맞춰서 필요 없다) 줄인 여백으로도 들어가면 한 단계 더 확대해, 출발지와 경로가 지도를 꽉 채우게 한다 */
+        const tighten = (pts: naver.maps.LatLng[]) => {
+          if (!map || isNaverGl()) return;
+          try {
+            const size = map.getSize();
+            const proj = map.getProjection();
+            const room = FIT_MAX_ZOOM + zoomShift() - map.getZoom();
+            const plan = tightenPlan(
+              pts.map((p) => {
+                const o = proj.fromCoordToOffset(p);
+                return { x: o.x, y: o.y };
+              }),
+              size.width,
+              size.height,
+              TIGHT_PAD,
+              room,
+            );
+            if (!plan) return;
+            map.setCenter(
+              proj.fromOffsetToCoord(
+                new ns.maps.Point(plan.center.x, plan.center.y),
+              ),
+            );
+            map.setZoom(map.getZoom() + plan.steps);
+          } catch {
+            /* 계산에 실패하면 fitBounds 결과를 그대로 쓴다 */
+          }
+        };
+
         // 지도 범위 — 기본은 코스 장소만, 출발지 포함이 켜져 있으면 출발지까지. 도보 경로가 장소 밖으로 돌아가도 잘리지 않게 경로도 넣는다
         const fit = (withOrigin: boolean) => {
           if (!map) return;
@@ -340,11 +397,12 @@ export function CourseMap({
               right: 58,
               bottom: 46,
               left: 36,
-              maxZoom: 17,
+              maxZoom: FIT_MAX_ZOOM + zoomShift(),
             });
+            tighten(pts);
           } else {
             map.setCenter(pts[0]);
-            map.setZoom(15);
+            map.setZoom(SINGLE_ZOOM + zoomShift());
           }
         };
         fitRef.current = fit;
@@ -390,6 +448,35 @@ export function CourseMap({
         };
         applyWalkRef.current = applyWalk;
         applyWalk(walkRef.current, true);
+        // 맞춘 화면이 정해졌다 — 이 뒤에 오는 tilesloaded 부터 "코스 화면의 타일"이다.
+        // 같은 화면의 타일이 이미 캐시에 있어 소식이 먼저 와 버렸다면 잠깐만 더 기다렸다가 보여 준다
+        fitted = true;
+        if (tilesBeforeFit) {
+          if (revealTimer) window.clearTimeout(revealTimer);
+          revealTimer = window.setTimeout(reveal, REVEAL_CACHED_MS);
+        }
+
+        // 지도 칸의 크기가 시트가 열리는 동안이나 스크롤바가 생길 때 바뀌면 타일이 모자라 회색으로 남는다 — 크기가 바뀌면 지도에 다시 알린다
+        if (typeof ResizeObserver !== "undefined") {
+          let lastW = mapEl.clientWidth;
+          let lastH = mapEl.clientHeight;
+          let frame = 0;
+          resizeObserver = new ResizeObserver(() => {
+            if (mapEl.clientWidth === lastW && mapEl.clientHeight === lastH)
+              return;
+            lastW = mapEl.clientWidth;
+            lastH = mapEl.clientHeight;
+            window.cancelAnimationFrame(frame);
+            frame = window.requestAnimationFrame(() => {
+              try {
+                map?.autoResize();
+              } catch {
+                /* 크기를 다시 읽지 못해도 지도는 그대로 쓴다 */
+              }
+            });
+          });
+          resizeObserver.observe(mapEl);
+        }
       })
       .catch(() => {
         if (!cancelled) setBroken(true);
@@ -401,6 +488,8 @@ export function CourseMap({
       fitRef.current = null;
       applyWalkRef.current = null;
       detachDoubleTap?.();
+      resizeObserver?.disconnect();
+      if (revealTimer) window.clearTimeout(revealTimer);
       if (scaleTimer.current) window.clearTimeout(scaleTimer.current);
       try {
         naver.maps.Event.removeListener(listeners);
@@ -436,7 +525,9 @@ export function CourseMap({
   /** 한 단계씩 확대(+1) · 축소(-1) — 한계(가장 멀리 · 가까이)는 지도가 알아서 막는다 */
   function zoomBy(step: number) {
     const map = mapRef.current;
-    if (map) map.setZoom(map.getZoom() + step, true);
+    if (!map) return;
+    const unit = isNaverGl() ? GL_ZOOM_STEP : 1;
+    map.setZoom(map.getZoom() + step * unit, true);
   }
 
   if (broken) return <SchematicRoute components={components} />;
