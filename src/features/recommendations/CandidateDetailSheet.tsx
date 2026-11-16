@@ -25,6 +25,7 @@ import {
   toRoutePoint,
 } from "@/features/wishlist/naverRoute";
 import { useAddCourseItem } from "./queries";
+import { FitZoom } from "./FitZoom";
 import { OriginSwitch } from "./OriginSwitch";
 import { useWalkingRoute } from "./walkingRoute";
 import { hasOriginCoordinates, type Origin, type Slots } from "./courseStore";
@@ -173,82 +174,88 @@ export function CandidateDetailSheet({
         includeOrigin={includeOrigin}
         walkPath={walkPath}
       />
-      <div className="stats">
-        <div className="stat stat--brand">
-          <p className="stat__key">추천 순위</p>
-          <p className="stat__val">{candidate.rank}순위</p>
-        </div>
-        <div className="stat">
-          {/* BE 가 총 소요시간(이동 + 머무름)을 주면 그것을, 아직 안 주면 이동시간만 보여 준다
+      {/* 순위 · 소요시간 카드와 이동 순서는 시트 높이에 안 들어가면 글자 · 번호 원 · 간격을 같은 비율로 줄여 스크롤 없이 보이게 한다(FitZoom) */}
+      <FitZoom>
+        <div className="stats">
+          <div className="stat stat--brand">
+            <p className="stat__key">추천 순위</p>
+            <p className="stat__val">{candidate.rank}순위</p>
+          </div>
+          <div className="stat">
+            {/* BE 가 총 소요시간(이동 + 머무름)을 주면 그것을, 아직 안 주면 이동시간만 보여 준다
               (이동시간을 "소요시간"이라 부르면 뜻이 달라져서 라벨도 함께 바꾼다) */}
-          <p className="stat__key">
-            {candidate.estimatedDurationMinutes != null
-              ? "총 소요시간"
-              : "총 이동시간"}
-          </p>
-          <p className="stat__val">
-            {fmtDuration(
-              candidate.estimatedDurationMinutes ??
-                candidate.totalTravelMinutes,
-            )}
-          </p>
-        </div>
-      </div>
-      <div className="steps">
-        {originPoint && (
-          <div className="step">
-            <span className="step__no step__no--origin">
-              <Icon name="pin" size={14} />
-            </span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span className="step__name">{originPoint.name}</span>
-              <span className="step__meta">
-                출발지
-                {originDistance && ` · 직선 ${originDistance}`}
-              </span>
-            </span>
-            <OriginSwitch checked={includeOrigin} onChange={setIncludeOrigin} />
-          </div>
-        )}
-        {candidate.components.map((comp, i) => (
-          <div className="step" key={comp.sequence}>
-            <span className="step__no">{comp.sequence}</span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span className="step__name">
-                {comp.name}
-                {/* 이름 오른쪽 지도 아이콘을 누르면 네이버 지도에서 이 장소를 연다(보관함 코스 상세와 같다) */}
-                <a
-                  className="step__maplink"
-                  href={naverMapCourseStopUrl(
-                    comp.name,
-                    candidate.area,
-                    comp.type === "EVENT",
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`${comp.name} 네이버 지도에서 보기`}
-                  title="네이버 지도에서 보기"
-                >
-                  <Icon name="map" size={15} />
-                </a>
-              </span>
-              <span className="step__meta">
-                {CATEGORY_LABEL[comp.category]}
-                {/* 이동시간을 모르면(BE v2 는 장소별 이동시간을 안 준다) 0분으로 채우지 않고 문구를 뺀다 */}
-                {comp.travelMinutes != null &&
-                  ` · ${i === 0 ? "출발지에서" : "이전 장소에서"} ${comp.travelMinutes}분 이동`}
-                {comp.estimatedArrivalAt &&
-                  ` · ${fmtHm(comp.estimatedArrivalAt)} 도착`}
-                {comp.estimatedStayMinutes != null &&
-                  ` · ${comp.estimatedStayMinutes}분 머무름`}
-              </span>
-              {comp.reason && (
-                <span className="step__reason">{comp.reason}</span>
+            <p className="stat__key">
+              {candidate.estimatedDurationMinutes != null
+                ? "총 소요시간"
+                : "총 이동시간"}
+            </p>
+            <p className="stat__val">
+              {fmtDuration(
+                candidate.estimatedDurationMinutes ??
+                  candidate.totalTravelMinutes,
               )}
-            </span>
+            </p>
           </div>
-        ))}
-      </div>
+        </div>
+        <div className="steps">
+          {originPoint && (
+            <div className="step">
+              <span className="step__no step__no--origin">
+                <Icon name="pin" size={14} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="step__name">{originPoint.name}</span>
+                <span className="step__meta">
+                  출발지
+                  {originDistance && ` · 직선 ${originDistance}`}
+                </span>
+              </span>
+              <OriginSwitch
+                checked={includeOrigin}
+                onChange={setIncludeOrigin}
+              />
+            </div>
+          )}
+          {candidate.components.map((comp, i) => (
+            <div className="step" key={comp.sequence}>
+              <span className="step__no">{comp.sequence}</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="step__name">
+                  {comp.name}
+                  {/* 이름 오른쪽 지도 아이콘을 누르면 네이버 지도에서 이 장소를 연다(보관함 코스 상세와 같다) */}
+                  <a
+                    className="step__maplink"
+                    href={naverMapCourseStopUrl(
+                      comp.name,
+                      candidate.area,
+                      comp.type === "EVENT",
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${comp.name} 네이버 지도에서 보기`}
+                    title="네이버 지도에서 보기"
+                  >
+                    <Icon name="map" size={15} />
+                  </a>
+                </span>
+                <span className="step__meta">
+                  {CATEGORY_LABEL[comp.category]}
+                  {/* 이동시간을 모르면(BE v2 는 장소별 이동시간을 안 준다) 0분으로 채우지 않고 문구를 뺀다 */}
+                  {comp.travelMinutes != null &&
+                    ` · ${i === 0 ? "출발지에서" : "이전 장소에서"} ${comp.travelMinutes}분 이동`}
+                  {comp.estimatedArrivalAt &&
+                    ` · ${fmtHm(comp.estimatedArrivalAt)} 도착`}
+                  {comp.estimatedStayMinutes != null &&
+                    ` · ${comp.estimatedStayMinutes}분 머무름`}
+                </span>
+                {comp.reason && (
+                  <span className="step__reason">{comp.reason}</span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      </FitZoom>
     </Sheet>
   );
 }
