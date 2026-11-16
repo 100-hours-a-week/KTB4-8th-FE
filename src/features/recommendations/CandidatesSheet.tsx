@@ -156,6 +156,7 @@ export function CandidatesSheet({
       sub={`${slots.region ?? ""} · ${dateLabel} ${timeLabel}`}
       back
       center
+      autoHideScroll
       onClose={onClose}
     >
       <div className="stagger">

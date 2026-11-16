@@ -130,6 +130,7 @@ export function CandidateDetailSheet({
       sub={`${candidate.area} · ${dateLabel} ${timeLabel}`}
       center
       back
+      autoHideScroll
       onBack={onBack}
       onClose={onClose}
       foot={
