@@ -15,7 +15,7 @@ import {
   fetchPointInfo,
   type PlaceView,
 } from "@/lib/address/pointInfo";
-import { loadNaverMaps } from "@/lib/naverMaps";
+import { loadNaverMaps, zoomShift } from "@/lib/naverMaps";
 import { useCourseStore } from "./courseStore";
 
 /* 지도 핀으로 출발지 설정 — 설계: Wiki/Frontend/Origin-Pin-Picker-Design.md (1단계).
@@ -155,7 +155,7 @@ export function OriginPinPicker({ onClose, onSaved }: OriginPinPickerProps) {
         if (cancelled) return;
         map = new ns.maps.Map(container, {
           center: new ns.maps.LatLng(start.point.lat, start.point.lng),
-          zoom: START_ZOOM,
+          zoom: START_ZOOM + zoomShift(),
           zoomControl: false,
           scaleControl: false,
           mapDataControl: false,

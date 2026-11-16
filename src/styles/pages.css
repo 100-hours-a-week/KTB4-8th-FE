@@ -2283,6 +2283,13 @@
   background-size: 260% 100%;
   animation: kg-shimmer 1.4s var(--e-io) infinite;
 }
+/* 타일이 다 올 때까지 지도(타일 · 점 · 경로)를 감추고, 오면 부드럽게 나타난다 — 받다 만 회색 네모가 보이지 않게 */
+.route--live > * {
+  transition: opacity 0.22s var(--e-out);
+}
+.route--live.route--skeleton > * {
+  opacity: 0;
+}
 .route--live::before {
   display: none;
 }
